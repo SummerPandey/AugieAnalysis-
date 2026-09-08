@@ -367,7 +367,7 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
             textAlign: "center",
           }}
         >
-          August 10
+          Augie
           <br />
           <span style={{ color: T.gold }}>Analysis</span>
         </h1>

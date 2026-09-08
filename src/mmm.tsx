@@ -726,7 +726,7 @@ function ChartTip({
   formatter,
 }: {
   active?: boolean
-  payload?: { name: string value: number color: string }[]
+  payload?: { name: string; value: number; color: string }[]
   label?: string
   formatter?: (v: number) => string
 }) {
@@ -768,7 +768,7 @@ function ChartTip({
 
 /* ── STEP 1 – Import ────────────────────────────────────────── */
 const DEMO_FILE: ImportedFile = {
-  name: "august_10_media_data.csv",
+  name: "augie_analysis_media_data.csv",
   size: 48320,
   rows: 365,
   cols: DEMO_CSV_COLS,
@@ -2933,7 +2933,11 @@ export function MMMWorkflow({ onBack }: { onBack: () => void }) {
           </span>
         </div>
         <span style={{ marginLeft: "auto", fontSize: 12, color: T.ts }}>
-          Aug 10, 2026
+          {new Date().toLocaleDateString("en-US", {
+            month: "short",
+            day: "numeric",
+            year: "numeric",
+          })}
         </span>
       </header>
 
