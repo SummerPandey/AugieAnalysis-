@@ -1,0 +1,10 @@
+{
+  "description": "Analyze data effortlessly with a cozy interface featuring AI insights, CSV/XLS import, and a clear visual layout for streamlined decision-making.",
+  "robots": {
+    "index": false
+  },
+  "accessibility": {
+    "addBypassLinks": false,
+    "ignoreReducedMotion": false
+  }
+}
