@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from "react"
 import { MMMWorkflow, T } from "./mmm"
+import { login as apiLogin } from "./api"
 
 /* ── types ─────────────────────────────────────────────────── */
 type Page = "landing" | "options" | "mmm"
@@ -397,7 +398,131 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
 }
 
 /* ── Landing / login ────────────────────────────────────────── */
-function LandingPage({ onStart }: { onStart: () => void }) {
+function LandingPage({
+  onStart,
+  onSignedIn,
+}: {
+  onStart: () => void
+  onSignedIn: (token: string) => void
+}) {
+  const [showForm, setShowForm] = useState(false)
+  const [email, setEmail] = useState("")
+  const [password, setPassword] = useState("")
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(false)
+
+  async function handleSubmit(e: React.FormEvent) {
+    e.preventDefault()
+    setError(null)
+    setLoading(true)
+    try {
+      const token = await apiLogin(email, password)
+      onSignedIn(token)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : String(err))
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  if (showForm) {
+    return (
+      <div
+        className="fixed inset-0 flex flex-col items-center justify-center gap-6 px-6"
+        style={{ background: T.navy }}
+      >
+        <h1
+          style={{
+            color: "#fff",
+            fontFamily: "var(--font-display)",
+            fontSize: 32,
+            textAlign: "center",
+          }}
+        >
+          Sign in to <span style={{ color: T.gold }}>Augie Analysis</span>
+        </h1>
+        <form
+          onSubmit={handleSubmit}
+          style={{
+            width: "100%",
+            maxWidth: 340,
+            display: "flex",
+            flexDirection: "column",
+            gap: 12,
+          }}
+        >
+          <input
+            type="email"
+            required
+            placeholder="you@augustana.edu"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            style={{
+              padding: "11px 14px",
+              borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.2)",
+              background: "rgba(255,255,255,0.06)",
+              color: "#fff",
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+          <input
+            type="password"
+            required
+            placeholder="Password"
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            style={{
+              padding: "11px 14px",
+              borderRadius: 8,
+              border: "1px solid rgba(255,255,255,0.2)",
+              background: "rgba(255,255,255,0.06)",
+              color: "#fff",
+              fontSize: 14,
+              outline: "none",
+            }}
+          />
+          {error && (
+            <p style={{ color: "#FEB2B2", fontSize: 13 }}>{error}</p>
+          )}
+          <button
+            type="submit"
+            disabled={loading}
+            style={{
+              padding: "12px",
+              borderRadius: 8,
+              background: T.gold,
+              color: T.navy,
+              fontWeight: 600,
+              fontSize: 14,
+              border: "none",
+              cursor: loading ? "default" : "pointer",
+              opacity: loading ? 0.6 : 1,
+            }}
+          >
+            {loading ? "Signing in…" : "Sign in"}
+          </button>
+          <button
+            type="button"
+            onClick={onStart}
+            style={{
+              padding: "10px",
+              borderRadius: 8,
+              background: "none",
+              border: "none",
+              color: "rgba(255,255,255,0.6)",
+              fontSize: 13,
+              cursor: "pointer",
+            }}
+          >
+            Continue without an account (demo data)
+          </button>
+        </form>
+      </div>
+    )
+  }
+
   return (
     <div
       className="fixed inset-0 flex flex-col items-center justify-center gap-10"
@@ -479,7 +604,7 @@ function LandingPage({ onStart }: { onStart: () => void }) {
         </h1>
 
         <button
-          onClick={onStart}
+          onClick={() => setShowForm(true)}
           className="hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150"
           style={{
             display: "flex",
@@ -738,6 +863,24 @@ function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
 export default function App() {
   const [loaded, setLoaded] = useState(false)
   const [page, setPage] = useState<Page>("landing")
+  const [authToken, setAuthToken] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem("mmm_auth_token")
+    } catch {
+      return null
+    }
+  })
+
+  function handleSignedIn(token: string) {
+    setAuthToken(token)
+    try {
+      sessionStorage.setItem("mmm_auth_token", token)
+    } catch {
+      // sessionStorage unavailable (private browsing, etc.) — token still
+      // works for this page load via component state.
+    }
+    setPage("options")
+  }
 
   if (!loaded) return <LoadingScreen onDone={() => setLoaded(true)} />
 
@@ -765,7 +908,12 @@ export default function App() {
         Skip to main content
       </a>
 
-      {page === "landing" && <LandingPage onStart={() => setPage("options")} />}
+      {page === "landing" && (
+        <LandingPage
+          onStart={() => setPage("options")}
+          onSignedIn={handleSignedIn}
+        />
+      )}
       {page === "options" && (
         <OptionsPage onSelect={(id) => id === "mmm" && setPage("mmm")} />
       )}
@@ -774,7 +922,7 @@ export default function App() {
           className="fixed inset-0 overflow-auto animate-fade-in"
           style={{ animationDuration: "0.35s" }}
         >
-          <MMMWorkflow onBack={() => setPage("options")} />
+          <MMMWorkflow onBack={() => setPage("options")} authToken={authToken} />
         </div>
       )}
       <ChatWidget />

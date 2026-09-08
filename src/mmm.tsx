@@ -1,7 +1,9 @@
 /**
  * MMM Workflow – full 6-step Marketing Mix Modeling analysis flow.
- * All model results are SIMULATED and clearly labelled as demo data.
- * Replace the `runAnalysis` function with a real API call to use live results.
+ * When `authToken` is supplied (the user is signed in), Run Analysis calls
+ * the real Augustana MMM backend instead of the simulated generator, and
+ * Results renders RealResultsStep with the actual Ridge regression output.
+ * Signed-out sessions keep the original simulated demo flow unchanged.
  */
 
 import {
@@ -15,6 +17,7 @@ import {
   type ReactNode,
   type CSSProperties,
 } from "react"
+import { runPipeline, getInsights, type PipelineResult } from "./api"
 import {
   ComposedChart,
   BarChart,
@@ -176,6 +179,9 @@ interface WorkflowState {
   isRunning: boolean
   runProgress: number
   runStep: string
+  realResult: PipelineResult | null
+  realCommentary: string | null
+  realCommentaryError: string | null
 }
 
 /* ── demo data helpers ──────────────────────────────────────── */
@@ -1686,6 +1692,7 @@ function RunStep({
   currentRunStep,
   runError,
   lastResult,
+  isReal,
   onBack,
   onRun,
 }: {
@@ -1696,6 +1703,7 @@ function RunStep({
   currentRunStep: string
   runError: string | null
   lastResult: RunResult | null
+  isReal: boolean
   onBack: () => void
   onRun: () => void
 }) {
@@ -1728,6 +1736,20 @@ function RunStep({
           Review the configuration summary below, then run the analysis.
         </p>
       </div>
+
+      {isReal ? (
+        <Alert variant="info">
+          <strong>Signed in.</strong> This will run the real Augustana MMM
+          pipeline (Ridge regression) against your live Supabase data — not
+          the demo dataset. The configuration below is illustrative; the
+          real pipeline always uses its own validated feature set.
+        </Alert>
+      ) : (
+        <Alert variant="demo">
+          Not signed in — this will run on the simulated demo dataset. Sign
+          in from the landing page to run the real pipeline instead.
+        </Alert>
+      )}
 
       {/* config summary */}
       <div style={{ ...card, padding: "14px 16px" }}>
@@ -2675,6 +2697,148 @@ function ResultsStep({
   )
 }
 
+/* ── STEP 6 (real) – Results from the actual backend ──────────── */
+function CoefficientBar({ name, value, max }: { name: string; value: number; max: number }) {
+  const pct = max > 0 ? Math.min(100, (Math.abs(value) / max) * 100) : 0
+  const positive = value >= 0
+  return (
+    <div style={{ display: "flex", alignItems: "center", gap: 10, fontSize: 12 }}>
+      <span style={{ width: 190, flexShrink: 0, color: T.tp, fontFamily: "monospace" }}>
+        {name}
+      </span>
+      <div style={{ flex: 1, height: 14, background: T.bg, borderRadius: 3, position: "relative" }}>
+        <div
+          style={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: positive ? "50%" : undefined,
+            right: positive ? undefined : "50%",
+            width: `${pct / 2}%`,
+            background: positive ? T.success : T.error,
+            borderRadius: 3,
+          }}
+        />
+        <div style={{ position: "absolute", left: "50%", top: 0, bottom: 0, width: 1, background: T.border }} />
+      </div>
+      <span style={{ width: 64, flexShrink: 0, textAlign: "right", color: T.ts, fontFamily: "monospace" }}>
+        {value.toFixed(2)}
+      </span>
+    </div>
+  )
+}
+
+function RealResultsStep({
+  result,
+  commentary,
+  commentaryError,
+  onBack,
+  onNewRun,
+}: {
+  result: PipelineResult
+  commentary: string | null
+  commentaryError: string | null
+  onBack: () => void
+  onNewRun: () => void
+}) {
+  const coefEntries = Object.entries(result.coefficients).sort(
+    (a, b) => Math.abs(b[1]) - Math.abs(a[1]),
+  )
+  const maxAbsCoef = Math.max(...coefEntries.map(([, v]) => Math.abs(v)), 1)
+  const diag = result.multicollinearity
+  const inSample = result.in_sample_metrics
+  const cv = result.cross_validation
+
+  return (
+    <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+        <div>
+          <h2 style={{ fontSize: 20, fontWeight: 700, color: T.tp, marginBottom: 4 }}>
+            Results: Live Augustana Data
+          </h2>
+          <p style={{ fontSize: 13, color: T.ts }}>
+            {result.rows} weeks · {result.date_range[0]} → {result.date_range[1]}
+          </p>
+        </div>
+        <Badge variant="success">● Real data</Badge>
+      </div>
+
+      {diag.warning && <Alert variant="warning">{diag.warning}</Alert>}
+
+      {commentaryError && (
+        <Alert variant="warning">
+          AI commentary unavailable: {commentaryError}
+        </Alert>
+      )}
+
+      {commentary && (
+        <div style={{ ...card, padding: "16px" }}>
+          <p style={{ ...lbl, marginBottom: 8 }}>AI Analysis</p>
+          <p style={{ fontSize: 13, color: T.tp, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
+            {commentary}
+          </p>
+        </div>
+      )}
+
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}
+      >
+        <KpiCard label="In-sample R²" value={inSample["R²"]?.toFixed(3) ?? "—"} sub="Full fit" highlight />
+        <KpiCard label="Cross-val R²" value={cv.mean_r2.toFixed(3)} sub={`±${cv.std_r2.toFixed(2)} across folds`} />
+        <KpiCard label="MAE" value={`${inSample["MAE"]?.toFixed(0) ?? "—"} apps/wk`} sub="Avg prediction error" />
+        <KpiCard label="Ridge alpha" value={result.selected_ridge_alpha.toFixed(2)} sub="Auto-tuned" />
+      </div>
+
+      {result.spend_coverage && (
+        <Alert variant="info">
+          Spend data covers {result.spend_coverage.weeks_covered} of{" "}
+          {result.spend_coverage.total_weeks} weeks (
+          {Math.round((result.spend_coverage.weeks_covered / result.spend_coverage.total_weeks) * 100)}
+          %). Channel coefficients below are less reliable outside that window.
+        </Alert>
+      )}
+
+      <div style={{ ...card, padding: 0 }}>
+        <SectionHeader title="Model coefficients (standardized units)" />
+        <div style={{ padding: "16px", display: "flex", flexDirection: "column", gap: 8 }}>
+          {coefEntries.map(([name, value]) => (
+            <CoefficientBar key={name} name={name} value={value} max={maxAbsCoef} />
+          ))}
+        </div>
+      </div>
+
+      <Disclosure summary="Cross-validation & diagnostics detail">
+        <div style={{ padding: "12px 14px", display: "flex", flexDirection: "column", gap: 10 }}>
+          <p style={{ fontSize: 12, color: T.ts }}>
+            Per-fold R²: {cv.per_fold_r2.map((s) => s.toFixed(2)).join(", ")}
+          </p>
+          <p style={{ fontSize: 12, color: T.ts }}>
+            Durbin-Watson: {inSample["Durbin-Watson"]?.toFixed(2) ?? "—"} (≈2 = no
+            significant autocorrelation)
+          </p>
+          {diag.condition_number !== undefined && (
+            <p style={{ fontSize: 12, color: T.ts }}>
+              Design matrix condition number: {diag.condition_number.toLocaleString()}
+              {diag.high_condition_number ? " (high)" : ""}
+            </p>
+          )}
+          {diag.high_vif_features && Object.keys(diag.high_vif_features).length > 0 && (
+            <p style={{ fontSize: 12, color: T.ts }}>
+              High-VIF features:{" "}
+              {Object.entries(diag.high_vif_features)
+                .map(([k, v]) => `${k} (${v})`)
+                .join(", ")}
+            </p>
+          )}
+        </div>
+      </Disclosure>
+
+      <StepFooter onBack={onBack} onNext={onNewRun} nextLabel="New Run" />
+    </div>
+  )
+}
+
 /* ── Stepper ────────────────────────────────────────────────── */
 const STEPS = ["Import", "Map Columns", "Select", "Configure", "Run", "Results"]
 
@@ -2761,7 +2925,13 @@ function Stepper({ current }: { current: number }) {
 }
 
 /* ── MMMWorkflow root ───────────────────────────────────────── */
-export function MMMWorkflow({ onBack }: { onBack: () => void }) {
+export function MMMWorkflow({
+  onBack,
+  authToken,
+}: {
+  onBack: () => void
+  authToken?: string | null
+}) {
   const [state, setState] = useState<WorkflowState>({
     step: 5,
     file: DEMO_FILE,
@@ -2775,6 +2945,9 @@ export function MMMWorkflow({ onBack }: { onBack: () => void }) {
     isRunning: false,
     runProgress: 0,
     runStep: "",
+    realResult: null,
+    realCommentary: null,
+    realCommentaryError: null,
   })
 
   const mainRef = useRef<HTMLDivElement>(null)
@@ -2803,6 +2976,14 @@ export function MMMWorkflow({ onBack }: { onBack: () => void }) {
 
   function runAnalysis() {
     if (state.isRunning) return
+    if (authToken) {
+      runRealAnalysis(authToken)
+    } else {
+      runDemoAnalysis()
+    }
+  }
+
+  function runDemoAnalysis() {
     setState((s) => ({
       ...s,
       isRunning: true,
@@ -2841,6 +3022,58 @@ export function MMMWorkflow({ onBack }: { onBack: () => void }) {
     }, totalMs + 300)
   }
 
+  async function runRealAnalysis(token: string) {
+    setState((s) => ({
+      ...s,
+      isRunning: true,
+      runProgress: 10,
+      runError: null,
+      runStep: "Running the real Augustana MMM pipeline…",
+      realResult: null,
+      realCommentary: null,
+      realCommentaryError: null,
+    }))
+
+    let result: PipelineResult
+    try {
+      result = await runPipeline(token)
+    } catch (err) {
+      setState((s) => ({
+        ...s,
+        isRunning: false,
+        runProgress: 0,
+        runError: err instanceof Error ? err.message : String(err),
+      }))
+      return
+    }
+
+    setState((s) => ({
+      ...s,
+      runProgress: 70,
+      runStep: "Generating AI commentary…",
+      realResult: result,
+    }))
+
+    let commentary: string | null = null
+    let commentaryError: string | null = null
+    try {
+      const insights = await getInsights(token)
+      commentary = insights.commentary
+    } catch (err) {
+      commentaryError = err instanceof Error ? err.message : String(err)
+    }
+
+    setState((s) => ({
+      ...s,
+      isRunning: false,
+      runProgress: 100,
+      realCommentary: commentary,
+      realCommentaryError: commentaryError,
+      step: 6,
+    }))
+    focusMain()
+  }
+
   const {
     step,
     file,
@@ -2854,6 +3087,9 @@ export function MMMWorkflow({ onBack }: { onBack: () => void }) {
     isRunning,
     runProgress,
     runStep,
+    realResult,
+    realCommentary,
+    realCommentaryError,
   } = state
 
   return (
@@ -3012,11 +3248,24 @@ export function MMMWorkflow({ onBack }: { onBack: () => void }) {
             currentRunStep={runStep}
             runError={runError}
             lastResult={lastResult}
+            isReal={!!authToken}
             onBack={() => goTo(4)}
             onRun={runAnalysis}
           />
         )}
-        {step === 6 && result && (
+        {step === 6 && realResult && (
+          <RealResultsStep
+            result={realResult}
+            commentary={realCommentary}
+            commentaryError={realCommentaryError}
+            onBack={() => goTo(4)}
+            onNewRun={() => {
+              setState((s) => ({ ...s, step: 5, runProgress: 0, runStep: "" }))
+              focusMain()
+            }}
+          />
+        )}
+        {step === 6 && !realResult && result && (
           <ResultsStep
             result={result}
             onBack={() => goTo(4)}
