@@ -2763,8 +2763,8 @@ function Stepper({ current }: { current: number }) {
 /* ── MMMWorkflow root ───────────────────────────────────────── */
 export function MMMWorkflow({ onBack }: { onBack: () => void }) {
   const [state, setState] = useState<WorkflowState>({
-    step: 1,
-    file: null,
+    step: 5,
+    file: DEMO_FILE,
     colMap: DEFAULT_COL_MAP,
     analysisType: "attribution",
     config: DEFAULTS.attribution,
