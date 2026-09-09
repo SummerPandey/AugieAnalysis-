@@ -880,6 +880,8 @@ interface ImportCategory {
   coverage: string
   status: "available" | "pending"
   pendingNote?: string
+  color: string
+  icon: (color: string) => ReactNode
 }
 
 const IMPORT_CATEGORIES: ImportCategory[] = [
@@ -892,6 +894,12 @@ const IMPORT_CATEGORIES: ImportCategory[] = [
     dateRange: "Jan 2023 – May 2026",
     coverage: "100% — full history",
     status: "available",
+    color: T.navy,
+    icon: (c) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M2 13.5V9M6 13.5V5.5M10 13.5V7M14 13.5V2.5" stroke={c} strokeWidth="1.6" strokeLinecap="round" />
+      </svg>
+    ),
   },
   {
     id: "spend",
@@ -902,6 +910,13 @@ const IMPORT_CATEGORIES: ImportCategory[] = [
     dateRange: "Oct 2024 – Jan 2026",
     coverage: "37% of full range",
     status: "available",
+    color: "#B45309",
+    icon: (c) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="6.2" stroke={c} strokeWidth="1.4" />
+        <path d="M8 4.5v7M10 6.3c0-.9-.9-1.6-2-1.6-1.1 0-2 .7-2 1.6s.9 1.4 2 1.6c1.1.2 2 .7 2 1.6s-.9 1.6-2 1.6c-1.1 0-2-.7-2-1.6" stroke={c} strokeWidth="1.2" strokeLinecap="round" />
+      </svg>
+    ),
   },
   {
     id: "impressions",
@@ -912,6 +927,13 @@ const IMPORT_CATEGORIES: ImportCategory[] = [
     dateRange: "Jan 2023 – Jan 2026",
     coverage: "67% of full range",
     status: "available",
+    color: "#0E7490",
+    icon: (c) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M1 8s2.5-4.5 7-4.5S15 8 15 8s-2.5 4.5-7 4.5S1 8 1 8z" stroke={c} strokeWidth="1.3" strokeLinejoin="round" />
+        <circle cx="8" cy="8" r="2" stroke={c} strokeWidth="1.3" />
+      </svg>
+    ),
   },
   {
     id: "conversions",
@@ -922,6 +944,14 @@ const IMPORT_CATEGORIES: ImportCategory[] = [
     dateRange: "May 2026 only",
     coverage: "Too short to use yet",
     status: "available",
+    color: "#065F46",
+    icon: (c) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <circle cx="8" cy="8" r="6" stroke={c} strokeWidth="1.3" />
+        <circle cx="8" cy="8" r="3" stroke={c} strokeWidth="1.3" />
+        <circle cx="8" cy="8" r="0.9" fill={c} />
+      </svg>
+    ),
   },
   {
     id: "adgroup",
@@ -932,6 +962,13 @@ const IMPORT_CATEGORIES: ImportCategory[] = [
     dateRange: "Snapshot",
     coverage: "Reference only",
     status: "available",
+    color: "#6B21A8",
+    icon: (c) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <path d="M8 2l6.5 3.2L8 8.4 1.5 5.2 8 2z" stroke={c} strokeWidth="1.2" strokeLinejoin="round" />
+        <path d="M1.5 8.4L8 11.6l6.5-3.2M1.5 11.6L8 14.8l6.5-3.2" stroke={c} strokeWidth="1.2" strokeLinejoin="round" />
+      </svg>
+    ),
   },
   {
     id: "billboard",
@@ -942,6 +979,13 @@ const IMPORT_CATEGORIES: ImportCategory[] = [
     dateRange: "Jan 2023 – Jun 2026",
     coverage: "100% — full history",
     status: "available",
+    color: "#9B2C2C",
+    icon: (c) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="3" width="13" height="6.5" rx="1" stroke={c} strokeWidth="1.3" />
+        <path d="M8 9.5v4.5M5.5 14h5" stroke={c} strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+    ),
   },
   {
     id: "email",
@@ -953,6 +997,13 @@ const IMPORT_CATEGORIES: ImportCategory[] = [
     coverage: "Pending",
     status: "pending",
     pendingNote: "Waiting on Anthony to export send history.",
+    color: T.ts,
+    icon: (c) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="3.5" width="13" height="9" rx="1.2" stroke={c} strokeWidth="1.3" />
+        <path d="M2 4.5l6 5 6-5" stroke={c} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
   },
   {
     id: "direct_mail",
@@ -964,6 +1015,14 @@ const IMPORT_CATEGORIES: ImportCategory[] = [
     coverage: "Pending",
     status: "pending",
     pendingNote: "Waiting on Lucas for flight dates, not just annual totals.",
+    color: T.ts,
+    icon: (c) => (
+      <svg width="16" height="16" viewBox="0 0 16 16" fill="none">
+        <rect x="1.5" y="2.5" width="13" height="11" rx="1.2" stroke={c} strokeWidth="1.3" />
+        <path d="M4 6h5M4 8.5h3" stroke={c} strokeWidth="1.2" strokeLinecap="round" />
+        <path d="M10 10.5l2 2 2-2" stroke={c} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
   },
 ]
 
@@ -1003,15 +1062,35 @@ function ImportCategoryCard({
     })
   }
 
+  const iconBadge = (
+    <div
+      style={{
+        width: 32,
+        height: 32,
+        borderRadius: 8,
+        background: `${category.color}18`,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        flexShrink: 0,
+      }}
+    >
+      {category.icon(category.color)}
+    </div>
+  )
+
   if (category.status === "pending") {
     return (
       <div style={{ ...card, padding: "14px 16px", opacity: 0.55 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-          <div>
-            <p style={{ fontSize: 13, fontWeight: 600, color: T.tp }}>{category.label}</p>
-            <p style={{ fontSize: 11, color: T.ts, marginTop: 2, lineHeight: 1.4 }}>
-              {category.description}
-            </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 10 }}>
+          <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+            {iconBadge}
+            <div>
+              <p style={{ fontSize: 13, fontWeight: 600, color: T.tp }}>{category.label}</p>
+              <p style={{ fontSize: 11, color: T.ts, marginTop: 2, lineHeight: 1.4 }}>
+                {category.description}
+              </p>
+            </div>
           </div>
           <Badge variant="warning">Pending</Badge>
         </div>
@@ -1025,13 +1104,26 @@ function ImportCategoryCard({
   }
 
   return (
-    <div style={{ ...card, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+    <div
+      className="hover-lift"
+      style={{
+        ...card,
+        padding: "14px 16px",
+        display: "flex",
+        flexDirection: "column",
+        gap: 10,
+        borderLeft: `3px solid ${category.color}`,
+      }}
+    >
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
-        <div>
-          <p style={{ fontSize: 13, fontWeight: 600, color: T.tp }}>{category.label}</p>
-          <p style={{ fontSize: 11, color: T.ts, marginTop: 2, lineHeight: 1.4 }}>
-            {category.description}
-          </p>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-start" }}>
+          {iconBadge}
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: T.tp }}>{category.label}</p>
+            <p style={{ fontSize: 11, color: T.ts, marginTop: 2, lineHeight: 1.4 }}>
+              {category.description}
+            </p>
+          </div>
         </div>
         {file && (
           <button
@@ -2098,21 +2190,59 @@ function KpiCard({
   value,
   sub,
   highlight,
+  icon,
+  delay = 0,
 }: {
   label: string
   value: string
   sub?: string
   highlight?: boolean
+  icon?: ReactNode
+  delay?: number
 }) {
   return (
     <div
+      className="hover-lift animate-pop-in"
       style={{
         ...card,
         padding: "16px",
-        borderLeft: highlight ? `3px solid ${T.navy}` : undefined,
+        position: "relative",
+        overflow: "hidden",
+        animationDelay: `${delay}ms`,
       }}
     >
-      <p style={{ ...lbl, marginBottom: 8 }}>{label}</p>
+      {highlight && (
+        <div
+          aria-hidden
+          style={{
+            position: "absolute",
+            top: 0,
+            left: 0,
+            right: 0,
+            height: 3,
+            background: `linear-gradient(90deg, ${T.navy}, ${T.gold})`,
+          }}
+        />
+      )}
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 8 }}>
+        <p style={{ ...lbl, marginBottom: 8 }}>{label}</p>
+        {icon && (
+          <div
+            style={{
+              width: 26,
+              height: 26,
+              borderRadius: 7,
+              background: "#EEF2F8",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              flexShrink: 0,
+            }}
+          >
+            {icon}
+          </div>
+        )}
+      </div>
       <p style={{ fontSize: 22, fontWeight: 700, color: T.tp, lineHeight: 1 }}>
         {value}
       </p>
@@ -2793,26 +2923,31 @@ function ResultsStep({
           label="Total Spend"
           value={fmtUSD(result.kpi.totalSpend)}
           highlight
+          delay={0}
         />
         <KpiCard
           label="Modeled Revenue"
           value={fmtUSD(result.kpi.modeledRevenue)}
           sub={`${(result.kpi.modeledRevenue / result.kpi.totalSpend).toFixed(1)}× revenue/spend`}
+          delay={50}
         />
         <KpiCard
           label="Incremental Revenue"
           value={fmtUSD(result.kpi.incrementalRevenue)}
           sub="Above organic baseline"
+          delay={100}
         />
         <KpiCard
           label="Blended ROI"
           value={`${result.kpi.roi}×`}
           sub="Incremental / total spend"
+          delay={150}
         />
         <KpiCard
           label="Model R²"
           value={result.kpi.rSquared.toFixed(3)}
           sub={result.kpi.rSquared >= 0.85 ? "Good fit" : "Below target"}
+          delay={200}
         />
       </div>
 
@@ -3102,10 +3237,57 @@ function RealResultsStep({
         className="grid gap-3"
         style={{ gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))" }}
       >
-        <KpiCard label="In-sample R²" value={inSample["R²"]?.toFixed(3) ?? "—"} sub="Full fit" highlight />
-        <KpiCard label="Cross-val R²" value={cv.mean_r2.toFixed(3)} sub={`±${cv.std_r2.toFixed(2)} across folds`} />
-        <KpiCard label="MAE" value={`${inSample["MAE"]?.toFixed(0) ?? "—"} apps/wk`} sub="Avg prediction error" />
-        <KpiCard label="Ridge alpha" value={result.selected_ridge_alpha.toFixed(2)} sub="Auto-tuned" />
+        <KpiCard
+          label="In-sample R²"
+          value={inSample["R²"]?.toFixed(3) ?? "—"}
+          sub="Full fit"
+          highlight
+          delay={0}
+          icon={
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <circle cx="7" cy="7" r="5.5" stroke={T.navy} strokeWidth="1.3" />
+              <circle cx="7" cy="7" r="2.8" stroke={T.navy} strokeWidth="1.3" />
+              <circle cx="7" cy="7" r="0.9" fill={T.navy} />
+            </svg>
+          }
+        />
+        <KpiCard
+          label="Cross-val R²"
+          value={cv.mean_r2.toFixed(3)}
+          sub={`±${cv.std_r2.toFixed(2)} across folds`}
+          delay={60}
+          icon={
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M7 1.5l4.5 1.6v3.4c0 3-1.9 5-4.5 6-2.6-1-4.5-3-4.5-6V3.1L7 1.5z" stroke={T.navy} strokeWidth="1.2" strokeLinejoin="round" />
+              <path d="M5 7l1.4 1.4L9.2 5.6" stroke={T.navy} strokeWidth="1.2" strokeLinecap="round" strokeLinejoin="round" />
+            </svg>
+          }
+        />
+        <KpiCard
+          label="MAE"
+          value={`${inSample["MAE"]?.toFixed(0) ?? "—"} apps/wk`}
+          sub="Avg prediction error"
+          delay={120}
+          icon={
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 10.5L5 5l2 3 2-4.5 3 7" stroke={T.navy} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+            </svg>
+          }
+        />
+        <KpiCard
+          label="Ridge alpha"
+          value={result.selected_ridge_alpha.toFixed(2)}
+          sub="Auto-tuned"
+          delay={180}
+          icon={
+            <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
+              <path d="M2 3.5h10M2 7h10M2 10.5h10" stroke={T.navy} strokeWidth="1.2" strokeLinecap="round" />
+              <circle cx="5" cy="3.5" r="1.3" fill={T.gold} stroke={T.navy} strokeWidth="0.8" />
+              <circle cx="9" cy="7" r="1.3" fill={T.gold} stroke={T.navy} strokeWidth="0.8" />
+              <circle cx="4" cy="10.5" r="1.3" fill={T.gold} stroke={T.navy} strokeWidth="0.8" />
+            </svg>
+          }
+        />
       </div>
 
       {result.spend_coverage && (
@@ -3423,9 +3605,9 @@ export function MMMWorkflow({
 
   return (
     <div
+      className="bg-mesh"
       style={{
         minHeight: "100%",
-        background: T.bg,
         display: "flex",
         flexDirection: "column",
       }}

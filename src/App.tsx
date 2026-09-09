@@ -605,7 +605,7 @@ function LandingPage({
 
         <button
           onClick={() => setShowForm(true)}
-          className="hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150"
+          className="hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150 animate-float-glow"
           style={{
             display: "flex",
             alignItems: "center",
@@ -738,7 +738,7 @@ function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
   const [hov, setHov] = useState<string | null>(null)
 
   return (
-    <div className="fixed inset-0 flex flex-col" style={{ background: T.bg }}>
+    <div className="fixed inset-0 flex flex-col bg-mesh">
       <header
         style={{
           background: T.surface,
@@ -801,7 +801,7 @@ function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
               <div key={opt.id} style={{ position: "relative" }}>
                 <button
                   role="listitem"
-                  className="text-left flex flex-col gap-3 p-5 transition-all duration-150 w-full"
+                  className="text-left flex flex-col gap-3 p-5 w-full"
                   style={{
                     background: T.surface,
                     border: `1.5px solid ${
@@ -810,9 +810,10 @@ function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
                     borderRadius: 10,
                     boxShadow:
                       isH && opt.active
-                        ? "0 4px 16px rgba(0,47,108,0.12)"
+                        ? "0 12px 28px rgba(0,47,108,0.16), 0 0 0 3px rgba(255,221,0,0.15)"
                         : "0 1px 3px rgba(0,0,0,0.04)",
-                    transform: isH && opt.active ? "translateY(-2px)" : "none",
+                    transform: isH && opt.active ? "translateY(-4px) scale(1.015)" : "none",
+                    transition: "transform 0.22s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.22s ease, border-color 0.22s ease",
                     cursor: opt.active ? "pointer" : "default",
                     opacity: opt.active ? 1 : 0.45,
                     outline: "none",
@@ -827,13 +828,14 @@ function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
                 >
                   <div
                     style={{
-                      width: 36,
-                      height: 36,
-                      borderRadius: 8,
-                      background: isH ? T.navy : "#EEF2F8",
+                      width: 38,
+                      height: 38,
+                      borderRadius: 9,
+                      background: isH ? `linear-gradient(135deg, ${T.navy}, ${T.navyHover})` : "#EEF2F8",
                       display: "flex",
                       alignItems: "center",
                       justifyContent: "center",
+                      transition: "background 0.22s ease",
                     }}
                   >
                     {opt.icon(isH)}
