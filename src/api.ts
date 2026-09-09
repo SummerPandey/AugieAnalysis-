@@ -15,6 +15,19 @@ export interface MulticollinearityDiagnostics {
   note?: string
 }
 
+export interface WeeklyPoint {
+  date: string
+  actual: number
+  predicted: number
+}
+
+export interface ChannelContributionPoint {
+  date: string
+  baseline: number
+  impressions?: number
+  [channel: string]: string | number | undefined
+}
+
 export interface PipelineResult {
   rows: number
   date_range: [string, string]
@@ -26,6 +39,8 @@ export interface PipelineResult {
   cross_validation: { per_fold_r2: number[]; mean_r2: number; std_r2: number }
   coefficients: Record<string, number>
   multicollinearity: MulticollinearityDiagnostics
+  weekly: WeeklyPoint[]
+  channel_contribution_weekly: ChannelContributionPoint[]
 }
 
 export interface InsightsResult {

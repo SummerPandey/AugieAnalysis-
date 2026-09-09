@@ -1684,6 +1684,13 @@ const RUN_STEPS = [
   "Generating insights & recommendations",
 ]
 
+const REAL_RUN_STEPS = [
+  "Fetching live Supabase data",
+  "Fitting Ridge regression (auto-tuned)",
+  "Running multicollinearity diagnostics",
+  "Generating AI commentary",
+]
+
 function RunStep({
   analysisType,
   config,
@@ -1709,7 +1716,8 @@ function RunStep({
 }) {
   const label =
     ANALYSIS_OPTIONS.find((a) => a.id === analysisType)?.label ?? "Analysis"
-  const doneCount = Math.round((progress / 100) * RUN_STEPS.length)
+  const stepsToShow = isReal ? REAL_RUN_STEPS : RUN_STEPS
+  const doneCount = Math.round((progress / 100) * stepsToShow.length)
 
   return (
     <div
@@ -1828,7 +1836,7 @@ function RunStep({
           </div>
 
           <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
-            {RUN_STEPS.map((step, i) => {
+            {stepsToShow.map((step, i) => {
               const done = i < doneCount
               const active = i === doneCount && isRunning
               return (
@@ -2728,6 +2736,117 @@ function CoefficientBar({ name, value, max }: { name: string; value: number; max
   )
 }
 
+const REAL_CHART_PALETTE = [
+  T.navy, "#0E7490", "#6B21A8", "#B45309", "#065F46", "#9B2C2C", T.gold, "#4C51BF",
+]
+
+function fmtChartDate(d: string) {
+  const dt = new Date(d)
+  return dt.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
+}
+
+const CHANNEL_LABELS: Record<string, string> = {
+  google_ppc_spend: "Google PPC",
+  google_ip_spend: "Google IP Targeting",
+}
+
+function humanizeChannel(key: string) {
+  if (key === "baseline") return "Baseline/Seasonality"
+  if (key === "impressions") return "Impressions"
+  if (CHANNEL_LABELS[key]) return CHANNEL_LABELS[key]
+  return key.replace("_spend", "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function RealActualVsPredictedChart({ weekly }: { weekly: PipelineResult["weekly"] }) {
+  const tickInterval = Math.max(0, Math.floor(weekly.length / 8))
+  return (
+    <div style={{ ...card, padding: 0 }}>
+      <SectionHeader title="Actual vs. modeled applications (weekly)" />
+      <div style={{ padding: "16px" }}>
+        <ResponsiveContainer width="100%" height={240}>
+          <LineChart data={weekly} margin={{ top: 4, right: 12, bottom: 0, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={fmtChartDate}
+              interval={tickInterval}
+              tick={{ fontSize: 11, fill: T.ts }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis tick={{ fontSize: 11, fill: T.ts }} axisLine={false} tickLine={false} width={40} />
+            <RTooltip
+              labelFormatter={(v) => fmtChartDate(String(v))}
+              contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${T.border}` }}
+            />
+            <Legend wrapperStyle={{ fontSize: 12 }} />
+            <Line type="monotone" dataKey="actual" name="Actual" stroke={T.navy} strokeWidth={2} dot={false} />
+            <Line
+              type="monotone"
+              dataKey="predicted"
+              name="Model fit"
+              stroke={T.gold}
+              strokeWidth={2}
+              strokeDasharray="4 3"
+              dot={false}
+            />
+          </LineChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
+function RealChannelContributionChart({
+  data,
+  seriesKeys,
+}: {
+  data: PipelineResult["channel_contribution_weekly"]
+  seriesKeys: string[]
+}) {
+  const tickInterval = Math.max(0, Math.floor(data.length / 8))
+  return (
+    <div style={{ ...card, padding: 0 }}>
+      <SectionHeader title="Channel contribution over time" />
+      <div style={{ padding: "16px" }}>
+        <ResponsiveContainer width="100%" height={260}>
+          <ComposedChart data={data} margin={{ top: 4, right: 12, bottom: 0, left: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke={T.border} vertical={false} />
+            <XAxis
+              dataKey="date"
+              tickFormatter={fmtChartDate}
+              interval={tickInterval}
+              tick={{ fontSize: 11, fill: T.ts }}
+              axisLine={false}
+              tickLine={false}
+            />
+            <YAxis tick={{ fontSize: 11, fill: T.ts }} axisLine={false} tickLine={false} width={40} />
+            <RTooltip
+              labelFormatter={(v) => fmtChartDate(String(v))}
+              formatter={(v, name) => [Math.round(Number(v)), String(name)]}
+              contentStyle={{ fontSize: 12, borderRadius: 8, border: `1px solid ${T.border}` }}
+            />
+            <Legend wrapperStyle={{ fontSize: 11 }} formatter={humanizeChannel} />
+            <ReferenceLine y={0} stroke={T.ts} strokeWidth={1} />
+            {seriesKeys.map((key, i) => (
+              <Area
+                key={key}
+                type="monotone"
+                dataKey={key}
+                name={humanizeChannel(key)}
+                stackId="contrib"
+                stroke={REAL_CHART_PALETTE[i % REAL_CHART_PALETTE.length]}
+                fill={REAL_CHART_PALETTE[i % REAL_CHART_PALETTE.length]}
+                fillOpacity={0.75}
+              />
+            ))}
+          </ComposedChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+  )
+}
+
 function RealResultsStep({
   result,
   commentary,
@@ -2748,12 +2867,24 @@ function RealResultsStep({
   const diag = result.multicollinearity
   const inSample = result.in_sample_metrics
   const cv = result.cross_validation
+  const contributionKeys = Object.keys(result.channel_contribution_weekly[0] ?? {}).filter(
+    (k) => k !== "date",
+  )
 
   return (
-    <div style={{ maxWidth: 760, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
-      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", gap: 12 }}>
+    <div style={{ maxWidth: 820, margin: "0 auto", display: "flex", flexDirection: "column", gap: 20 }}>
+      <div
+        style={{
+          display: "flex",
+          alignItems: "flex-start",
+          justifyContent: "space-between",
+          gap: 12,
+          paddingBottom: 16,
+          borderBottom: `1px solid ${T.border}`,
+        }}
+      >
         <div>
-          <h2 style={{ fontSize: 20, fontWeight: 700, color: T.tp, marginBottom: 4 }}>
+          <h2 style={{ fontSize: 22, fontWeight: 700, color: T.tp, marginBottom: 4 }}>
             Results: Live Augustana Data
           </h2>
           <p style={{ fontSize: 13, color: T.ts }}>
@@ -2797,6 +2928,15 @@ function RealResultsStep({
           {Math.round((result.spend_coverage.weeks_covered / result.spend_coverage.total_weeks) * 100)}
           %). Channel coefficients below are less reliable outside that window.
         </Alert>
+      )}
+
+      {result.weekly.length > 0 && <RealActualVsPredictedChart weekly={result.weekly} />}
+
+      {result.channel_contribution_weekly.length > 0 && contributionKeys.length > 0 && (
+        <RealChannelContributionChart
+          data={result.channel_contribution_weekly}
+          seriesKeys={contributionKeys}
+        />
       )}
 
       <div style={{ ...card, padding: 0 }}>
