@@ -169,6 +169,7 @@ interface RunResult {
 interface WorkflowState {
   step: 1 | 2 | 3 | 4 | 5 | 6
   file: ImportedFile | null
+  importedSources: Record<string, ImportedFile | null>
   colMap: ColMap
   analysisType: AnalysisType
   config: AnalysisConfig
@@ -502,6 +503,93 @@ function InfoTooltip({ tip }: { tip: string }) {
   )
 }
 
+/** Click-to-open "why this step" popover, placed next to a step's H2. */
+function PageInfoButton({ title, children }: { title: string; children: ReactNode }) {
+  const [open, setOpen] = useState(false)
+  return (
+    <span style={{ position: "relative", display: "inline-flex", marginLeft: 8 }}>
+      <button
+        type="button"
+        aria-label={`Why this step: ${title}`}
+        aria-expanded={open}
+        onClick={() => setOpen((o) => !o)}
+        style={{
+          width: 22,
+          height: 22,
+          borderRadius: "50%",
+          background: open ? T.navy : "#EEF2F8",
+          color: open ? "#fff" : T.navy,
+          fontSize: 12,
+          fontWeight: 700,
+          border: `1px solid ${open ? T.navy : T.border}`,
+          cursor: "pointer",
+          display: "inline-flex",
+          alignItems: "center",
+          justifyContent: "center",
+          flexShrink: 0,
+          outline: "none",
+        }}
+      >
+        ?
+      </button>
+      {open && (
+        <>
+          <div
+            aria-hidden
+            onClick={() => setOpen(false)}
+            style={{ position: "fixed", inset: 0, zIndex: 199 }}
+          />
+          <div
+            role="dialog"
+            aria-label={title}
+            style={{
+              position: "absolute",
+              top: "calc(100% + 8px)",
+              left: 0,
+              width: 320,
+              maxWidth: "80vw",
+              zIndex: 200,
+              background: T.surface,
+              border: `1px solid ${T.border}`,
+              borderRadius: 10,
+              boxShadow: "0 12px 28px rgba(0,0,0,0.18)",
+              padding: "14px 16px",
+            }}
+          >
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "space-between",
+                marginBottom: 8,
+              }}
+            >
+              <p style={{ fontSize: 13, fontWeight: 700, color: T.tp }}>{title}</p>
+              <button
+                type="button"
+                aria-label="Close"
+                onClick={() => setOpen(false)}
+                style={{
+                  background: "none",
+                  border: "none",
+                  color: T.ts,
+                  fontSize: 16,
+                  lineHeight: 1,
+                  cursor: "pointer",
+                  padding: 2,
+                }}
+              >
+                ×
+              </button>
+            </div>
+            <div style={{ fontSize: 12, color: T.ts, lineHeight: 1.65 }}>{children}</div>
+          </div>
+        </>
+      )}
+    </span>
+  )
+}
+
 function Alert({
   variant,
   children,
@@ -782,63 +870,311 @@ const DEMO_FILE: ImportedFile = {
   warnings: [],
 }
 
-function ImportStep({
+interface ImportCategory {
+  id: string
+  label: string
+  description: string
+  columns: string[]
+  rows: number
+  dateRange: string
+  coverage: string
+  status: "available" | "pending"
+  pendingNote?: string
+}
+
+const IMPORT_CATEGORIES: ImportCategory[] = [
+  {
+    id: "applications",
+    label: "Applications",
+    description: "Weekly submitted applications from Slate CRM — the outcome the model explains.",
+    columns: ["week", "applications"],
+    rows: 181,
+    dateRange: "Jan 2023 – May 2026",
+    coverage: "100% — full history",
+    status: "available",
+  },
+  {
+    id: "spend",
+    label: "Channel Spend",
+    description: "Monthly media plan by channel from Carnegie (Meta, Snapchat, YouTube, Google PPC/IP, Display).",
+    columns: ["Group", "Subgroup", "Strategy", "Campaign", "Status", "Month", "Budget"],
+    rows: 61,
+    dateRange: "Oct 2024 – Jan 2026",
+    coverage: "37% of full range",
+    status: "available",
+  },
+  {
+    id: "impressions",
+    label: "Impressions",
+    description: "Daily ad impressions from Carnegie — used as a spend proxy where channel history is missing.",
+    columns: ["day", "Impressions"],
+    rows: 951,
+    dateRange: "Jan 2023 – Jan 2026",
+    coverage: "67% of full range",
+    status: "available",
+  },
+  {
+    id: "conversions",
+    label: "Tracked Conversions",
+    description: "Ad-platform-tracked conversions from Carnegie — reference only, not yet used as a model feature.",
+    columns: ["day", "Total Conversions"],
+    rows: 31,
+    dateRange: "May 2026 only",
+    coverage: "Too short to use yet",
+    status: "available",
+  },
+  {
+    id: "adgroup",
+    label: "Ad Group Snapshot",
+    description: "Point-in-time performance by strategy/campaign/ad group — supplementary, not a time series.",
+    columns: ["Strategy", "Campaign Name", "Ad Group", "Imp.", "Clicks", "CTR"],
+    rows: 5,
+    dateRange: "Snapshot",
+    coverage: "Reference only",
+    status: "available",
+  },
+  {
+    id: "billboard",
+    label: "Billboards",
+    description: "QC Airport + Admissions Surge billboard spend by fiscal period, provided by Lucas.",
+    columns: ["start_date", "end_date", "total_spend", "label"],
+    rows: 4,
+    dateRange: "Jan 2023 – Jun 2026",
+    coverage: "100% — full history",
+    status: "available",
+  },
+  {
+    id: "email",
+    label: "Email Sends",
+    description: "Send volume and engagement by campaign — schema ready, waiting on an export from Anthony.",
+    columns: ["send_date", "campaign_name", "sends", "opens", "clicks"],
+    rows: 0,
+    dateRange: "—",
+    coverage: "Pending",
+    status: "pending",
+    pendingNote: "Waiting on Anthony to export send history.",
+  },
+  {
+    id: "direct_mail",
+    label: "Direct Mail",
+    description: "Flight dates and spend per mail campaign — schema ready, waiting on Lucas.",
+    columns: ["flight_start", "flight_end", "spend", "description"],
+    rows: 0,
+    dateRange: "—",
+    coverage: "Pending",
+    status: "pending",
+    pendingNote: "Waiting on Lucas for flight dates, not just annual totals.",
+  },
+]
+
+function ImportCategoryCard({
+  category,
   file,
-  onFileChange,
-  onNext,
+  onChange,
 }: {
+  category: ImportCategory
   file: ImportedFile | null
-  onFileChange: (f: ImportedFile | null) => void
-  onNext: () => void
+  onChange: (f: ImportedFile | null) => void
 }) {
   const [dragOver, setDragOver] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
 
-  function handleFiles(list: FileList | null) {
-    if (!list?.length) return
-    const f = list[0]
-    const ok =
-      f.name.endsWith(".csv") ||
-      f.name.endsWith(".xls") ||
-      f.name.endsWith(".xlsx")
-    if (!ok) {
-      onFileChange({
-        name: f.name,
-        size: f.size,
-        rows: 0,
-        cols: [],
-        status: "error",
-        warnings: [
-          "Unsupported format. Please upload a .csv, .xls, or .xlsx file.",
-        ],
-      })
-      return
-    }
-    const simRows = Math.floor(f.size / 130)
-    const warnings: string[] = []
-    if (simRows < 52)
-      warnings.push(
-        "Fewer than 52 weeks of data detected — model accuracy may be reduced.",
-      )
-    onFileChange({
-      name: f.name,
-      size: f.size,
-      rows: simRows,
-      cols: DEMO_CSV_COLS,
-      status: simRows < 20 ? "warning" : "valid",
-      warnings,
+  function loadReal() {
+    onChange({
+      name: `${category.id}.csv`,
+      size: Math.max(category.rows, 1) * 64,
+      rows: category.rows,
+      cols: category.columns,
+      status: "valid",
+      warnings: [],
     })
   }
 
-  const fmtSize = (b: number) =>
-    b >= 1_048_576
-      ? `${(b / 1_048_576).toFixed(1)} MB`
-      : `${Math.round(b / 1024)} KB`
+  function handleFiles(list: FileList | null) {
+    if (!list?.length) return
+    const f = list[0]
+    onChange({
+      name: f.name,
+      size: f.size,
+      rows: category.rows || Math.floor(f.size / 130),
+      cols: category.columns,
+      status: "valid",
+      warnings: [],
+    })
+  }
+
+  if (category.status === "pending") {
+    return (
+      <div style={{ ...card, padding: "14px 16px", opacity: 0.55 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+          <div>
+            <p style={{ fontSize: 13, fontWeight: 600, color: T.tp }}>{category.label}</p>
+            <p style={{ fontSize: 11, color: T.ts, marginTop: 2, lineHeight: 1.4 }}>
+              {category.description}
+            </p>
+          </div>
+          <Badge variant="warning">Pending</Badge>
+        </div>
+        {category.pendingNote && (
+          <p style={{ fontSize: 11, color: T.ts, marginTop: 8, fontStyle: "italic" }}>
+            {category.pendingNote}
+          </p>
+        )}
+      </div>
+    )
+  }
+
+  return (
+    <div style={{ ...card, padding: "14px 16px", display: "flex", flexDirection: "column", gap: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8 }}>
+        <div>
+          <p style={{ fontSize: 13, fontWeight: 600, color: T.tp }}>{category.label}</p>
+          <p style={{ fontSize: 11, color: T.ts, marginTop: 2, lineHeight: 1.4 }}>
+            {category.description}
+          </p>
+        </div>
+        {file && (
+          <button
+            aria-label={`Remove ${category.label}`}
+            onClick={() => onChange(null)}
+            style={{ background: "none", border: "none", color: T.ts, cursor: "pointer", fontSize: 15, flexShrink: 0 }}
+          >
+            ×
+          </button>
+        )}
+      </div>
+
+      {file ? (
+        <div
+          style={{
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "space-between",
+            padding: "8px 10px",
+            background: T.bg,
+            borderRadius: 6,
+          }}
+        >
+          <span style={{ fontSize: 11, color: T.tp, fontWeight: 500 }}>
+            {fmt(file.rows)} rows loaded
+          </span>
+          <Badge variant="success">✓ Ready</Badge>
+        </div>
+      ) : (
+        <div
+          role="button"
+          tabIndex={0}
+          aria-label={`Upload ${category.label} file`}
+          onClick={() => inputRef.current?.click()}
+          onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragOver(true)
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={(e) => {
+            e.preventDefault()
+            setDragOver(false)
+            handleFiles(e.dataTransfer.files)
+          }}
+          style={{
+            border: `1.5px dashed ${dragOver ? T.navy : T.border}`,
+            borderRadius: 8,
+            padding: "10px",
+            textAlign: "center",
+            background: dragOver ? "#EEF2F8" : T.bg,
+            cursor: "pointer",
+            transition: "all 0.15s",
+          }}
+        >
+          <p style={{ fontSize: 11, color: T.ts }}>
+            Drop CSV or{" "}
+            <span style={{ color: T.navy, fontWeight: 600, textDecoration: "underline" }}>
+              browse
+            </span>
+          </p>
+          <input
+            ref={inputRef}
+            type="file"
+            accept=".csv,.xls,.xlsx"
+            aria-label={`Choose ${category.label} file`}
+            style={{ display: "none" }}
+            onChange={(e) => handleFiles(e.target.files)}
+          />
+        </div>
+      )}
+
+      <button
+        type="button"
+        onClick={loadReal}
+        style={{
+          fontSize: 11,
+          color: T.navy,
+          fontWeight: 600,
+          textDecoration: "underline",
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          textAlign: "left",
+        }}
+      >
+        {file ? "Reload" : "Use"} Augustana's real data ({fmt(category.rows)} rows, {category.dateRange})
+      </button>
+    </div>
+  )
+}
+
+function ImportStep({
+  sources,
+  onSourcesChange,
+  onFileChange,
+  onNext,
+}: {
+  sources: Record<string, ImportedFile | null>
+  onSourcesChange: (s: Record<string, ImportedFile | null>) => void
+  onFileChange: (f: ImportedFile | null) => void
+  onNext: () => void
+}) {
+  const providedCount = Object.values(sources).filter(Boolean).length
+  const canProceed = providedCount > 0
+
+  function setCategory(id: string, f: ImportedFile | null) {
+    onSourcesChange({ ...sources, [id]: f })
+  }
+
+  function loadAllReal() {
+    const next: Record<string, ImportedFile | null> = { ...sources }
+    IMPORT_CATEGORIES.filter((c) => c.status === "available").forEach((c) => {
+      next[c.id] = {
+        name: `${c.id}.csv`,
+        size: Math.max(c.rows, 1) * 64,
+        rows: c.rows,
+        cols: c.columns,
+        status: "valid",
+        warnings: [],
+      }
+    })
+    onSourcesChange(next)
+  }
+
+  function handleContinue() {
+    const provided = Object.values(sources).filter(Boolean) as ImportedFile[]
+    const totalRows = provided.reduce((s, f) => s + f.rows, 0)
+    onFileChange({
+      name: `Augustana MMM dataset (${provided.length} source${provided.length === 1 ? "" : "s"})`,
+      size: provided.reduce((s, f) => s + f.size, 0),
+      rows: totalRows || DEMO_FILE.rows,
+      cols: DEMO_CSV_COLS,
+      status: "valid",
+      warnings: [],
+    })
+    onNext()
+  }
 
   return (
     <div
       style={{
-        maxWidth: 640,
+        maxWidth: 760,
         margin: "0 auto",
         display: "flex",
         flexDirection: "column",
@@ -846,111 +1182,41 @@ function ImportStep({
       }}
     >
       <div>
-        <h2
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: T.tp,
-            marginBottom: 4,
-          }}
-        >
-          Import Data
-        </h2>
-        <p style={{ fontSize: 13, color: T.ts, lineHeight: 1.5 }}>
-          Upload a CSV or Excel file containing daily or weekly media spend and
-          revenue data. Minimum 52 rows recommended for accurate modeling.
-        </p>
-      </div>
-
-      {/* drop zone */}
-      <div
-        role="button"
-        tabIndex={0}
-        aria-label="Upload CSV or XLS file"
-        onClick={() => inputRef.current?.click()}
-        onKeyDown={(e) => e.key === "Enter" && inputRef.current?.click()}
-        onDragOver={(e) => {
-          e.preventDefault()
-          setDragOver(true)
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={(e) => {
-          e.preventDefault()
-          setDragOver(false)
-          handleFiles(e.dataTransfer.files)
-        }}
-        style={{
-          border: `2px dashed ${dragOver ? T.navy : T.border}`,
-          borderRadius: 10,
-          padding: "36px 24px",
-          textAlign: "center",
-          background: dragOver ? "#EEF2F8" : T.bg,
-          cursor: "pointer",
-          transition: "all 0.15s",
-          outline: "none",
-        }}
-      >
-        <svg
-          width="32"
-          height="32"
-          viewBox="0 0 32 32"
-          fill="none"
-          style={{ margin: "0 auto 12px" }}
-        >
-          <path
-            d="M16 4v16M10 9l6-5 6 5"
-            stroke={T.navy}
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          />
-          <path
-            d="M6 22v3a3 3 0 003 3h14a3 3 0 003-3v-3"
-            stroke={T.navy}
-            strokeWidth="2"
-            strokeLinecap="round"
-          />
-        </svg>
-        <p
-          style={{
-            fontSize: 14,
-            fontWeight: 500,
-            color: T.tp,
-            marginBottom: 4,
-          }}
-        >
-          Drag &amp; drop your file here
-        </p>
-        <p style={{ fontSize: 12, color: T.ts }}>
-          CSV, XLS, XLSX — or{" "}
-          <span
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <h2
             style={{
-              color: T.navy,
-              fontWeight: 600,
-              textDecoration: "underline",
+              fontSize: 20,
+              fontWeight: 700,
+              color: T.tp,
+              marginBottom: 4,
             }}
           >
-            browse
-          </span>
+            Import Data
+          </h2>
+          <PageInfoButton title="Why we import data this way">
+            An MMM needs two kinds of history lined up week by week: the
+            outcome you're explaining (applications) and the marketing
+            activity that might explain it (spend and impressions per
+            channel, plus offline efforts like billboards). Augustana's real
+            data lives in several separate systems — Slate tracks
+            applications, Carnegie tracks digital spend/impressions, Lucas
+            tracks billboards, Anthony will track email — so each source is
+            imported on its own below instead of forcing everything into one
+            spreadsheet. The model only uses weeks where the sources you
+            provide actually overlap.
+          </PageInfoButton>
+        </div>
+        <p style={{ fontSize: 13, color: T.ts, lineHeight: 1.5 }}>
+          Import each data source separately, matching how Augustana's data
+          actually lives across systems. At least one source is required to
+          continue.
         </p>
-        <p style={{ fontSize: 11, color: T.ts, marginTop: 8 }}>
-          Supported: up to 50 MB · .csv, .xls, .xlsx
-        </p>
-        <input
-          ref={inputRef}
-          type="file"
-          accept=".csv,.xls,.xlsx"
-          aria-label="Choose file"
-          style={{ display: "none" }}
-          onChange={(e) => handleFiles(e.target.files)}
-        />
       </div>
 
-      {/* or load demo */}
-      <div style={{ textAlign: "center" }}>
-        <span style={{ fontSize: 12, color: T.ts }}>or </span>
+      <div style={{ display: "flex", justifyContent: "flex-end" }}>
         <button
-          onClick={() => onFileChange(DEMO_FILE)}
+          type="button"
+          onClick={loadAllReal}
           style={{
             fontSize: 12,
             color: T.navy,
@@ -961,157 +1227,39 @@ function ImportStep({
             cursor: "pointer",
           }}
         >
-          load demo dataset
+          Load all available Augustana data
         </button>
-        <span style={{ fontSize: 12, color: T.ts }}>
-          {" "}
-          to explore the workflow
-        </span>
       </div>
 
-      {/* file status */}
-      {file && (
-        <div style={{ ...card, padding: 0 }}>
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 12,
-              padding: "12px 16px",
-              borderBottom: file.warnings.length
-                ? `1px solid ${T.border}`
-                : "none",
-            }}
-          >
-            <svg
-              width="18"
-              height="18"
-              viewBox="0 0 18 18"
-              fill="none"
-              style={{ flexShrink: 0 }}
-            >
-              <rect
-                x="2"
-                y="1"
-                width="11"
-                height="16"
-                rx="2"
-                stroke={T.navy}
-                strokeWidth="1.4"
-                fill="none"
-              />
-              <path
-                d="M13 1v5h4"
-                stroke={T.navy}
-                strokeWidth="1.4"
-                strokeLinecap="round"
-              />
-              <path
-                d="M5 8h8M5 11h6"
-                stroke={T.navy}
-                strokeWidth="1.2"
-                strokeLinecap="round"
-              />
-            </svg>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <p
-                style={{
-                  fontSize: 13,
-                  fontWeight: 500,
-                  color: T.tp,
-                  overflow: "hidden",
-                  textOverflow: "ellipsis",
-                  whiteSpace: "nowrap",
-                }}
-                title={file.name}
-              >
-                {file.name}
-              </p>
-              <p style={{ fontSize: 11, color: T.ts }}>
-                {fmtSize(file.size)}
-                {file.rows > 0 ? ` · ${fmt(file.rows)} rows` : ""}
-                {file.cols.length > 0 ? ` · ${file.cols.length} columns` : ""}
-              </p>
-            </div>
-            <Badge
-              variant={
-                file.status === "valid"
-                  ? "success"
-                  : file.status === "warning"
-                    ? "warning"
-                    : "error"
-              }
-            >
-              {file.status === "valid"
-                ? "✓ Valid"
-                : file.status === "warning"
-                  ? "⚠ Warning"
-                  : "✕ Error"}
-            </Badge>
-            <button
-              aria-label="Remove file"
-              onClick={() => onFileChange(null)}
-              style={{
-                background: "none",
-                border: "none",
-                color: T.ts,
-                cursor: "pointer",
-                fontSize: 16,
-                padding: 4,
-              }}
-            >
-              ×
-            </button>
-          </div>
-          {file.warnings.map((w, i) => (
-            <div key={i} style={{ padding: "8px 16px" }}>
-              <Alert variant="warning">{w}</Alert>
-            </div>
-          ))}
-          {file.status === "error" &&
-            file.warnings.map((w, i) => (
-              <div key={i} style={{ padding: "8px 16px" }}>
-                <Alert variant="error">{w}</Alert>
-              </div>
-            ))}
-          {file.cols.length > 0 && (
-            <div style={{ padding: "10px 16px" }}>
-              <p style={{ ...lbl, marginBottom: 6 }}>Detected columns</p>
-              <div style={{ display: "flex", flexWrap: "wrap", gap: 4 }}>
-                {file.cols.map((c) => (
-                  <span
-                    key={c}
-                    style={{
-                      fontSize: 11,
-                      padding: "2px 8px",
-                      borderRadius: 20,
-                      background: T.bg,
-                      border: `1px solid ${T.border}`,
-                      color: T.tp,
-                      fontFamily: "monospace",
-                    }}
-                  >
-                    {c}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-      )}
+      <div
+        className="grid gap-3"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))" }}
+      >
+        {IMPORT_CATEGORIES.map((cat) => (
+          <ImportCategoryCard
+            key={cat.id}
+            category={cat}
+            file={sources[cat.id] ?? null}
+            onChange={(f) => setCategory(cat.id, f)}
+          />
+        ))}
+      </div>
 
-      {file?.name === DEMO_FILE.name && (
+      {canProceed && (
         <Alert variant="demo">
-          <strong>Demo dataset loaded.</strong> Results will use simulated data
-          to illustrate the workflow. Connect a real data source for production
-          use.
+          <strong>
+            {providedCount} source{providedCount === 1 ? "" : "s"} imported.
+          </strong>{" "}
+          Map Columns through Results below use a simulated demo pipeline to
+          illustrate the workflow — sign in to run the real model on
+          Augustana's live data instead.
         </Alert>
       )}
 
       <StepFooter
-        onNext={onNext}
-        nextDisabled={!file || file.status === "error"}
-        nextDisabledReason="Please upload a valid file first"
+        onNext={handleContinue}
+        nextDisabled={!canProceed}
+        nextDisabledReason="Import at least one data source first"
         nextLabel="Map Columns"
       />
     </div>
@@ -1155,16 +1303,27 @@ function MapStep({
       }}
     >
       <div>
-        <h2
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: T.tp,
-            marginBottom: 4,
-          }}
-        >
-          Map Columns
-        </h2>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <h2
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: T.tp,
+              marginBottom: 4,
+            }}
+          >
+            Map Columns
+          </h2>
+          <PageInfoButton title="Why column mapping matters">
+            Every MMM needs the same skeleton no matter what your source
+            file looks like: one date column to build a weekly timeline, one
+            outcome/KPI column to explain, and at least two spend columns so
+            the regression has something to compare channels against.
+            Mapping tells the model which of your file's actual columns play
+            each of those roles — get this wrong and the model either can't
+            run or attributes results to the wrong channel.
+          </PageInfoButton>
+        </div>
         <p style={{ fontSize: 13, color: T.ts, lineHeight: 1.5 }}>
           Match your file's columns to the MMM required fields. At least 2 spend
           channels and a revenue column are required.
@@ -1304,16 +1463,29 @@ function SelectStep({
       }}
     >
       <div>
-        <h2
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: T.tp,
-            marginBottom: 4,
-          }}
-        >
-          Select Analysis
-        </h2>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <h2
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: T.tp,
+              marginBottom: 4,
+            }}
+          >
+            Select Analysis
+          </h2>
+          <PageInfoButton title="Why there are multiple analysis types">
+            The same underlying regression can be read in different ways
+            depending on the question you're asking. Attribution asks which
+            channel gets credit for past results. ROI Curves asks what the
+            marginal return looks like right now. Saturation asks when more
+            spend on a channel stops helping. Budget Optimizer asks how to
+            reallocate a fixed budget across channels. Incrementality asks
+            whether spend actually caused a lift, or would it have happened
+            anyway. Each option summarizes the same fitted model differently
+            — it doesn't re-collect data.
+          </PageInfoButton>
+        </div>
         <p style={{ fontSize: 13, color: T.ts }}>
           Choose the type of MMM analysis to run.
         </p>
@@ -1459,16 +1631,31 @@ function ConfigureStep({
       }}
     >
       <div>
-        <h2
-          style={{
-            fontSize: 20,
-            fontWeight: 700,
-            color: T.tp,
-            marginBottom: 4,
-          }}
-        >
-          Configure: {label}
-        </h2>
+        <div style={{ display: "flex", alignItems: "center" }}>
+          <h2
+            style={{
+              fontSize: 20,
+              fontWeight: 700,
+              color: T.tp,
+              marginBottom: 4,
+            }}
+          >
+            Configure: {label}
+          </h2>
+          <PageInfoButton title="Why these settings exist">
+            These control how the regression is built, not what data goes
+            in. Lookback window sets how much history the fit uses. Adstock
+            decay models the idea that an ad's effect doesn't vanish the
+            moment spend stops — it carries over and fades. Confidence level
+            sets how wide the uncertainty bands are around each estimate.
+            Attribution method picks the algorithm used to split credit
+            across channels. Baseline decomposition separates organic and
+            seasonal demand from marketing-driven demand before attributing
+            anything to spend — real Augustana data uses trend
+            decomposition since seasonality (deadline spikes, summer lulls)
+            explains most of the variance.
+          </PageInfoButton>
+        </div>
         <p style={{ fontSize: 13, color: T.ts }}>
           Adjust model settings below. Hover any{" "}
           <span
@@ -3075,6 +3262,7 @@ export function MMMWorkflow({
   const [state, setState] = useState<WorkflowState>({
     step: 5,
     file: DEMO_FILE,
+    importedSources: {},
     colMap: DEFAULT_COL_MAP,
     analysisType: "attribution",
     config: DEFAULTS.attribution,
@@ -3217,6 +3405,7 @@ export function MMMWorkflow({
   const {
     step,
     file,
+    importedSources,
     colMap,
     analysisType,
     config,
@@ -3346,7 +3535,8 @@ export function MMMWorkflow({
       >
         {step === 1 && (
           <ImportStep
-            file={file}
+            sources={importedSources}
+            onSourcesChange={(src) => setState((s) => ({ ...s, importedSources: src }))}
             onFileChange={(f) => setState((s) => ({ ...s, file: f }))}
             onNext={() => goTo(2)}
           />

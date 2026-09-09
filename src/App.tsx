@@ -644,6 +644,7 @@ const OPTIONS = [
     label: "MMM",
     sub: "Media Mix Modeling",
     active: true,
+    info: "Marketing Mix Modeling estimates how much each channel — Meta, Snapchat, Google, billboards, plus seasonality — actually contributes to applications, using historical spend and outcome data instead of click-level tracking. It outputs: per-channel contribution over time, model fit quality (R², cross-validated), which channels are over/under-invested, and where multicollinearity makes an estimate unreliable.",
     icon: (isH: boolean) => (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <circle
@@ -675,6 +676,7 @@ const OPTIONS = [
     label: "General Analysis",
     sub: "Trends & anomalies",
     active: false,
+    info: "",
     icon: (isH: boolean) => (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <rect
@@ -709,6 +711,7 @@ const OPTIONS = [
     label: "Deep Dive",
     sub: "Cohort & funnel",
     active: false,
+    info: "",
     icon: (isH: boolean) => (
       <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
         <circle
@@ -795,62 +798,85 @@ function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
           {OPTIONS.map((opt) => {
             const isH = hov === opt.id
             return (
-              <button
-                key={opt.id}
-                role="listitem"
-                className="text-left flex flex-col gap-3 p-5 transition-all duration-150"
-                style={{
-                  background: T.surface,
-                  border: `1.5px solid ${
-                    isH && opt.active ? T.navy : T.border
-                  }`,
-                  borderRadius: 10,
-                  boxShadow:
-                    isH && opt.active
-                      ? "0 4px 16px rgba(0,47,108,0.12)"
-                      : "0 1px 3px rgba(0,0,0,0.04)",
-                  transform: isH && opt.active ? "translateY(-2px)" : "none",
-                  cursor: opt.active ? "pointer" : "default",
-                  opacity: opt.active ? 1 : 0.45,
-                  outline: "none",
-                }}
-                onMouseEnter={() => opt.active && setHov(opt.id)}
-                onMouseLeave={() => setHov(null)}
-                onFocus={() => opt.active && setHov(opt.id)}
-                onBlur={() => setHov(null)}
-                onClick={() => opt.active && onSelect(opt.id)}
-                aria-disabled={!opt.active}
-                tabIndex={opt.active ? 0 : -1}
-              >
-                <div
+              <div key={opt.id} style={{ position: "relative" }}>
+                <button
+                  role="listitem"
+                  className="text-left flex flex-col gap-3 p-5 transition-all duration-150 w-full"
                   style={{
-                    width: 36,
-                    height: 36,
-                    borderRadius: 8,
-                    background: isH ? T.navy : "#EEF2F8",
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
+                    background: T.surface,
+                    border: `1.5px solid ${
+                      isH && opt.active ? T.navy : T.border
+                    }`,
+                    borderRadius: 10,
+                    boxShadow:
+                      isH && opt.active
+                        ? "0 4px 16px rgba(0,47,108,0.12)"
+                        : "0 1px 3px rgba(0,0,0,0.04)",
+                    transform: isH && opt.active ? "translateY(-2px)" : "none",
+                    cursor: opt.active ? "pointer" : "default",
+                    opacity: opt.active ? 1 : 0.45,
+                    outline: "none",
                   }}
+                  onMouseEnter={() => opt.active && setHov(opt.id)}
+                  onMouseLeave={() => setHov(null)}
+                  onFocus={() => opt.active && setHov(opt.id)}
+                  onBlur={() => setHov(null)}
+                  onClick={() => opt.active && onSelect(opt.id)}
+                  aria-disabled={!opt.active}
+                  tabIndex={opt.active ? 0 : -1}
                 >
-                  {opt.icon(isH)}
-                </div>
-                <div>
-                  <p
+                  <div
                     style={{
-                      fontSize: 14,
-                      fontWeight: 600,
-                      color: T.tp,
-                      marginBottom: 2,
+                      width: 36,
+                      height: 36,
+                      borderRadius: 8,
+                      background: isH ? T.navy : "#EEF2F8",
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
                     }}
                   >
-                    {opt.label}
-                  </p>
-                  <p style={{ fontSize: 12, color: T.ts }}>
-                    {opt.active ? opt.sub : "Coming soon"}
-                  </p>
-                </div>
-              </button>
+                    {opt.icon(isH)}
+                  </div>
+                  <div>
+                    <p
+                      style={{
+                        fontSize: 14,
+                        fontWeight: 600,
+                        color: T.tp,
+                        marginBottom: 2,
+                      }}
+                    >
+                      {opt.label}
+                    </p>
+                    <p style={{ fontSize: 12, color: T.ts }}>
+                      {opt.active ? opt.sub : "Coming soon"}
+                    </p>
+                  </div>
+                </button>
+                {isH && opt.info && (
+                  <div
+                    role="tooltip"
+                    style={{
+                      position: "absolute",
+                      top: "calc(100% + 8px)",
+                      left: 0,
+                      right: 0,
+                      zIndex: 20,
+                      background: T.tp,
+                      color: "#fff",
+                      fontSize: 12,
+                      lineHeight: 1.55,
+                      padding: "12px 14px",
+                      borderRadius: 8,
+                      boxShadow: "0 8px 20px rgba(0,0,0,0.2)",
+                      pointerEvents: "none",
+                    }}
+                  >
+                    {opt.info}
+                  </div>
+                )}
+              </div>
             )
           })}
         </div>
