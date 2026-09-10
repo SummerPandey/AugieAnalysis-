@@ -1498,40 +1498,222 @@ function MapStep({
 const ANALYSIS_OPTIONS: {
   id: AnalysisType
   label: string
+  question: string
   description: string
   requires?: string
+  icon: (c: string) => ReactNode
 }[] = [
   {
     id: "attribution",
     label: "Attribution",
+    question: "Who gets credit?",
     description:
       "Decompose revenue across channels using Shapley or Bayesian attribution, with adstock decay and saturation adjustments.",
+    icon: (c) => (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="5" r="2.2" stroke={c} strokeWidth="1.4" />
+        <path d="M10 7.2V11M10 11L5 15M10 11l5 4" stroke={c} strokeWidth="1.4" strokeLinecap="round" />
+        <circle cx="5" cy="15.5" r="1.6" stroke={c} strokeWidth="1.4" />
+        <circle cx="15" cy="15.5" r="1.6" stroke={c} strokeWidth="1.4" />
+      </svg>
+    ),
   },
   {
     id: "roi",
     label: "ROI Curves",
+    question: "What's the return right now?",
     description:
       "Compute marginal and average return on investment per channel at current and alternative spend levels.",
+    icon: (c) => (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M2.5 16.5h15" stroke={c} strokeWidth="1.4" strokeLinecap="round" />
+        <path d="M3.5 13l3.5-4.5L10 11l6-8" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M13 3h3v3" stroke={c} strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" />
+      </svg>
+    ),
   },
   {
     id: "saturation",
     label: "Saturation",
+    question: "When does more spend stop helping?",
     description:
       "Fit Hill functions to identify diminishing-returns thresholds and optimal spend ranges per channel.",
+    icon: (c) => (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M2.5 16.5h15M2.5 16.5V2.5" stroke={c} strokeWidth="1.3" strokeLinecap="round" />
+        <path d="M3 15c2-.5 4-2 5.5-4.5S11 5.5 13 4.5s3-1 3.5-1" stroke={c} strokeWidth="1.5" strokeLinecap="round" fill="none" />
+      </svg>
+    ),
   },
   {
     id: "budget",
     label: "Budget Optimizer",
+    question: "How should I reallocate?",
     description:
       "Redistribute a fixed total budget across channels to maximise projected revenue, subject to optional channel constraints.",
+    icon: (c) => (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <path d="M10 3v14M4 6h12M4 6l-2 4.5h4L4 6zm12 0l-2 4.5h4L16 6z" stroke={c} strokeWidth="1.3" strokeLinecap="round" strokeLinejoin="round" fill="none" />
+        <path d="M6 17h8" stroke={c} strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+    ),
   },
   {
     id: "incrementality",
     label: "Incrementality",
+    question: "Did the spend actually cause it?",
     description:
       "Estimate the true causal lift of media spend using holdout test design or synthetic control.",
+    icon: (c) => (
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none">
+        <circle cx="10" cy="8" r="5.5" stroke={c} strokeWidth="1.4" />
+        <path d="M10 5v3.3l2.3 1.3" stroke={c} strokeWidth="1.4" strokeLinecap="round" strokeLinejoin="round" />
+        <path d="M7.5 16.5h5" stroke={c} strokeWidth="1.3" strokeLinecap="round" />
+      </svg>
+    ),
   },
 ]
+
+function AnalysisTile({
+  option,
+  selected,
+  onSelect,
+}: {
+  option: (typeof ANALYSIS_OPTIONS)[number]
+  selected: boolean
+  onSelect: () => void
+}) {
+  const [flipped, setFlipped] = useState(false)
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
+
+  function startFlipTimer() {
+    if (timerRef.current) clearTimeout(timerRef.current)
+    timerRef.current = setTimeout(() => setFlipped(true), 450)
+  }
+  function cancelFlip() {
+    if (timerRef.current) {
+      clearTimeout(timerRef.current)
+      timerRef.current = null
+    }
+    setFlipped(false)
+  }
+
+  useEffect(() => {
+    return () => {
+      if (timerRef.current) clearTimeout(timerRef.current)
+    }
+  }, [])
+
+  const faceBase: CSSProperties = {
+    position: "absolute",
+    inset: 0,
+    borderRadius: 12,
+    padding: "16px",
+    display: "flex",
+    flexDirection: "column",
+    backfaceVisibility: "hidden",
+    WebkitBackfaceVisibility: "hidden" as const,
+  }
+
+  return (
+    <div
+      role="radio"
+      aria-checked={selected}
+      aria-label={`${option.label}: ${option.question}`}
+      tabIndex={0}
+      onClick={onSelect}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault()
+          onSelect()
+        }
+      }}
+      onMouseEnter={startFlipTimer}
+      onMouseLeave={cancelFlip}
+      onFocus={startFlipTimer}
+      onBlur={cancelFlip}
+      style={{
+        position: "relative",
+        height: 172,
+        perspective: "1200px",
+        cursor: "pointer",
+        outline: "none",
+      }}
+    >
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: "100%",
+          transformStyle: "preserve-3d",
+          transition: "transform 0.6s cubic-bezier(0.4, 0.15, 0.2, 1)",
+          transform: flipped ? "rotateY(180deg)" : "rotateY(0deg)",
+        }}
+      >
+        {/* front */}
+        <div
+          style={{
+            ...faceBase,
+            background: selected ? "#EEF2F8" : T.surface,
+            border: `1.5px solid ${selected ? T.navy : T.border}`,
+            boxShadow: selected
+              ? "0 4px 14px rgba(0,47,108,0.12)"
+              : "0 1px 3px rgba(0,0,0,0.04)",
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between" }}>
+            <div
+              style={{
+                width: 36,
+                height: 36,
+                borderRadius: 9,
+                background: selected ? T.navy : "#EEF2F8",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                transition: "background 0.2s ease",
+              }}
+            >
+              {option.icon(selected ? T.gold : T.navy)}
+            </div>
+            {selected && (
+              <span style={{ color: T.navy, fontWeight: 700, fontSize: 15 }}>✓</span>
+            )}
+          </div>
+          <p style={{ fontSize: 14, fontWeight: 600, color: selected ? T.navy : T.tp, marginTop: 12 }}>
+            {option.label}
+          </p>
+          <p style={{ fontSize: 12, color: T.ts, marginTop: 3, lineHeight: 1.4 }}>
+            {option.question}
+          </p>
+          <p style={{ marginTop: "auto", fontSize: 10, color: T.ts, fontStyle: "italic" }}>
+            Hover to learn more →
+          </p>
+        </div>
+
+        {/* back */}
+        <div
+          style={{
+            ...faceBase,
+            background: `linear-gradient(135deg, ${T.navy}, #001e48)`,
+            transform: "rotateY(180deg)",
+            justifyContent: "center",
+            border: selected ? `1.5px solid ${T.gold}` : `1.5px solid ${T.navy}`,
+            boxShadow: selected ? "0 0 0 3px rgba(255,221,0,0.2)" : undefined,
+          }}
+        >
+          <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
+            <p style={{ fontSize: 13, fontWeight: 700, color: T.gold }}>{option.label}</p>
+            {selected && <span style={{ color: T.gold, fontWeight: 700, fontSize: 15 }}>✓</span>}
+          </div>
+          <p style={{ fontSize: 12, color: "rgba(255,255,255,0.92)", lineHeight: 1.55 }}>
+            {option.description}
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+}
 
 function SelectStep({
   analysisType,
@@ -1579,80 +1761,25 @@ function SelectStep({
           </PageInfoButton>
         </div>
         <p style={{ fontSize: 13, color: T.ts }}>
-          Choose the type of MMM analysis to run.
+          Choose the type of MMM analysis to run — hover a card for a moment
+          to see what it does.
         </p>
       </div>
 
       <div
-        style={{ display: "flex", flexDirection: "column", gap: 8 }}
+        className="grid gap-3"
+        style={{ gridTemplateColumns: "repeat(auto-fit, minmax(190px, 1fr))" }}
         role="radiogroup"
         aria-label="Analysis type"
       >
-        {ANALYSIS_OPTIONS.map((opt) => {
-          const sel = analysisType === opt.id
-          return (
-            <label
-              key={opt.id}
-              style={{
-                display: "flex",
-                alignItems: "flex-start",
-                gap: 14,
-                padding: "14px 16px",
-                borderRadius: 10,
-                border: `1.5px solid ${sel ? T.navy : T.border}`,
-                background: sel ? "#EEF2F8" : T.surface,
-                cursor: "pointer",
-                transition: "all 0.12s",
-              }}
-            >
-              <input
-                type="radio"
-                name="analysis"
-                value={opt.id}
-                checked={sel}
-                onChange={() => onSelect(opt.id)}
-                style={{
-                  accentColor: T.navy,
-                  marginTop: 2,
-                  width: 15,
-                  height: 15,
-                  flexShrink: 0,
-                }}
-                aria-describedby={`desc-${opt.id}`}
-              />
-              <div>
-                <p
-                  style={{
-                    fontSize: 14,
-                    fontWeight: sel ? 600 : 500,
-                    color: sel ? T.navy : T.tp,
-                    marginBottom: 3,
-                  }}
-                >
-                  {opt.label}
-                </p>
-                <p
-                  id={`desc-${opt.id}`}
-                  style={{ fontSize: 12, color: T.ts, lineHeight: 1.5 }}
-                >
-                  {opt.description}
-                </p>
-              </div>
-              {sel && (
-                <span
-                  style={{
-                    marginLeft: "auto",
-                    color: T.navy,
-                    fontWeight: 700,
-                    flexShrink: 0,
-                  }}
-                >
-                  ✓
-                </span>
-              )}
-            </label>
-          )
-        })}
+        {ANALYSIS_OPTIONS.map((opt) => (
+          <AnalysisTile
+            key={opt.id}
+            option={opt}
+            selected={analysisType === opt.id}
+            onSelect={() => onSelect(opt.id)}
+          />
+        ))}
       </div>
 
       <StepFooter onBack={onBack} onNext={onNext} nextLabel="Configure Model" />
@@ -1978,7 +2105,6 @@ function RunStep({
   currentRunStep,
   runError,
   lastResult,
-  isReal,
   onBack,
   onRun,
 }: {
@@ -1989,13 +2115,12 @@ function RunStep({
   currentRunStep: string
   runError: string | null
   lastResult: RunResult | null
-  isReal: boolean
   onBack: () => void
   onRun: () => void
 }) {
   const label =
     ANALYSIS_OPTIONS.find((a) => a.id === analysisType)?.label ?? "Analysis"
-  const stepsToShow = isReal ? REAL_RUN_STEPS : RUN_STEPS
+  const stepsToShow = RUN_STEPS
   const doneCount = Math.round((progress / 100) * stepsToShow.length)
 
   return (
@@ -2024,19 +2149,10 @@ function RunStep({
         </p>
       </div>
 
-      {isReal ? (
-        <Alert variant="info">
-          <strong>Signed in.</strong> This will run the real Augustana MMM
-          pipeline (Ridge regression) against your live Supabase data — not
-          the demo dataset. The configuration below is illustrative; the
-          real pipeline always uses its own validated feature set.
-        </Alert>
-      ) : (
-        <Alert variant="demo">
-          Not signed in — this will run on the simulated demo dataset. Sign
-          in from the landing page to run the real pipeline instead.
-        </Alert>
-      )}
+      <Alert variant="demo">
+        Not signed in — this will run on the simulated demo dataset. Sign
+        in from the landing page to run the real pipeline instead.
+      </Alert>
 
       {/* config summary */}
       <div style={{ ...card, padding: "14px 16px" }}>
@@ -2180,6 +2296,169 @@ function RunStep({
         nextDisabled={isRunning}
         nextDisabledReason="Analysis is already running"
       />
+    </div>
+  )
+}
+
+/* ── Signed-in run screen — no wizard, one button ─────────────── */
+function RealRunStep({
+  isRunning,
+  progress,
+  currentRunStep,
+  runError,
+  onRun,
+  onBack,
+}: {
+  isRunning: boolean
+  progress: number
+  currentRunStep: string
+  runError: string | null
+  onRun: () => void
+  onBack: () => void
+}) {
+  const doneCount = Math.round((progress / 100) * REAL_RUN_STEPS.length)
+
+  return (
+    <div
+      style={{
+        maxWidth: 460,
+        margin: "60px auto 0",
+        display: "flex",
+        flexDirection: "column",
+        alignItems: "center",
+        gap: 20,
+        textAlign: "center",
+      }}
+    >
+      <div
+        style={{
+          width: 56,
+          height: 56,
+          borderRadius: 14,
+          background: T.navy,
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "center",
+          boxShadow: "0 8px 24px rgba(0,47,108,0.25)",
+        }}
+      >
+        <svg width="26" height="29" viewBox="0 0 24 27" fill="none">
+          <path
+            d="M12 1L2.5 4.6v6.6c0 6.4 4 11.3 9.5 14 5.5-2.7 9.5-7.6 9.5-14V4.6L12 1z"
+            fill={T.gold}
+          />
+          <path d="M12 6.5l3.4 3.4-3.4 3.4-3.4-3.4L12 6.5z" fill={T.navy} />
+          <rect x="7.8" y="15.8" width="8.4" height="2" rx="1" fill={T.navy} />
+        </svg>
+      </div>
+
+      <div>
+        <h2 style={{ fontSize: 20, fontWeight: 700, color: T.tp, marginBottom: 6 }}>
+          Run Your Marketing Analysis
+        </h2>
+        <p style={{ fontSize: 13, color: T.ts, lineHeight: 1.6 }}>
+          This runs the real model against Augustana's current application and
+          spend data. It takes about ten seconds — no setup needed.
+        </p>
+      </div>
+
+      {isRunning && (
+        <div
+          role="status"
+          aria-live="polite"
+          aria-label={`Running: ${currentRunStep}`}
+          style={{ width: "100%", display: "flex", flexDirection: "column", gap: 14 }}
+        >
+          <div
+            role="progressbar"
+            aria-valuenow={progress}
+            aria-valuemin={0}
+            aria-valuemax={100}
+            style={{ height: 6, borderRadius: 3, background: T.border, overflow: "hidden" }}
+          >
+            <div
+              style={{
+                height: "100%",
+                width: `${progress}%`,
+                background: T.navy,
+                borderRadius: 3,
+                transition: "width 0.3s ease",
+              }}
+            />
+          </div>
+          <div style={{ display: "flex", flexDirection: "column", gap: 6, textAlign: "left" }}>
+            {REAL_RUN_STEPS.map((s, i) => {
+              const done = i < doneCount
+              const active = i === doneCount
+              return (
+                <div key={s} style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: "50%",
+                      background: done ? T.success : active ? T.navy : T.bg,
+                      border: `1.5px solid ${done ? T.success : active ? T.navy : T.border}`,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                      flexShrink: 0,
+                      fontSize: 9,
+                      color: done || active ? "#fff" : T.ts,
+                    }}
+                  >
+                    {done ? "✓" : active ? "…" : ""}
+                  </div>
+                  <span style={{ fontSize: 12, color: done ? T.success : active ? T.tp : T.ts }}>
+                    {s}
+                  </span>
+                </div>
+              )
+            })}
+          </div>
+        </div>
+      )}
+
+      {runError && (
+        <Alert variant="error">
+          <strong>Something went wrong:</strong> {runError}
+        </Alert>
+      )}
+
+      {!isRunning && (
+        <button
+          onClick={onRun}
+          className="hover-lift"
+          style={{
+            width: "100%",
+            padding: "14px",
+            borderRadius: 10,
+            background: T.navy,
+            color: "#fff",
+            fontSize: 15,
+            fontWeight: 600,
+            border: "none",
+            cursor: "pointer",
+            boxShadow: "0 4px 14px rgba(0,47,108,0.25)",
+          }}
+        >
+          Run Analysis
+        </button>
+      )}
+
+      <button
+        onClick={onBack}
+        style={{
+          fontSize: 13,
+          color: T.ts,
+          background: "none",
+          border: "none",
+          cursor: "pointer",
+          textDecoration: "underline",
+        }}
+      >
+        ← Back to analysis selection
+      </button>
     </div>
   )
 }
@@ -3677,16 +3956,19 @@ export function MMMWorkflow({
         </span>
       </header>
 
-      {/* stepper bar */}
-      <div
-        style={{
-          background: T.surface,
-          borderBottom: `1px solid ${T.border}`,
-          padding: "10px 24px",
-        }}
-      >
-        <Stepper current={step} />
-      </div>
+      {/* stepper bar — only meaningful for the demo wizard; signed-in users get
+          a single-screen flow with no steps to track */}
+      {!authToken && (
+        <div
+          style={{
+            background: T.surface,
+            borderBottom: `1px solid ${T.border}`,
+            padding: "10px 24px",
+          }}
+        >
+          <Stepper current={step} />
+        </div>
+      )}
 
       {/* main content */}
       <main
@@ -3740,7 +4022,17 @@ export function MMMWorkflow({
             onNext={() => goTo(5)}
           />
         )}
-        {step === 5 && (
+        {step === 5 && authToken && (
+          <RealRunStep
+            isRunning={isRunning}
+            progress={runProgress}
+            currentRunStep={runStep}
+            runError={runError}
+            onRun={runAnalysis}
+            onBack={onBack}
+          />
+        )}
+        {step === 5 && !authToken && (
           <RunStep
             analysisType={analysisType}
             config={config}
@@ -3749,7 +4041,6 @@ export function MMMWorkflow({
             currentRunStep={runStep}
             runError={runError}
             lastResult={lastResult}
-            isReal={!!authToken}
             onBack={() => goTo(4)}
             onRun={runAnalysis}
           />
@@ -3759,7 +4050,7 @@ export function MMMWorkflow({
             result={realResult}
             commentary={realCommentary}
             commentaryError={realCommentaryError}
-            onBack={() => goTo(4)}
+            onBack={onBack}
             onNewRun={() => {
               setState((s) => ({ ...s, step: 5, runProgress: 0, runStep: "" }))
               focusMain()
