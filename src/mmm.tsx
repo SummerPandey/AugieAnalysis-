@@ -3655,24 +3655,13 @@ export function MMMWorkflow({
               justifyContent: "center",
             }}
           >
-            <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-              <rect x="1" y="7" width="2" height="4" rx="0.5" fill={T.gold} />
-              <rect
-                x="4.5"
-                y="4.5"
-                width="2"
-                height="6.5"
-                rx="0.5"
+            <svg width="12" height="13.3" viewBox="0 0 24 27" fill="none">
+              <path
+                d="M12 1L2.5 4.6v6.6c0 6.4 4 11.3 9.5 14 5.5-2.7 9.5-7.6 9.5-14V4.6L12 1z"
                 fill={T.gold}
               />
-              <rect
-                x="8"
-                y="1.5"
-                width="2"
-                height="9.5"
-                rx="0.5"
-                fill={T.gold}
-              />
+              <path d="M12 6.5l3.4 3.4-3.4 3.4-3.4-3.4L12 6.5z" fill={T.navy} />
+              <rect x="7.8" y="15.8" width="8.4" height="2" rx="1" fill={T.navy} />
             </svg>
           </div>
           <span style={{ fontSize: 14, fontWeight: 600, color: T.tp }}>

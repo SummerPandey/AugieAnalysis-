@@ -1,7 +1,11 @@
 {
-  "description": "Analyze data effortlessly with a cozy interface featuring AI insights, CSV/XLS import, and a clear visual layout for streamlined decision-making.",
+  "title": "Augie Analysis — Augustana College MMM",
+  "description": "Marketing Mix Modeling for Augustana College admissions marketing — real application, spend, and channel attribution data for the Vikings' marketing team.",
   "robots": {
     "index": false
+  },
+  "icons": {
+    "icon": "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 27'%3E%3Cpath d='M12 1L2.5 4.6v6.6c0 6.4 4 11.3 9.5 14 5.5-2.7 9.5-7.6 9.5-14V4.6L12 1z' fill='%23FFDD00'/%3E%3Cpath d='M12 6.5l3.4 3.4-3.4 3.4-3.4-3.4L12 6.5z' fill='%23002F6C'/%3E%3Crect x='7.8' y='15.8' width='8.4' height='2' rx='1' fill='%23002F6C'/%3E%3C/svg%3E"
   },
   "accessibility": {
     "addBypassLinks": false,

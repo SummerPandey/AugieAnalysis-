@@ -352,11 +352,13 @@ function LoadingScreen({ onDone }: { onDone: () => void }) {
             boxShadow: "0 4px 20px rgba(255,221,0,0.28)",
           }}
         >
-          <svg width="26" height="26" viewBox="0 0 26 26" fill="none">
-            <rect x="3" y="15" width="4" height="8" rx="1" fill={T.navy} />
-            <rect x="9" y="9" width="4" height="14" rx="1" fill={T.navy} />
-            <rect x="15" y="5" width="4" height="18" rx="1" fill={T.navy} />
-            <rect x="21" y="12" width="4" height="11" rx="1" fill={T.navy} />
+          <svg width="26" height="29" viewBox="0 0 24 27" fill="none">
+            <path
+              d="M12 1L2.5 4.6v6.6c0 6.4 4 11.3 9.5 14 5.5-2.7 9.5-7.6 9.5-14V4.6L12 1z"
+              fill={T.navy}
+            />
+            <path d="M12 6.5l3.4 3.4-3.4 3.4-3.4-3.4L12 6.5z" fill={T.gold} />
+            <rect x="7.8" y="15.8" width="8.4" height="2" rx="1" fill={T.gold} />
           </svg>
         </div>
         <h1
@@ -574,18 +576,13 @@ function LandingPage({
             justifyContent: "center",
           }}
         >
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <rect x="4" y="21" width="5" height="11" rx="1.5" fill={T.navy} />
-            <rect x="12" y="14" width="5" height="18" rx="1.5" fill={T.navy} />
-            <rect x="20" y="7" width="5" height="25" rx="1.5" fill={T.navy} />
-            <rect x="28" y="16" width="5" height="16" rx="1.5" fill={T.navy} />
+          <svg width="34" height="38" viewBox="0 0 24 27" fill="none">
             <path
-              d="M6.5 17L14.5 11L22.5 14L30.5 6"
-              stroke={T.navy}
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
+              d="M12 1L2.5 4.6v6.6c0 6.4 4 11.3 9.5 14 5.5-2.7 9.5-7.6 9.5-14V4.6L12 1z"
+              fill={T.navy}
             />
+            <path d="M12 6.5l3.4 3.4-3.4 3.4-3.4-3.4L12 6.5z" fill={T.gold} />
+            <rect x="7.8" y="15.8" width="8.4" height="2" rx="1" fill={T.gold} />
           </svg>
         </div>
 
@@ -602,6 +599,19 @@ function LandingPage({
           <br />
           <span style={{ color: T.gold }}>Analysis</span>
         </h1>
+
+        <p
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.18em",
+            textTransform: "uppercase",
+            color: "rgba(255,255,255,0.55)",
+            marginTop: -20,
+          }}
+        >
+          Augustana College · Marketing &amp; Communications
+        </p>
 
         <button
           onClick={() => setShowForm(true)}
@@ -760,10 +770,13 @@ function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
             justifyContent: "center",
           }}
         >
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <rect x="1" y="8" width="2.5" height="5" rx="0.5" fill={T.gold} />
-            <rect x="5" y="5" width="2.5" height="8" rx="0.5" fill={T.gold} />
-            <rect x="9" y="2" width="2.5" height="11" rx="0.5" fill={T.gold} />
+          <svg width="14" height="15.5" viewBox="0 0 24 27" fill="none">
+            <path
+              d="M12 1L2.5 4.6v6.6c0 6.4 4 11.3 9.5 14 5.5-2.7 9.5-7.6 9.5-14V4.6L12 1z"
+              fill={T.gold}
+            />
+            <path d="M12 6.5l3.4 3.4-3.4 3.4-3.4-3.4L12 6.5z" fill={T.navy} />
+            <rect x="7.8" y="15.8" width="8.4" height="2" rx="1" fill={T.navy} />
           </svg>
         </div>
         <span style={{ fontSize: 14, fontWeight: 600, color: T.tp }}>
