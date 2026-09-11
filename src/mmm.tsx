@@ -3448,6 +3448,158 @@ function RealChannelContributionChart({
   )
 }
 
+/** Inline **bold** support — the one inline construct the AI prompt uses. */
+function renderInline(text: string, keyPrefix: string): ReactNode {
+  const parts = text.split(/(\*\*[^*]+\*\*)/g)
+  return parts.map((part, i) =>
+    part.startsWith("**") && part.endsWith("**") && part.length > 4 ? (
+      <strong key={`${keyPrefix}-${i}`}>{part.slice(2, -2)}</strong>
+    ) : (
+      <span key={`${keyPrefix}-${i}`}>{part}</span>
+    ),
+  )
+}
+
+/**
+ * Minimal Markdown → JSX renderer scoped to exactly what the AI insights
+ * system prompt asks the model to produce: #/##/### headers, **bold**, ---
+ * rules, | table | rows |, numbered/bulleted lists, and paragraphs. This is
+ * deliberately not a general Markdown renderer — the input is one
+ * controlled AI output format, not arbitrary user content, so a small
+ * hand-written parser beats pulling in a full remark/unified dependency
+ * chain for it.
+ */
+function renderMarkdown(text: string): ReactNode {
+  const lines = text.replace(/\r\n/g, "\n").split("\n")
+  const blocks: ReactNode[] = []
+  let i = 0
+  let key = 0
+
+  const isHeader = (l: string) => /^#{1,4}\s+/.test(l)
+  const isRule = (l: string) => /^-{3,}$/.test(l.trim())
+  const isTableRow = (l: string) => l.trim().startsWith("|")
+  const isListItem = (l: string) => /^\s*([-*]|\d+\.)\s+/.test(l)
+
+  while (i < lines.length) {
+    const line = lines[i]
+
+    if (line.trim() === "") {
+      i++
+      continue
+    }
+
+    if (isRule(line)) {
+      blocks.push(
+        <hr key={key++} style={{ border: "none", borderTop: `1px solid ${T.border}`, margin: "12px 0" }} />,
+      )
+      i++
+      continue
+    }
+
+    const headerMatch = line.match(/^(#{1,4})\s+(.*)$/)
+    if (headerMatch) {
+      const level = headerMatch[1].length
+      const sizes: Record<number, number> = { 1: 17, 2: 15, 3: 14, 4: 13 }
+      blocks.push(
+        <p
+          key={key++}
+          style={{ fontSize: sizes[level] ?? 13, fontWeight: 700, color: T.tp, marginTop: 14, marginBottom: 6 }}
+        >
+          {renderInline(headerMatch[2], `h${key}`)}
+        </p>,
+      )
+      i++
+      continue
+    }
+
+    if (isTableRow(line)) {
+      const tableLines: string[] = []
+      while (i < lines.length && isTableRow(lines[i])) {
+        tableLines.push(lines[i])
+        i++
+      }
+      const rows = tableLines
+        .filter((l) => !/^\|?\s*:?-{2,}:?\s*(\|\s*:?-{2,}:?\s*)*\|?$/.test(l.trim()))
+        .map((l) => l.trim().replace(/^\|/, "").replace(/\|$/, "").split("|").map((c) => c.trim()))
+      if (rows.length > 0) {
+        const [header, ...body] = rows
+        blocks.push(
+          <div key={key++} style={{ overflowX: "auto", margin: "8px 0" }}>
+            <table style={{ borderCollapse: "collapse", width: "100%", fontSize: 12 }}>
+              <thead>
+                <tr>
+                  {header.map((h, ci) => (
+                    <th
+                      key={ci}
+                      style={{
+                        textAlign: "left",
+                        padding: "6px 10px",
+                        borderBottom: `2px solid ${T.border}`,
+                        color: T.ts,
+                        fontWeight: 600,
+                        whiteSpace: "nowrap",
+                      }}
+                    >
+                      {renderInline(h, `th${ci}`)}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {body.map((row, ri) => (
+                  <tr key={ri}>
+                    {row.map((c, ci) => (
+                      <td key={ci} style={{ padding: "6px 10px", borderBottom: `1px solid ${T.border}`, color: T.tp }}>
+                        {renderInline(c, `td${ri}-${ci}`)}
+                      </td>
+                    ))}
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>,
+        )
+      }
+      continue
+    }
+
+    if (isListItem(line)) {
+      const ordered = /^\s*\d+\./.test(line)
+      const items: string[] = []
+      while (i < lines.length && isListItem(lines[i])) {
+        const m = lines[i].match(/^\s*(?:[-*]|\d+\.)\s+(.*)$/)
+        if (m) items.push(m[1])
+        i++
+      }
+      const ListTag: "ol" | "ul" = ordered ? "ol" : "ul"
+      blocks.push(
+        <ListTag key={key++} style={{ paddingLeft: 20, margin: "6px 0", display: "flex", flexDirection: "column", gap: 4 }}>
+          {items.map((item, ii) => (
+            <li key={ii} style={{ fontSize: 13, color: T.tp, lineHeight: 1.6 }}>
+              {renderInline(item, `li${ii}`)}
+            </li>
+          ))}
+        </ListTag>,
+      )
+      continue
+    }
+
+    const paraLines: string[] = [line]
+    i++
+    while (i < lines.length && lines[i].trim() !== "" && !isHeader(lines[i]) && !isTableRow(lines[i]) && !isListItem(lines[i]) && !isRule(lines[i])) {
+      paraLines.push(lines[i])
+      i++
+    }
+    blocks.push(
+      <p key={key++} style={{ fontSize: 13, color: T.tp, lineHeight: 1.7, margin: "6px 0" }}>
+        {renderInline(paraLines.join(" "), `p${key}`)}
+      </p>,
+    )
+  }
+
+  return <>{blocks}</>
+}
+
 function RealResultsStep({
   result,
   commentary,
@@ -3506,9 +3658,7 @@ function RealResultsStep({
       {commentary && (
         <div style={{ ...card, padding: "16px" }}>
           <p style={{ ...lbl, marginBottom: 8 }}>AI Analysis</p>
-          <p style={{ fontSize: 13, color: T.tp, lineHeight: 1.7, whiteSpace: "pre-wrap" }}>
-            {commentary}
-          </p>
+          {renderMarkdown(commentary)}
         </div>
       )}
 
