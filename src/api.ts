@@ -103,3 +103,18 @@ export async function getInsights(
   })
   return handle<InsightsResult>(resp)
 }
+
+export interface ChatTurn {
+  role: "user" | "assistant"
+  content: string
+}
+
+export async function sendChatMessage(message: string, history: ChatTurn[]): Promise<string> {
+  const resp = await fetch(`${API_BASE}/api/chat`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ message, history }),
+  })
+  const data = await handle<{ reply: string }>(resp)
+  return data.reply
+}

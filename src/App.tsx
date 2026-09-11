@@ -1,44 +1,18 @@
 import { useState, useEffect, useRef } from "react"
 import { MMMWorkflow, T } from "./mmm"
-import { login as apiLogin } from "./api"
+import { login as apiLogin, sendChatMessage, type ChatTurn } from "./api"
 
 /* ── types ─────────────────────────────────────────────────── */
 type Page = "landing" | "options" | "mmm"
 type ChatMsg = { role: "user" | "ai"; text: string }
 
 /* ── AI chat widget ─────────────────────────────────────────── */
-const AI_REPLIES: Record<string, string> = {
-  default: "I'm here to help with your analysis. Ask me anything.",
-  mmm: "MMM attributes conversions across media channels using Bayesian regression.",
-  attribution:
-    "Attribution assigns credit across touchpoints in the customer journey.",
-  retention:
-    "Retention dipped 3.1% — the July cohort overlap is worth investigating.",
-  session:
-    "Sessions peaked at 14:30, likely correlated with the 14:00 email send.",
-  import:
-    "Upload a CSV or Excel file with daily or weekly media spend and revenue data.",
-  roi: "ROI curves show how marginal return changes as you increase or decrease spend per channel.",
-}
-
-function pickReply(t: string): string {
-  const l = t.toLowerCase()
-  if (l.includes("mmm") || l.includes("media mix")) return AI_REPLIES.mmm
-  if (l.includes("attribution")) return AI_REPLIES.attribution
-  if (l.includes("retention")) return AI_REPLIES.retention
-  if (l.includes("session")) return AI_REPLIES.session
-  if (l.includes("import") || l.includes("upload") || l.includes("csv"))
-    return AI_REPLIES.import
-  if (l.includes("roi") || l.includes("return")) return AI_REPLIES.roi
-  return AI_REPLIES.default
-}
-
 function ChatWidget() {
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState<ChatMsg[]>([
     {
       role: "ai",
-      text: "Hey — ask me anything about your data or the workflow.",
+      text: "Hey — ask me anything about MMM or Augustana's marketing data.",
     },
   ])
   const [input, setInput] = useState("")
@@ -54,16 +28,30 @@ function ChatWidget() {
     if (open) setTimeout(() => inputRef.current?.focus(), 60)
   }, [open])
 
-  function send() {
+  async function send() {
     const text = input.trim()
     if (!text) return
     setInput("")
+    const history: ChatTurn[] = msgs.map((m) => ({
+      role: m.role === "ai" ? "assistant" : "user",
+      content: m.text,
+    }))
     setMsgs((m) => [...m, { role: "user", text }])
     setTyping(true)
-    setTimeout(() => {
+    try {
+      const reply = await sendChatMessage(text, history)
+      setMsgs((m) => [...m, { role: "ai", text: reply }])
+    } catch (err) {
+      setMsgs((m) => [
+        ...m,
+        {
+          role: "ai",
+          text: `Sorry, I couldn't reach the assistant just now (${err instanceof Error ? err.message : String(err)}).`,
+        },
+      ])
+    } finally {
       setTyping(false)
-      setMsgs((m) => [...m, { role: "ai", text: pickReply(text) }])
-    }, 850)
+    }
   }
 
   const card: React.CSSProperties = {
@@ -180,6 +168,7 @@ function ChatWidget() {
                         ? "12px 12px 3px 12px"
                         : "12px 12px 12px 3px",
                     border: m.role === "ai" ? `1px solid ${T.border}` : "none",
+                    whiteSpace: "pre-wrap",
                   }}
                 >
                   {m.text}
