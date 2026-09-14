@@ -1,9 +1,15 @@
 import { useState, useEffect, useRef } from "react"
-import { MMMWorkflow, T } from "./mmm"
-import { login as apiLogin, sendChatMessage, type ChatTurn } from "./api"
+import { MMMWorkflow, T, humanizeChannel } from "./mmm"
+import {
+  login as apiLogin,
+  sendChatMessage,
+  runPipeline,
+  type ChatTurn,
+  type PipelineResult,
+} from "./api"
 
 /* ── types ─────────────────────────────────────────────────── */
-type Page = "landing" | "options" | "mmm"
+type Page = "landing" | "options" | "mmm" | "profile"
 type ChatMsg = { role: "user" | "ai"; text: string }
 
 /* ── AI chat widget ─────────────────────────────────────────── */
@@ -394,7 +400,7 @@ function LandingPage({
   onSignedIn,
 }: {
   onStart: () => void
-  onSignedIn: (token: string) => void
+  onSignedIn: (token: string, email: string | null) => void
 }) {
   const [showForm, setShowForm] = useState(false)
   const [email, setEmail] = useState("")
@@ -407,8 +413,8 @@ function LandingPage({
     setError(null)
     setLoading(true)
     try {
-      const token = await apiLogin(email, password)
-      onSignedIn(token)
+      const result = await apiLogin(email, password)
+      onSignedIn(result.token, result.email)
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err))
     } finally {
@@ -889,6 +895,259 @@ function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
   )
 }
 
+/* ── Profile overview ───────────────────────────────────────── */
+function displayName(email: string | null): string {
+  if (!email) return "there"
+  const local = email.split("@")[0]
+  if (/^irene\b/i.test(local)) return "Irene"
+  return local
+    .replace(/[._-]+/g, " ")
+    .replace(/\b\w/g, (c) => c.toUpperCase())
+}
+
+function ovCard(extra?: object): React.CSSProperties {
+  return {
+    background: T.surface,
+    border: `1px solid ${T.border}`,
+    borderRadius: 12,
+    padding: 20,
+    ...extra,
+  }
+}
+
+function ProfileOverview({
+  email,
+  token,
+  onEnterMMM,
+  onSignOut,
+}: {
+  email: string | null
+  token: string
+  onEnterMMM: () => void
+  onSignOut: () => void
+}) {
+  const [result, setResult] = useState<PipelineResult | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    let cancelled = false
+    runPipeline(token)
+      .then((r) => {
+        if (!cancelled) setResult(r)
+      })
+      .catch((err) => {
+        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false)
+      })
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  const name = displayName(email)
+
+  // Rank spend channels by their standardized adstock coefficient — the
+  // model's read on which channels move applications most, positively or
+  // negatively, given everything else it's controlling for.
+  const channelCoefs = result
+    ? Object.entries(result.coefficients)
+        .filter(([k]) => k.endsWith("_spend_adstock"))
+        .map(([k, v]) => ({ channel: humanizeChannel(k.replace("_adstock", "")), coef: v }))
+        .sort((a, b) => b.coef - a.coef)
+    : []
+  const topChannel = channelCoefs[0]
+  const spendCoveragePct = result?.spend_coverage
+    ? Math.round((result.spend_coverage.weeks_covered / result.spend_coverage.total_weeks) * 100)
+    : null
+
+  return (
+    <div className="fixed inset-0 flex flex-col bg-mesh overflow-y-auto">
+      <header
+        style={{
+          background: T.surface,
+          borderBottom: `1px solid ${T.border}`,
+          padding: "12px 24px",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+        }}
+      >
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <div
+            style={{
+              width: 28,
+              height: 28,
+              borderRadius: 8,
+              background: T.navy,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+            }}
+          >
+            <svg width="14" height="15.5" viewBox="0 0 24 27" fill="none">
+              <path
+                d="M12 1L2.5 4.6v6.6c0 6.4 4 11.3 9.5 14 5.5-2.7 9.5-7.6 9.5-14V4.6L12 1z"
+                fill={T.gold}
+              />
+              <path d="M12 6.5l3.4 3.4-3.4 3.4-3.4-3.4L12 6.5z" fill={T.navy} />
+              <rect x="7.8" y="15.8" width="8.4" height="2" rx="1" fill={T.navy} />
+            </svg>
+          </div>
+          <span style={{ fontSize: 14, fontWeight: 600, color: T.tp }}>
+            Augie Analysis
+          </span>
+        </div>
+        <button
+          onClick={onSignOut}
+          style={{
+            fontSize: 13,
+            color: T.ts,
+            background: "none",
+            border: "none",
+            cursor: "pointer",
+          }}
+        >
+          Sign out
+        </button>
+      </header>
+
+      <div className="flex-1 px-8 py-10 animate-fade-in" style={{ maxWidth: 880, margin: "0 auto", width: "100%" }}>
+        <p
+          style={{
+            fontSize: 11,
+            fontWeight: 600,
+            letterSpacing: "0.06em",
+            textTransform: "uppercase",
+            color: T.ts,
+            marginBottom: 6,
+          }}
+        >
+          Augustana College · Marketing &amp; Communications
+        </p>
+        <h1
+          style={{
+            fontFamily: "var(--font-display)",
+            fontSize: 32,
+            color: T.navy,
+            marginBottom: 28,
+          }}
+        >
+          Welcome back, <span style={{ color: T.gold, WebkitTextStroke: `0.5px ${T.navy}` }}>{name}</span>
+        </h1>
+
+        {loading && (
+          <div style={ovCard()}>
+            <p style={{ fontSize: 14, color: T.ts }}>Loading the latest model run…</p>
+          </div>
+        )}
+
+        {!loading && error && (
+          <div style={ovCard({ borderColor: T.error })}>
+            <p style={{ fontSize: 14, color: T.error, marginBottom: 12 }}>
+              Couldn't load a live snapshot ({error}). You can still open the full analysis below.
+            </p>
+            <button
+              onClick={onEnterMMM}
+              style={{
+                padding: "10px 20px",
+                borderRadius: 8,
+                background: T.navy,
+                color: "#fff",
+                fontWeight: 600,
+                fontSize: 14,
+                border: "none",
+                cursor: "pointer",
+              }}
+            >
+              Open MMM Analysis →
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && result && (
+          <>
+            <div
+              className="grid gap-4"
+              style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: 20 }}
+            >
+              <div style={ovCard()}>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.ts, marginBottom: 8 }}>
+                  Data on file
+                </p>
+                <p style={{ fontSize: 24, fontWeight: 700, color: T.navy }}>{result.rows} weeks</p>
+                <p style={{ fontSize: 12, color: T.ts, marginTop: 4 }}>
+                  {result.date_range[0]} → {result.date_range[1]}
+                </p>
+              </div>
+              <div style={ovCard()}>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.ts, marginBottom: 8 }}>
+                  Model fit
+                </p>
+                <p style={{ fontSize: 24, fontWeight: 700, color: T.navy }}>
+                  R² {result.in_sample_metrics["R²"]?.toFixed(2)}
+                </p>
+                <p style={{ fontSize: 12, color: T.ts, marginTop: 4 }}>
+                  Cross-val {result.cross_validation.mean_r2.toFixed(2)} out-of-sample
+                </p>
+              </div>
+              <div style={ovCard()}>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.ts, marginBottom: 8 }}>
+                  Spend coverage
+                </p>
+                <p style={{ fontSize: 24, fontWeight: 700, color: T.navy }}>
+                  {spendCoveragePct !== null ? `${spendCoveragePct}%` : "—"}
+                </p>
+                <p style={{ fontSize: 12, color: T.ts, marginTop: 4 }}>
+                  {result.spend_channels.length} channels tracked
+                </p>
+              </div>
+            </div>
+
+            {topChannel && (
+              <div style={ovCard({ marginBottom: 20 })}>
+                <p style={{ fontSize: 11, fontWeight: 600, letterSpacing: "0.06em", textTransform: "uppercase", color: T.ts, marginBottom: 8 }}>
+                  What's driving applications right now
+                </p>
+                <p style={{ fontSize: 14, color: T.tp, lineHeight: 1.6 }}>
+                  <strong>{topChannel.channel}</strong> has the strongest positive association with weekly
+                  applications among tracked channels. Seasonality — especially the November deadline
+                  spike — still explains most of the variance year over year.
+                </p>
+                {result.multicollinearity?.warning && (
+                  <p style={{ fontSize: 13, color: T.warning, marginTop: 10 }}>
+                    ⚠ {result.multicollinearity.warning}
+                  </p>
+                )}
+              </div>
+            )}
+
+            <button
+              onClick={onEnterMMM}
+              className="hover:-translate-y-0.5 active:scale-[0.98] transition-all duration-150"
+              style={{
+                padding: "13px 28px",
+                borderRadius: 10,
+                background: T.gold,
+                color: T.navy,
+                fontSize: 15,
+                fontWeight: 600,
+                border: "none",
+                cursor: "pointer",
+                boxShadow: "0 4px 18px rgba(255,221,0,0.35)",
+              }}
+            >
+              Open full MMM analysis →
+            </button>
+          </>
+        )}
+      </div>
+    </div>
+  )
+}
+
 /* ── Root ───────────────────────────────────────────────────── */
 export default function App() {
   const [loaded, setLoaded] = useState(false)
@@ -900,16 +1159,37 @@ export default function App() {
       return null
     }
   })
+  const [authEmail, setAuthEmail] = useState<string | null>(() => {
+    try {
+      return sessionStorage.getItem("mmm_auth_email")
+    } catch {
+      return null
+    }
+  })
 
-  function handleSignedIn(token: string) {
+  function handleSignedIn(token: string, email: string | null) {
     setAuthToken(token)
+    setAuthEmail(email)
     try {
       sessionStorage.setItem("mmm_auth_token", token)
+      if (email) sessionStorage.setItem("mmm_auth_email", email)
     } catch {
       // sessionStorage unavailable (private browsing, etc.) — token still
       // works for this page load via component state.
     }
-    setPage("options")
+    setPage("profile")
+  }
+
+  function handleSignOut() {
+    setAuthToken(null)
+    setAuthEmail(null)
+    try {
+      sessionStorage.removeItem("mmm_auth_token")
+      sessionStorage.removeItem("mmm_auth_email")
+    } catch {
+      // ignore
+    }
+    setPage("landing")
   }
 
   if (!loaded) return <LoadingScreen onDone={() => setLoaded(true)} />
@@ -947,12 +1227,23 @@ export default function App() {
       {page === "options" && (
         <OptionsPage onSelect={(id) => id === "mmm" && setPage("mmm")} />
       )}
+      {page === "profile" && authToken && (
+        <ProfileOverview
+          email={authEmail}
+          token={authToken}
+          onEnterMMM={() => setPage("mmm")}
+          onSignOut={handleSignOut}
+        />
+      )}
       {page === "mmm" && (
         <div
           className="fixed inset-0 overflow-auto animate-fade-in"
           style={{ animationDuration: "0.35s" }}
         >
-          <MMMWorkflow onBack={() => setPage("options")} authToken={authToken} />
+          <MMMWorkflow
+            onBack={() => setPage(authToken ? "profile" : "options")}
+            authToken={authToken}
+          />
         </div>
       )}
       <ChatWidget />

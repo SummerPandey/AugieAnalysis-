@@ -187,11 +187,11 @@ interface WorkflowState {
 
 /* ── demo data helpers ──────────────────────────────────────── */
 const CHANNEL_NAMES = [
-  "Paid Search",
-  "Social Media",
-  "Display",
-  "Email",
-  "TV / Video",
+  "Meta (IG/FB)",
+  "Google PPC",
+  "Snapchat",
+  "YouTube",
+  "Display Retargeting",
 ]
 
 function fmt(n: number, dec = 0) {
@@ -3351,7 +3351,7 @@ const CHANNEL_LABELS: Record<string, string> = {
   google_ip_spend: "Google IP Targeting",
 }
 
-function humanizeChannel(key: string) {
+export function humanizeChannel(key: string) {
   if (key === "baseline") return "Baseline/Seasonality"
   if (key === "impressions") return "Impressions"
   if (CHANNEL_LABELS[key]) return CHANNEL_LABELS[key]

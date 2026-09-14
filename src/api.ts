@@ -62,19 +62,27 @@ async function handle<T>(resp: Response): Promise<T> {
   return resp.json() as Promise<T>
 }
 
-export async function login(email: string, password: string): Promise<string> {
+export interface LoginResult {
+  token: string
+  email: string | null
+}
+
+export async function login(email: string, password: string): Promise<LoginResult> {
   const resp = await fetch(`${API_BASE}/api/auth/login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
     body: JSON.stringify({ email, password }),
   })
-  const data = await handle<{ session: { access_token: string } | null }>(resp)
+  const data = await handle<{
+    email: string | null
+    session: { access_token: string } | null
+  }>(resp)
   if (!data.session) {
     throw new Error(
       "Login succeeded but no session was issued — the account may still need email confirmation.",
     )
   }
-  return data.session.access_token
+  return { token: data.session.access_token, email: data.email }
 }
 
 export async function runPipeline(token: string): Promise<PipelineResult> {
