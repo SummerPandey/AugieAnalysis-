@@ -18,6 +18,8 @@ import {
   type CSSProperties,
 } from "react"
 import { runPipeline, getInsights, type PipelineResult } from "./api"
+import { T } from "./theme"
+import { channelLabel, channelColor, orderSeries } from "./channels"
 import {
   ComposedChart,
   BarChart,
@@ -34,54 +36,42 @@ import {
   ReferenceLine,
 } from "recharts"
 
-/* ── design tokens ─────────────────────────────────────────── */
-export const T = {
-  navy: "#002F6C",
-  navyHover: "#013a87",
-  gold: "#FFDD00",
-  bg: "#F6F8FB",
-  surface: "#FFFFFF",
-  tp: "#102A43", // text primary
-  ts: "#62748A", // text secondary
-  border: "#D9E1EA",
-  success: "#276749",
-  successBg: "#F0FFF4",
-  error: "#9B2C2C",
-  errorBg: "#FFF5F5",
-  warning: "#7B5E00",
-  warningBg: "#FFFBEB",
-  infoBg: "#EBF8FF",
-  infoBorder: "#BEE3F8",
-  ch: ["#002F6C", "#0E7490", "#6B21A8", "#B45309", "#065F46"], // chart channels
-} as const
+/* Design tokens now live in ./theme — re-exported here so the rest of this
+ * file (and App.tsx, which imports T from this module) doesn't need to
+ * change every call site. */
+export { T }
 
 /* ── shared style helpers ───────────────────────────────────── */
 const card: CSSProperties = {
   background: T.surface,
   border: `1px solid ${T.border}`,
-  borderRadius: 10,
+  borderRadius: 4,
   overflow: "hidden",
+  boxShadow: "0 1px 2px rgba(0,15,55,0.05)",
 }
 const lbl: CSSProperties = {
   fontSize: 11,
-  fontWeight: 600,
-  letterSpacing: "0.06em",
+  fontWeight: 700,
+  letterSpacing: "0.08em",
   textTransform: "uppercase",
   color: T.ts,
 }
 const fieldLabel: CSSProperties = {
-  fontSize: 13,
-  fontWeight: 500,
-  color: T.tp,
-  marginBottom: 4,
+  fontSize: 11.5,
+  fontWeight: 600,
+  letterSpacing: "0.06em",
+  textTransform: "uppercase",
+  color: T.ts,
+  marginBottom: 6,
   display: "block",
 }
 const inputBase: CSSProperties = {
-  fontSize: 13,
-  padding: "7px 10px",
-  borderRadius: 7,
-  border: `1px solid ${T.border}`,
-  background: T.bg,
+  fontSize: 14,
+  fontWeight: 500,
+  padding: "9px 12px",
+  borderRadius: 3,
+  border: `1px solid ${T.borderStrong}`,
+  background: T.surface,
   color: T.tp,
   width: "100%",
   outline: "none",
@@ -198,9 +188,11 @@ function fmt(n: number, dec = 0) {
   return n.toLocaleString("en-US", { maximumFractionDigits: dec })
 }
 function fmtUSD(n: number) {
-  if (n >= 1_000_000) return `$${(n / 1_000_000).toFixed(2)}M`
-  if (n >= 1_000) return `$${(n / 1_000).toFixed(0)}K`
-  return `$${n}`
+  const sign = n < 0 ? "-" : ""
+  const abs = Math.abs(n)
+  if (abs >= 1_000_000) return `${sign}$${(abs / 1_000_000).toFixed(2)}M`
+  if (abs >= 1_000) return `${sign}$${(abs / 1_000).toFixed(0)}K`
+  return `${sign}$${fmt(abs)}`
 }
 
 function generateResult(
@@ -416,34 +408,14 @@ function Badge({
   children: ReactNode
   variant?: "default" | "success" | "error" | "warning" | "demo"
 }) {
-  const styles: Record<string, CSSProperties> = {
-    default: { background: "#EEF2F8", color: T.tp },
-    success: { background: T.successBg, color: T.success },
-    error: { background: T.errorBg, color: T.error },
-    warning: { background: T.warningBg, color: T.warning },
-    demo: {
-      background: "#FEF9C3",
-      color: "#713F12",
-      border: "1px solid #FDE047",
-    },
+  const cls: Record<string, string> = {
+    default: "badge",
+    success: "badge badge-success",
+    error: "badge badge-error",
+    warning: "badge badge-warning",
+    demo: "badge badge-demo",
   }
-  return (
-    <span
-      style={{
-        ...styles[variant],
-        fontSize: 11,
-        fontWeight: 600,
-        padding: "2px 8px",
-        borderRadius: 20,
-        whiteSpace: "nowrap",
-        display: "inline-flex",
-        alignItems: "center",
-        gap: 4,
-      }}
-    >
-      {children}
-    </span>
-  )
+  return <span className={cls[variant]}>{children}</span>
 }
 
 function InfoTooltip({ tip }: { tip: string }) {
@@ -597,16 +569,6 @@ function Alert({
   variant: "warning" | "error" | "info" | "demo"
   children: ReactNode
 }) {
-  const styles: Record<string, CSSProperties> = {
-    warning: {
-      background: T.warningBg,
-      borderColor: "#F6E05E",
-      color: T.warning,
-    },
-    error: { background: T.errorBg, borderColor: "#FEB2B2", color: T.error },
-    info: { background: T.infoBg, borderColor: T.infoBorder, color: "#2C5282" },
-    demo: { background: "#FEF9C3", borderColor: "#FDE047", color: "#713F12" },
-  }
   const icons: Record<string, string> = {
     warning: "⚠",
     error: "✕",
@@ -614,23 +576,9 @@ function Alert({
     demo: "★",
   }
   return (
-    <div
-      role="alert"
-      style={{
-        ...styles[variant],
-        border: `1px solid ${styles[variant].borderColor}`,
-        borderRadius: 8,
-        padding: "10px 14px",
-        fontSize: 13,
-        display: "flex",
-        gap: 10,
-        alignItems: "flex-start",
-      }}
-    >
-      <span style={{ flexShrink: 0, fontWeight: 700, marginTop: 1 }}>
-        {icons[variant]}
-      </span>
-      <span style={{ lineHeight: 1.5 }}>{children}</span>
+    <div role="alert" className={`alert alert-${variant}`}>
+      <span aria-hidden>{icons[variant]}</span>
+      <span>{children}</span>
     </div>
   )
 }
@@ -721,25 +669,10 @@ function NavBtn({
   variant?: "primary" | "secondary" | "ghost"
   disabledReason?: string
 }) {
-  const styles: Record<string, CSSProperties> = {
-    primary: {
-      background: T.navy,
-      color: T.gold,
-      border: "none",
-      fontWeight: 600,
-    },
-    secondary: {
-      background: T.surface,
-      color: T.tp,
-      border: `1px solid ${T.border}`,
-      fontWeight: 500,
-    },
-    ghost: {
-      background: "transparent",
-      color: T.ts,
-      border: "none",
-      fontWeight: 500,
-    },
+  const cls: Record<string, string> = {
+    primary: "btn btn-primary",
+    secondary: "btn btn-outline",
+    ghost: "btn btn-ghost",
   }
   return (
     <button
@@ -747,16 +680,7 @@ function NavBtn({
       disabled={disabled}
       title={disabled && disabledReason ? disabledReason : undefined}
       aria-disabled={disabled}
-      style={{
-        ...styles[variant],
-        fontSize: 13,
-        padding: "8px 18px",
-        borderRadius: 8,
-        cursor: disabled ? "not-allowed" : "pointer",
-        opacity: disabled ? 0.45 : 1,
-        transition: "opacity 0.1s",
-        outline: "none",
-      }}
+      className={cls[variant]}
     >
       {children}
     </button>
@@ -2530,8 +2454,6 @@ function KpiCard({
   )
 }
 
-const CHART_COLORS = T.ch
-
 function ChannelContributionChart({ result }: { result: RunResult }) {
   const data = result.weekly.map((w) => {
     const pt: Record<string, string | number> = { week: w.week }
@@ -2582,7 +2504,7 @@ function ChannelContributionChart({ result }: { result: RunResult }) {
                 key={ch.channel}
                 dataKey={ch.channel}
                 stackId="a"
-                fill={CHART_COLORS[i % CHART_COLORS.length]}
+                fill={channelColor(ch.channel)}
                 radius={
                   i === result.channels.length - 1 ? [3, 3, 0, 0] : undefined
                 }
@@ -2727,7 +2649,7 @@ function ROICurvesChart({ result }: { result: RunResult }) {
                 key={ch.channel}
                 type="monotone"
                 dataKey={ch.channel}
-                stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                stroke={channelColor(ch.channel)}
                 strokeWidth={1.8}
                 dot={false}
               />
@@ -2785,7 +2707,7 @@ function SaturationChart({ result }: { result: RunResult }) {
                 key={ch.channel}
                 type="monotone"
                 dataKey={ch.channel}
-                stroke={CHART_COLORS[i % CHART_COLORS.length]}
+                stroke={channelColor(ch.channel)}
                 strokeWidth={1.8}
                 dot={false}
               />
@@ -2914,7 +2836,7 @@ function BudgetTable({ channels }: { channels: ChannelResult[] }) {
                         width: 8,
                         height: 8,
                         borderRadius: 2,
-                        background: CHART_COLORS[i % CHART_COLORS.length],
+                        background: channelColor(ch.channel),
                         marginRight: 8,
                       }}
                     />
@@ -3337,26 +3259,14 @@ function CoefficientBar({ name, value, max }: { name: string; value: number; max
   )
 }
 
-const REAL_CHART_PALETTE = [
-  T.navy, "#0E7490", "#6B21A8", "#B45309", "#065F46", "#9B2C2C", T.gold, "#4C51BF",
-]
-
 function fmtChartDate(d: string) {
   const dt = new Date(d)
   return dt.toLocaleDateString("en-US", { month: "short", year: "2-digit" })
 }
 
-const CHANNEL_LABELS: Record<string, string> = {
-  google_ppc_spend: "Google PPC",
-  google_ip_spend: "Google IP Targeting",
-}
-
-export function humanizeChannel(key: string) {
-  if (key === "baseline") return "Baseline/Seasonality"
-  if (key === "impressions") return "Impressions"
-  if (CHANNEL_LABELS[key]) return CHANNEL_LABELS[key]
-  return key.replace("_spend", "").replace(/_/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
-}
+/* Channel naming + colour now live in ./channels, shared with App.tsx, so a
+ * channel wears the same name and colour in every chart, legend and table. */
+export const humanizeChannel = channelLabel
 
 function RealActualVsPredictedChart({ weekly }: { weekly: PipelineResult["weekly"] }) {
   const tickInterval = Math.max(0, Math.floor(weekly.length / 8))
@@ -3429,15 +3339,15 @@ function RealChannelContributionChart({
             />
             <Legend wrapperStyle={{ fontSize: 11 }} formatter={humanizeChannel} />
             <ReferenceLine y={0} stroke={T.ts} strokeWidth={1} />
-            {seriesKeys.map((key, i) => (
+            {orderSeries(seriesKeys).map((key) => (
               <Area
                 key={key}
                 type="monotone"
                 dataKey={key}
                 name={humanizeChannel(key)}
                 stackId="contrib"
-                stroke={REAL_CHART_PALETTE[i % REAL_CHART_PALETTE.length]}
-                fill={REAL_CHART_PALETTE[i % REAL_CHART_PALETTE.length]}
+                stroke={channelColor(key)}
+                fill={channelColor(key)}
                 fillOpacity={0.75}
               />
             ))}
