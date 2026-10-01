@@ -1,0 +1,385 @@
+/*
+ * Project checklist — styles for checklist.tsx.
+ * Colours come only from the @theme tokens in index.css (var(--color-*)).
+ * Layout is intrinsic (flex-wrap), not viewport- or container-query driven, so
+ * the same markup reads well in a 320px sidebar column and a full-width page.
+ */
+
+/* ── shell ────────────────────────────────────────────────── */
+.cl {
+  --cl-box: 24px;
+  padding: 22px;
+}
+.cl-compact {
+  padding: 18px 16px;
+}
+@media (pointer: coarse) {
+  .cl {
+    --cl-box: 28px;
+  }
+}
+
+.cl-h {
+  margin-top: 10px;
+  color: var(--color-navy);
+}
+.cl-compact .cl-h {
+  font-family: var(--font-display);
+  font-size: 1.5rem;
+  font-weight: 500;
+  line-height: 1.15;
+  letter-spacing: -0.012em;
+}
+.cl-lead {
+  margin-top: 6px;
+  max-width: 62ch;
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+}
+
+/* ── progress ─────────────────────────────────────────────── */
+.cl-summary {
+  margin-top: 16px;
+}
+.cl-count {
+  margin-bottom: 8px;
+  font-size: 12.5px;
+  line-height: 1.4;
+  color: var(--color-ink-2);
+}
+.cl-count strong {
+  font-weight: 700;
+  color: var(--color-navy);
+  font-variant-numeric: tabular-nums;
+}
+.cl-bar {
+  height: 8px;
+  overflow: hidden;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 2px;
+  background: var(--color-sand);
+}
+.cl-bar > span {
+  display: block;
+  height: 100%;
+  background: var(--color-navy);
+  /* gold end-cap, matching the gold rules used across the app */
+  box-shadow: inset -3px 0 0 var(--color-gold);
+  transition: width 0.3s ease;
+}
+
+/* ── owner filter (toggle-button group) ───────────────────── */
+.cl-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 18px;
+}
+.cl-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+  padding: 0 12px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: 3px;
+  background: transparent;
+  color: var(--color-navy);
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  line-height: 1;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background-color 0.15s ease,
+    border-color 0.15s ease;
+}
+.cl-chip:hover {
+  background: var(--color-sand);
+}
+.cl-chip[aria-pressed='true'] {
+  border-color: var(--color-navy);
+  background: var(--color-navy);
+  color: var(--color-paper);
+}
+.cl-chip-n {
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-2);
+}
+.cl-chip[aria-pressed='true'] .cl-chip-n {
+  color: var(--color-gold);
+}
+@media (pointer: coarse) {
+  .cl-chip {
+    min-height: 40px;
+  }
+}
+
+/* ── groups ───────────────────────────────────────────────── */
+.cl-groups {
+  margin-top: 20px;
+}
+.cl-group {
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line);
+}
+.cl-group + .cl-group {
+  margin-top: 16px;
+}
+.cl-group-h {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  line-height: 1.3;
+  text-transform: uppercase;
+  color: var(--color-navy);
+}
+.cl-group-n {
+  margin-left: auto;
+  padding-left: 8px;
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-2);
+}
+.cl-group-cap {
+  margin-top: 2px;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-ink-3);
+}
+.cl-list {
+  margin: 8px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Later — disclosure button that holds the group heading (compact only) */
+.cl-toggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 32px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.cl-toggle:hover .cl-toggle-label {
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+.cl-toggle-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── items ────────────────────────────────────────────────── */
+.cl-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 0;
+}
+.cl-item + .cl-item {
+  border-top: 1px solid var(--color-line);
+}
+.cl-check {
+  appearance: none;
+  -webkit-appearance: none;
+  flex: none;
+  display: grid;
+  place-content: center;
+  width: var(--cl-box);
+  height: var(--cl-box);
+  margin: 0;
+  border: 2px solid var(--color-navy);
+  border-radius: 3px;
+  background: transparent;
+  /* the tick is drawn in currentColor: gold on the navy checked fill */
+  color: var(--color-gold);
+  cursor: pointer;
+  transition: background-color 0.15s ease;
+}
+.cl-check::before {
+  content: '';
+  width: 6px;
+  height: 12px;
+  border: solid currentColor;
+  border-width: 0 2.5px 2.5px 0;
+  transform: translateY(-1px) rotate(45deg) scale(0);
+  transition: transform 0.12s ease;
+}
+.cl-check:hover {
+  background: var(--color-blue-50);
+}
+.cl-check:checked {
+  background: var(--color-navy);
+}
+.cl-check:checked:hover {
+  background: var(--color-navy-900);
+}
+.cl-check:checked::before {
+  transform: translateY(-1px) rotate(45deg) scale(1);
+}
+@media (forced-colors: active) {
+  .cl-check:checked {
+    background: Highlight;
+  }
+  .cl-check::before {
+    color: HighlightText;
+  }
+}
+
+.cl-body {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+.cl-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 4px 12px;
+}
+.cl-title {
+  flex: 1 1 200px;
+  min-width: 0;
+  padding-top: 2px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-ink);
+  cursor: pointer;
+}
+.cl-owner {
+  flex: none;
+}
+.cl-detail {
+  margin-top: 3px;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-ink-2);
+}
+.cl-compact .cl-title {
+  font-size: 13.5px;
+}
+.cl-compact .cl-detail {
+  font-size: 12px;
+}
+
+/* done: struck through and lighter, but still >= 4.5:1 — never colour alone
+ * (the checkbox also shows a tick, and screen readers announce "checked") */
+.cl-item.is-done .cl-title {
+  font-weight: 500;
+  color: var(--color-ink-2);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--color-ink-3);
+}
+.cl-item.is-done .cl-detail {
+  color: var(--color-ink-3);
+}
+
+/* owner filter: hide on screen only, so a printout always lists everything */
+@media screen {
+  .cl-item.is-hidden,
+  .cl-group.is-hidden {
+    display: none;
+  }
+}
+
+/* ── footer ───────────────────────────────────────────────── */
+.cl-foot {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 16px;
+  margin-top: 20px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line);
+}
+.cl-note {
+  display: flex;
+  align-items: flex-start;
+  flex: 1 1 200px;
+  gap: 8px;
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--color-ink-3);
+}
+/* "Reset to defaults" stays focusable when there is nothing to reset, so
+ * keyboard focus is never dropped; it is dimmed and inert instead. */
+.cl-actions .btn[aria-disabled='true'] {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+.cl-actions .btn[aria-disabled='true']:hover {
+  background: transparent;
+  color: var(--color-ink-2);
+}
+.cl-actions .btn[aria-disabled='true']:active {
+  transform: none;
+}
+.cl-note > svg {
+  margin-top: 2px;
+  color: var(--color-warning);
+}
+
+/* ── print ────────────────────────────────────────────────── */
+@media print {
+  .cl {
+    padding: 0;
+    border: 0;
+    box-shadow: none;
+  }
+  /* buttons and controls off; every phase on, even a collapsed "Later" */
+  .cl-filter,
+  .cl-actions,
+  .cl-toggle-chevron {
+    display: none !important;
+  }
+  .cl-panel[hidden] {
+    display: block !important;
+  }
+  .cl-toggle {
+    min-height: 0;
+    cursor: default;
+  }
+  .cl-group,
+  .cl-item {
+    break-inside: avoid;
+  }
+  .cl-bar > span {
+    transition: none;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cl-bar > span,
+  .cl-check,
+  .cl-check::before {
+    transition: none;
+  }
+}

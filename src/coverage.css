@@ -1,0 +1,315 @@
+/* ── data coverage panel ──────────────────────────────────── */
+/* The panel is a size container, so "narrow" means the panel's own width
+ * (it sits in a ~2/3 column on wide screens), not the viewport. */
+.cov {
+  container: cov / inline-size;
+  --cov-label-w: 168px;
+}
+
+.cov .seg button {
+  min-height: 32px;
+}
+@media (pointer: coarse) {
+  .cov .seg button {
+    min-height: 40px;
+    padding-inline: 14px;
+  }
+}
+
+/* summary line: derived counts on the left, as-of date on the right */
+.cov-summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 4px 16px;
+  padding: 12px 20px;
+  background: var(--color-paper);
+  border-bottom: 1px solid var(--color-line);
+}
+.cov-summary {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.5;
+  color: var(--color-ink-2);
+}
+.cov-summary strong {
+  color: var(--color-navy);
+  font-weight: 700;
+}
+.cov-asof {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--color-ink-2);
+}
+.cov-asof time {
+  font-weight: 600;
+  color: var(--color-ink);
+}
+
+.cov-body {
+  padding: 16px 20px 18px;
+}
+
+/* year axis — sits over the track column */
+.cov-axis {
+  display: grid;
+  grid-template-columns: var(--cov-label-w) minmax(0, 1fr);
+  column-gap: 16px;
+  margin-bottom: 4px;
+}
+.cov-axis-track {
+  position: relative;
+  height: 20px;
+}
+.cov-year {
+  position: absolute;
+  top: 0;
+  height: 100%;
+  padding-left: 5px;
+  border-left: 1px solid var(--color-line-strong);
+  font-size: 11px;
+  font-weight: 700;
+  line-height: 18px;
+  letter-spacing: 0.06em;
+  color: var(--color-ink-2);
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+/* lanes */
+.cov-lanes {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.cov-lane {
+  display: grid;
+  grid-template-columns: var(--cov-label-w) minmax(0, 1fr);
+  grid-template-areas:
+    'head track'
+    'head note';
+  column-gap: 16px;
+  row-gap: 6px;
+  align-items: start;
+  padding: 12px 0;
+  border-top: 1px solid var(--color-line);
+}
+.cov-lane-head {
+  grid-area: head;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
+.cov-lane-id {
+  min-width: 0;
+}
+.cov-lane-name {
+  margin: 0;
+  font-size: 13.5px;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--color-ink);
+}
+.cov-lane-sub {
+  margin: 2px 0 0;
+  font-size: 12px;
+  line-height: 1.45;
+  color: var(--color-ink-2);
+}
+.cov-note {
+  grid-area: note;
+  margin: 0;
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--color-ink-2);
+}
+
+/* track: solid bars = months with data, hatching = nothing on file */
+.cov-track {
+  grid-area: track;
+  position: relative;
+  height: 20px;
+  overflow: hidden;
+  border-radius: 3px;
+  background-color: var(--color-paper);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-line-strong) 0 1px,
+    transparent 1px 6px
+  );
+}
+.cov-seg {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  min-width: 4px;
+  border-radius: 2px;
+  background: var(--color-navy);
+  transform-origin: left center;
+  animation: cov-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+}
+/* year boundaries: a light notch that reads over both hatching and bars */
+.cov-tick {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  z-index: 1;
+  width: 1px;
+  background: var(--color-line-strong);
+}
+.cov-track-empty {
+  display: flex;
+  align-items: center;
+  height: auto;
+  min-height: 20px;
+  padding: 2px 10px;
+  overflow: visible;
+  background: transparent;
+  border: 1.5px dashed var(--color-ink-3);
+}
+.cov-empty-text {
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--color-ink-2);
+}
+@keyframes cov-grow {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+/* legend */
+.cov-foot {
+  margin-top: 4px;
+  padding-top: 14px;
+  border-top: 1px solid var(--color-line);
+}
+.cov-swatch {
+  display: inline-block;
+  flex-shrink: 0;
+  width: 22px;
+  height: 10px;
+  border-radius: 2px;
+}
+.cov-swatch-on {
+  background: var(--color-navy);
+}
+.cov-swatch-off {
+  background-color: var(--color-paper);
+  background-image: repeating-linear-gradient(
+    -45deg,
+    var(--color-line-strong) 0 1px,
+    transparent 1px 5px
+  );
+}
+.cov-swatch-none {
+  border: 1.5px dashed var(--color-ink-3);
+}
+
+/* narrow panel (or phone): label stacks above the bar, badge moves right */
+@container cov (max-width: 600px) {
+  .cov-summary-row {
+    padding-inline: 16px;
+  }
+  .cov-body {
+    padding-inline: 16px;
+  }
+  .cov-axis {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .cov-axis-spacer {
+    display: none;
+  }
+  .cov-lane {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-areas:
+      'head'
+      'track'
+      'note';
+    row-gap: 8px;
+  }
+  .cov-lane-head {
+    flex-direction: row;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+}
+
+/* table view */
+.cov-table-wrap {
+  overflow-x: auto;
+}
+.cov-table-wrap:focus-visible {
+  outline-offset: -3px;
+}
+.cov-table {
+  width: 100%;
+  min-width: 720px;
+  border-collapse: collapse;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.cov-table th,
+.cov-table td {
+  padding: 12px 14px;
+  text-align: left;
+  vertical-align: top;
+  color: var(--color-ink);
+  border-bottom: 1px solid var(--color-line);
+}
+.cov-table thead th {
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  color: var(--color-ink-2);
+  background: var(--color-paper);
+  border-bottom: 1.5px solid var(--color-navy);
+}
+.cov-table tbody th {
+  font-weight: 700;
+}
+.cov-table tbody tr:last-child th,
+.cov-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+.cov-owner {
+  display: block;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-ink-2);
+}
+.cov-range {
+  display: block;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+.cov-none {
+  color: var(--color-ink-2);
+}
+
+/* motion: bars don't grow in for people who asked for less of it */
+@media (prefers-reduced-motion: reduce) {
+  .cov-seg {
+    animation: none;
+  }
+}
+
+/* ── page section that pairs coverage with the checklist ───── */
+.cov-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr);
+  gap: 20px;
+  align-items: start;
+}
+@media (max-width: 900px) {
+  .cov-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

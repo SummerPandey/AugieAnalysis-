@@ -42,33 +42,41 @@ export const T = {
   infoBg: "#EBF1F9",
   infoBorder: "#C3D7EE",
 
+  // spacing + radii — mirror --space-* / --radius* in index.css :root
+  space: { 1: 4, 2: 8, 3: 12, 4: 16, 5: 20, 6: 24, 7: 28, 8: 32, 9: 48 },
+  radius: { sm: 3, md: 4 },
+
   // chart chrome
+  axisText: 12, // axis tick + legend font size (px)
   grid: "#ECE9E3",
   axis: "#D7D2CB",
   neutralSeries: "#CFCAC0", // "baseline / everything else" — context, not identity
 
   /**
    * Categorical series palette, fixed order, assigned per entity (see
-   * channels.ts) and never cycled. Validated with the dataviz skill's
-   * validate_palette.js on a white surface: worst adjacent colour-blind ΔE
-   * 10.0 (target ≥ 8), worst adjacent normal-vision ΔE 20.5 (floor ≥ 15).
-   * Gold and rose sit under 3:1 on white by design, so every chart ships a
-   * legend and a table view as the relief channel.
+   * channels.ts) and never cycled. Brand-led: Augustana blue and gold carry
+   * the first two slots, and antique gold marks ad impressions, the largest
+   * advertising band; violet, sky, brick, teal and plum are muted accents
+   * that keep eight channels apart. Validated with the dataviz skill's
+   * validate_palette.js (light, adjacent pairs): lightness band and chroma
+   * floor pass, worst CVD ΔE 9.8, worst normal-vision ΔE 24.2. Gold and sky
+   * sit under 3:1 on white, so every chart ships a legend and a table view,
+   * and fills keep white gaps.
    */
   ch: [
-    "#2563b0", // 1 blue
-    "#dd6b3d", // 2 orange
-    "#1a9a86", // 3 teal
-    "#e0a30b", // 4 gold
-    "#d9779f", // 5 rose
-    "#2f8a2f", // 6 green
-    "#5b47b8", // 7 violet
-    "#d24545", // 8 red
+    "#0067B9", // 1 Augustana blue — Meta
+    "#D9A514", // 2 gold — Google PPC
+    "#563E98", // 3 violet — Snapchat
+    "#46ABD4", // 4 sky — YouTube
+    "#B94834", // 5 brick — Display retargeting
+    "#14938D", // 6 teal — Google IP targeting
+    "#8F4280", // 7 plum — Billboards
+    "#B87D00", // 8 antique gold — Ad impressions
   ],
   /** Two-series charts (actual vs modeled): brand navy and antique gold. */
   actual: "#002F6C",
   modeled: "#B87D00",
-  /** Diverging pair for signed values — warm/cool poles, neutral midpoint. */
-  pos: "#2563b0",
-  neg: "#dd6b3d",
+  /** Diverging pair for signed values — blue/gold is the most CVD-safe pair. */
+  pos: "#0067B9",
+  neg: "#B87D00",
 } as const

@@ -1,0 +1,237 @@
+/* ── Admissions Year dial ─────────────────────────────────── */
+.dial {
+  display: block;
+  max-width: 100%;
+  height: auto;
+  overflow: visible;
+  font-family: var(--font-sans);
+}
+.dial-ring {
+  fill: none;
+  stroke-width: 1;
+}
+.dial-tick {
+  stroke-width: 1;
+}
+.dial-tick-major {
+  stroke-width: 1.5;
+}
+.dial-month {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+.dial-arc {
+  fill: none;
+  stroke-width: 6;
+  stroke-linecap: butt;
+}
+.dial-peak .dial-arc {
+  stroke-width: 12;
+  stroke-linecap: round;
+}
+.dial-leader {
+  stroke-width: 1.5;
+}
+.dial-callout {
+  font-size: 13px;
+}
+.dial-callout-sub {
+  font-size: 13px;
+  font-weight: 500;
+}
+.dial-label {
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+.dial-gap {
+  fill: none;
+  stroke-width: 10;
+}
+.dial-today-hand {
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+.dial-today-dot {
+  stroke-width: 3;
+}
+.dial-eyebrow {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+.dial-week {
+  font-family: var(--font-display);
+  font-size: 64px;
+  font-weight: 500;
+  letter-spacing: -0.02em;
+  font-feature-settings: 'lnum' 1;
+}
+.dial-note {
+  font-size: 16px;
+  font-weight: 500;
+}
+.dial-note-sm {
+  font-size: 13.5px;
+}
+
+/* on navy */
+.dial-dark .dial-ring {
+  stroke: rgba(255, 255, 255, 0.14);
+}
+.dial-dark .dial-ring-inner {
+  stroke: rgba(255, 221, 0, 0.12);
+}
+.dial-dark .dial-tick {
+  stroke: rgba(255, 255, 255, 0.24);
+}
+.dial-dark .dial-tick-major {
+  stroke: rgba(255, 255, 255, 0.5);
+}
+.dial-dark .dial-month {
+  fill: rgba(255, 255, 255, 0.5);
+}
+.dial-dark .dial-arc {
+  stroke: rgba(255, 255, 255, 0.38);
+}
+.dial-dark .dial-label {
+  fill: rgba(255, 255, 255, 0.72);
+}
+.dial-dark .dial-peak .dial-arc {
+  stroke: var(--color-gold);
+}
+.dial-dark .dial-peak .dial-label {
+  fill: var(--color-gold);
+}
+.dial-dark .dial-leader {
+  stroke: rgba(255, 221, 0, 0.7);
+}
+.dial-dark .dial-callout-sub {
+  fill: rgba(255, 255, 255, 0.7);
+}
+.dial-dark .dial-today-hand {
+  stroke: rgba(255, 255, 255, 0.85);
+}
+.dial-dark .dial-today-dot {
+  fill: var(--color-navy-950);
+  stroke: #fff;
+}
+.dial-dark .dial-eyebrow {
+  fill: rgba(255, 255, 255, 0.55);
+}
+.dial-dark .dial-week {
+  fill: #fff;
+}
+.dial-dark .dial-note {
+  fill: rgba(255, 255, 255, 0.72);
+}
+.dial-dark .dial-hatch-line {
+  stroke: rgba(255, 255, 255, 0.4);
+}
+.dial-dark .dial-dataend {
+  fill: #fff;
+}
+.dial-dark .dial-sweep-hand {
+  stroke: var(--color-gold);
+  stroke-width: 2;
+  stroke-linecap: round;
+}
+
+/* on paper / white */
+.dial-light .dial-ring {
+  stroke: var(--color-line);
+}
+.dial-light .dial-ring-inner {
+  stroke: var(--color-line);
+}
+.dial-light .dial-tick {
+  stroke: var(--color-line-strong);
+}
+.dial-light .dial-tick-major {
+  stroke: var(--color-ink-3);
+}
+.dial-light .dial-month {
+  fill: var(--color-ink-3);
+}
+.dial-light .dial-arc {
+  stroke: var(--color-blue-100);
+}
+.dial-light .dial-label {
+  fill: var(--color-navy-700);
+}
+.dial-light .dial-peak .dial-arc {
+  stroke: var(--color-gold);
+}
+.dial-light .dial-peak .dial-label {
+  fill: #7a5a00;
+}
+.dial-light .dial-leader {
+  stroke: var(--color-gold-deep);
+}
+.dial-light .dial-callout-sub {
+  fill: var(--color-ink-2);
+}
+.dial-light .dial-today-hand {
+  stroke: var(--color-navy);
+}
+.dial-light .dial-today-dot {
+  fill: #fff;
+  stroke: var(--color-navy);
+}
+.dial-light .dial-eyebrow {
+  fill: var(--color-ink-3);
+}
+.dial-light .dial-week {
+  fill: var(--color-navy);
+}
+.dial-light .dial-note {
+  fill: var(--color-ink-2);
+}
+.dial-light .dial-hatch-line {
+  stroke: var(--color-ink-3);
+}
+.dial-light .dial-dataend {
+  fill: var(--color-navy);
+}
+
+/* phones: the SVG shrinks to ~60%, so its type steps up and the month ring goes */
+@media (max-width: 520px) {
+  .dial-label,
+  .dial-callout {
+    font-size: 19px;
+  }
+  .dial-callout-sub {
+    font-size: 18px;
+  }
+  .dial-month,
+  .dial-note-sm {
+    display: none;
+  }
+  .dial-note {
+    font-size: 21px;
+  }
+  .dial-eyebrow {
+    font-size: 16px;
+  }
+}
+
+/* loading sweep */
+.dial-sweep {
+  animation: dial-sweep 1.4s cubic-bezier(0.45, 0, 0.25, 1) infinite;
+}
+@keyframes dial-sweep {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .dial-sweep {
+    animation: none;
+    opacity: 0;
+  }
+}

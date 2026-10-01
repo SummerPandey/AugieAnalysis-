@@ -1,413 +1,239 @@
-import { useState, useEffect, useRef } from "react"
-import { MMMWorkflow } from "./mmm"
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react"
 import { T } from "./theme"
-import { humanizeChannel } from "./channels"
+import { AugieMark, SiteHeader, SiteFooter } from "./chrome"
+import { IconArrowRight, IconWarning } from "./icons"
+import { DataCoveragePanel, summarizeSources } from "./coverage"
+import { ProjectChecklist } from "./checklist"
+import { DATA_SOURCES, MODEL_WINDOW, STATUS_AS_OF, formatStatusDate } from "./projectStatus"
+import { AdmissionsDial } from "./admissionsDial"
+import { driverLedger, headline, trust, FIT_WORDS, VERDICT_LABEL } from "./insights"
+import type { LiveRunState } from "./mmm"
 import {
+  AuthError,
+  getInsights,
   login as apiLogin,
-  sendChatMessage,
   runPipeline,
+  sendChatMessage,
   type ChatTurn,
   type PipelineResult,
 } from "./api"
+import "./app.css"
 
-/* ── types ─────────────────────────────────────────────────── */
-type Page = "landing" | "options" | "mmm" | "profile"
-type ChatMsg = { role: "user" | "ai"; text: string }
+// The workflow pulls in Recharts; load it only when someone opens an analysis.
+const MMMWorkflow = lazy(() => import("./mmm"))
 
-/* ── shared mark ───────────────────────────────────────────── */
-function AugieMark({ size = 28, boxed = true }: { size?: number; boxed?: boolean }) {
-  const shield = (
-    <svg width={size * 0.5} height={size * 0.56} viewBox="0 0 24 27" fill="none" aria-hidden>
-      <path
-        d="M12 1L2.5 4.6v6.6c0 6.4 4 11.3 9.5 14 5.5-2.7 9.5-7.6 9.5-14V4.6L12 1z"
-        fill={T.gold}
-      />
-      <path d="M12 6.5l3.4 3.4-3.4 3.4-3.4-3.4L12 6.5z" fill={T.navy} />
-      <rect x="7.8" y="15.8" width="8.4" height="2" rx="1" fill={T.navy} />
-    </svg>
-  )
-  if (!boxed) return shield
-  return (
-    <div
-      style={{
-        width: size,
-        height: size,
-        borderRadius: 6,
-        background: T.navy,
-        display: "flex",
-        alignItems: "center",
-        justifyContent: "center",
-        flexShrink: 0,
-      }}
-    >
-      {shield}
-    </div>
-  )
+/* ── pages + hash routing ──────────────────────────────────── */
+// Hash routes so the browser's Back button and a refresh keep your place.
+type Page = "landing" | "login" | "options" | "demo" | "overview" | "analysis"
+const ROUTES: Record<Page, string> = {
+  landing: "#/",
+  login: "#/sign-in",
+  options: "#/demo",
+  demo: "#/demo/mmm",
+  overview: "#/overview",
+  analysis: "#/analysis",
+}
+function pageFromHash(hash: string): Page {
+  const hit = (Object.keys(ROUTES) as Page[]).find((p) => ROUTES[p] === hash)
+  return hit ?? "landing"
+}
+/** Keep people on pages they're allowed to see. */
+function guard(p: Page, signedIn: boolean): Page {
+  if (!signedIn && (p === "overview" || p === "analysis")) return "login"
+  if (signedIn && (p === "landing" || p === "login")) return "overview"
+  return p
 }
 
-/* ── site chrome: header + footer ─────────────────────────────
- * Shared by every "real page" (Options, Profile) so the app reads as one
- * institutional site rather than a set of disconnected app screens. The
- * full-bleed Landing/Loading moments intentionally skip this chrome. */
-function SiteHeader({
-  variant,
-  name,
-  onSignOut,
-}: {
-  variant: "demo" | "signedIn"
-  name?: string | null
-  onSignOut?: () => void
-}) {
-  return (
-    <header className="site-header">
-      <div className="utility-bar">
-        <div
-          className="container-x"
-          style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 32 }}
-        >
-          <span>Augustana College</span>
-          <span>Marketing &amp; Communications</span>
-        </div>
-      </div>
-      <div
-        className="container-x"
-        style={{ display: "flex", alignItems: "center", justifyContent: "space-between", height: 64, gap: 16 }}
-      >
-        <div style={{ display: "flex", alignItems: "center", gap: 10, minWidth: 0 }}>
-          <AugieMark size={30} />
-          <div style={{ minWidth: 0 }}>
-            <p style={{ fontSize: 14, fontWeight: 700, color: T.tp, lineHeight: 1.15 }}>Augie Analysis</p>
-            <p style={{ fontSize: 10.5, color: T.ts, letterSpacing: "0.03em" }}>Marketing Mix Model</p>
-          </div>
-        </div>
-        <div style={{ display: "flex", alignItems: "center", gap: 14, flexShrink: 0 }}>
-          {variant === "demo" && <span className="badge badge-demo">★ Demo mode</span>}
-          {variant === "signedIn" && (
-            <>
-              <span style={{ fontSize: 12.5, color: T.ts, whiteSpace: "nowrap" }}>
-                Signed in as <strong style={{ color: T.tp }}>{name}</strong>
-              </span>
-              <button className="btn btn-ghost btn-sm" onClick={onSignOut}>
-                Sign out
-              </button>
-            </>
-          )}
-        </div>
-      </div>
-    </header>
-  )
+/* ── session storage (always guarded) ──────────────────────── */
+const ss = {
+  get(k: string) {
+    try {
+      return sessionStorage.getItem(k)
+    } catch {
+      return null
+    }
+  },
+  set(k: string, v: string) {
+    try {
+      sessionStorage.setItem(k, v)
+    } catch {
+      // storage full or blocked: the app still works for this page load
+    }
+  },
+  del(k: string) {
+    try {
+      sessionStorage.removeItem(k)
+    } catch {
+      // ignore
+    }
+  },
+}
+const RUN_KEY = "augie_live_run_v1"
+const EMPTY_RUN: LiveRunState = { result: null, ranAt: 0, running: false, error: null, commentary: { status: "idle" } }
+function loadRun(): LiveRunState {
+  try {
+    const raw = ss.get(RUN_KEY)
+    if (!raw) return EMPTY_RUN
+    const v = JSON.parse(raw) as { result: PipelineResult; ranAt: number; commentary?: string }
+    if (!v?.result?.weekly) return EMPTY_RUN
+    return {
+      result: v.result,
+      ranAt: v.ranAt,
+      running: false,
+      error: null,
+      commentary: v.commentary ? { status: "ready", text: v.commentary } : { status: "idle" },
+    }
+  } catch {
+    return EMPTY_RUN
+  }
 }
 
-function SiteFooter() {
-  const listItem: React.CSSProperties = { color: "rgba(255,255,255,0.62)", lineHeight: 1.5 }
-  return (
-    <footer className="site-footer">
-      <div
-        className="container-x"
-        style={{ padding: "48px 0 28px", display: "grid", gap: "32px 24px", gridTemplateColumns: "1.3fr 1fr 1fr" }}
-      >
-        <div>
-          <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 14 }}>
-            <AugieMark size={26} />
-            <span style={{ fontSize: 13, fontWeight: 700, color: "#fff" }}>Augie Analysis</span>
-          </div>
-          <p style={{ fontSize: 12.5, lineHeight: 1.7, maxWidth: 320, color: "rgba(255,255,255,0.62)" }}>
-            An internal Marketing Mix Model for Augustana College admissions marketing — built to
-            show which channels move weekly applications, using Augustana's own Slate, Carnegie,
-            and billboard data.
-          </p>
-        </div>
-        <div>
-          <h2>Project</h2>
-          <ul>
-            <li style={listItem}>Sponsor: Irene, Marketing &amp; Communications</li>
-            <li style={listItem}>Analyst: Summer Pandey, CS &amp; Data Science</li>
-            <li style={listItem}>Ridge regression · walk-forward cross-validation</li>
-          </ul>
-        </div>
-        <div>
-          <h2>Data sources</h2>
-          <ul>
-            <li style={listItem}>Slate applications</li>
-            <li style={listItem}>Carnegie spend &amp; impressions</li>
-            <li style={listItem}>Billboards · email · direct mail</li>
-          </ul>
-        </div>
-      </div>
-      <div style={{ borderTop: "1px solid rgba(255,255,255,0.12)" }}>
-        <div
-          className="container-x"
-          style={{
-            padding: "16px 0",
-            fontSize: 11.5,
-            color: "rgba(255,255,255,0.5)",
-            display: "flex",
-            justifyContent: "space-between",
-            flexWrap: "wrap",
-            gap: 8,
-          }}
-        >
-          <span>© {new Date().getFullYear()} Augustana College · Rock Island, Illinois</span>
-          <span>Internal tool — not for public distribution</span>
-        </div>
-      </div>
-    </footer>
-  )
+function displayName(email: string | null): string {
+  if (!email) return "there"
+  const local = email.split("@")[0]
+  if (/^irene\b/i.test(local)) return "Irene"
+  return local.replace(/[._-]+/g, " ").replace(/\b\w/g, (c) => c.toUpperCase())
 }
 
-/* ── AI chat widget ─────────────────────────────────────────── */
-function ChatWidget() {
+const errText = (err: unknown) => (err instanceof Error ? err.message : String(err))
+
+/* ── AI chat widget ────────────────────────────────────────── */
+type ChatMsg = { role: "user" | "ai"; text: string; failed?: boolean }
+const spendPct = DATA_SOURCES.find((s) => s.id === "spend")?.coverageLabel.match(/\d+%/)?.[0]
+const STARTERS = [
+  "Explain R² in plain English",
+  "What is adstock?",
+  spendPct ? `Why is spend coverage only ${spendPct}?` : "Why is some spend history missing?",
+  "What does “directional” mean for a channel?",
+]
+
+function ChatWidget({ onDark, token }: { onDark: boolean; token: string | null }) {
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState<ChatMsg[]>([
-    {
-      role: "ai",
-      text: "Hey — ask me anything about MMM or Augustana's marketing data.",
-    },
+    { role: "ai", text: "Hi, I'm Augie AI. Ask me about the model, the data behind it, or how to read a result." },
   ])
   const [input, setInput] = useState("")
   const [typing, setTyping] = useState(false)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
+  const toggleRef = useRef<HTMLButtonElement>(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" })
+    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
   }, [msgs, typing])
-
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 60)
   }, [open])
 
-  async function send() {
-    const text = input.trim()
-    if (!text) return
+  function close() {
+    setOpen(false)
+    toggleRef.current?.focus()
+  }
+
+  async function send(textIn?: string) {
+    const text = (textIn ?? input).trim()
+    if (!text || typing) return
     setInput("")
-    const history: ChatTurn[] = msgs.map((m) => ({
-      role: m.role === "ai" ? "assistant" : "user",
-      content: m.text,
-    }))
+    const history: ChatTurn[] = msgs
+      .filter((m) => !m.failed)
+      .map((m) => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text }))
     setMsgs((m) => [...m, { role: "user", text }])
     setTyping(true)
     try {
-      const reply = await sendChatMessage(text, history)
+      const reply = await sendChatMessage(text, history, token)
       setMsgs((m) => [...m, { role: "ai", text: reply }])
     } catch (err) {
-      setMsgs((m) => [
-        ...m,
-        {
-          role: "ai",
-          text: `Sorry, I couldn't reach the assistant just now (${err instanceof Error ? err.message : String(err)}).`,
-        },
-      ])
+      setMsgs((m) => [...m, { role: "ai", text: `I couldn't answer just now. ${errText(err)}`, failed: true }])
     } finally {
       setTyping(false)
     }
   }
 
+  const onlyGreeting = msgs.length === 1
+
   return (
-    <div
-      className="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-3 no-print"
-      role="region"
-      aria-label="AI chat assistant"
-    >
+    <div className="chat no-print" role="region" aria-label="Augie AI assistant" onKeyDown={(e) => e.key === "Escape" && open && close()}>
       {open && (
-        <div
-          role="dialog"
-          aria-modal="false"
-          aria-label="Augie AI chat"
-          className="card animate-scale-in"
-          style={{ width: 310, height: 400, display: "flex", flexDirection: "column", boxShadow: "var(--shadow-lg)" }}
-        >
-          {/* header */}
-          <div
-            style={{
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "space-between",
-              padding: "11px 14px",
-              background: T.navyDeep,
-              borderBottom: `2px solid ${T.gold}`,
-            }}
-          >
-            <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
+        <div role="dialog" aria-modal="false" aria-label="Augie AI chat" className="chat-panel card animate-scale-in">
+          <div className="chat-head">
+            <div className="chat-title">
               <AugieMark size={20} boxed={false} />
-              <span style={{ fontSize: 13, fontWeight: 700, color: "#fff", letterSpacing: "0.01em" }}>
-                Augie AI
-              </span>
+              <span>Augie AI</span>
             </div>
-            <button
-              onClick={() => setOpen(false)}
-              aria-label="Close chat"
-              style={{
-                color: "rgba(255,255,255,0.6)",
-                fontSize: 18,
-                lineHeight: 1,
-                background: "none",
-                border: "none",
-                cursor: "pointer",
-                padding: 4,
-              }}
-            >
+            <button type="button" onClick={close} aria-label="Close chat" className="chat-close">
               ×
             </button>
           </div>
-
-          {/* messages */}
-          <div
-            role="log"
-            aria-live="polite"
-            aria-label="Chat messages"
-            className="scroll-thin"
-            style={{
-              flex: 1,
-              overflowY: "auto",
-              padding: "12px",
-              display: "flex",
-              flexDirection: "column",
-              gap: 8,
-              background: T.bg,
-            }}
-          >
+          <div role="log" aria-live="polite" aria-label="Chat messages" className="chat-log scroll-thin">
             {msgs.map((m, i) => (
-              <div
-                key={i}
-                style={{
-                  display: "flex",
-                  justifyContent: m.role === "user" ? "flex-end" : "flex-start",
-                }}
-              >
-                <div
-                  style={{
-                    maxWidth: "84%",
-                    padding: "9px 12px",
-                    fontSize: 12.5,
-                    lineHeight: 1.55,
-                    background: m.role === "user" ? T.navy : T.surface,
-                    color: m.role === "user" ? "#fff" : T.tp,
-                    borderRadius: m.role === "user" ? "10px 10px 2px 10px" : "10px 10px 10px 2px",
-                    border: m.role === "ai" ? `1px solid ${T.border}` : "none",
-                    whiteSpace: "pre-wrap",
-                  }}
-                >
-                  {m.text}
-                </div>
+              <div key={i} className={`chat-msg chat-${m.role}${m.failed ? " chat-failed" : ""}`}>
+                {m.text}
               </div>
             ))}
+            {onlyGreeting && (
+              <div className="chat-starters" aria-label="Suggested questions">
+                {STARTERS.map((s) => (
+                  <button key={s} type="button" className="chip" onClick={() => send(s)}>
+                    {s}
+                  </button>
+                ))}
+              </div>
+            )}
             {typing && (
-              <div style={{ display: "flex", justifyContent: "flex-start" }}>
-                <div
-                  aria-label="Augie AI is typing"
-                  style={{
-                    padding: "10px 14px",
-                    background: T.surface,
-                    borderRadius: "10px 10px 10px 2px",
-                    border: `1px solid ${T.border}`,
-                    display: "flex",
-                    gap: 4,
-                    alignItems: "center",
-                  }}
-                >
-                  {[0, 1, 2].map((j) => (
-                    <div
-                      key={j}
-                      className="w-1.5 h-1.5 rounded-full animate-shimmer"
-                      style={{ background: T.ts, animationDelay: `${j * 0.15}s` }}
-                    />
-                  ))}
-                </div>
+              <div className="chat-msg chat-ai chat-typing" aria-label="Augie AI is typing">
+                {[0, 1, 2].map((j) => (
+                  <span key={j} className="animate-shimmer" style={{ animationDelay: `${j * 0.15}s` }} />
+                ))}
               </div>
             )}
             <div ref={bottomRef} />
           </div>
-
-          {/* input */}
-          <div
-            style={{
-              display: "flex",
-              gap: 8,
-              padding: "10px 12px",
-              background: T.surface,
-              borderTop: `1px solid ${T.border}`,
+          <form
+            className="chat-input"
+            onSubmit={(e) => {
+              e.preventDefault()
+              send()
             }}
           >
             <input
               ref={inputRef}
               aria-label="Chat message"
-              placeholder="Ask anything…"
+              placeholder={typing ? "Waiting for the reply…" : "Ask about the model or the data…"}
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              onKeyDown={(e) => e.key === "Enter" && send()}
               className="field"
-              style={{ minHeight: 38, fontSize: 13, padding: "6px 11px" }}
+              maxLength={600}
             />
-            <button
-              onClick={send}
-              aria-label="Send message"
-              disabled={!input.trim()}
-              style={{
-                width: 36,
-                height: 36,
-                borderRadius: 6,
-                background: T.navy,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                border: "none",
-                cursor: input.trim() ? "pointer" : "default",
-                opacity: input.trim() ? 1 : 0.4,
-                flexShrink: 0,
-                transition: "opacity 0.1s",
-              }}
-            >
-              <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
-                <path
-                  d="M2 6.5h9M8 3l3 3.5-3 3.5"
-                  stroke={T.gold}
-                  strokeWidth="1.6"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                />
-              </svg>
+            <button type="submit" aria-label="Send message" className="chat-send" aria-disabled={!input.trim() || typing || undefined}>
+              <IconArrowRight size={15} />
             </button>
-          </div>
+          </form>
+          <p className="chat-foot">AI answers can be wrong. It doesn't see your live results.</p>
         </div>
       )}
-
-      {/* toggle */}
       <button
-        onClick={() => setOpen((o) => !o)}
+        ref={toggleRef}
+        type="button"
+        onClick={() => (open ? close() : setOpen(true))}
         aria-label={open ? "Close AI chat" : "Open AI chat"}
         aria-expanded={open}
-        className="active:scale-95"
-        style={{
-          width: 46,
-          height: 46,
-          borderRadius: 8,
-          background: T.navy,
-          boxShadow: "0 6px 20px rgba(0,15,55,0.35)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          border: "none",
-          cursor: "pointer",
-          transition: "background 0.15s, transform 0.15s",
-        }}
+        className={`chat-toggle${onDark ? " on-navy" : ""}`}
       >
         {open ? (
-          <svg width="14" height="14" viewBox="0 0 14 14" fill="none">
-            <path d="M3 3l8 8M11 3l-8 8" stroke={T.gold} strokeWidth="1.8" strokeLinecap="round" />
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+            <path d="M3 3l8 8M11 3l-8 8" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" />
           </svg>
         ) : (
-          <svg width="18" height="18" viewBox="0 0 17 17" fill="none">
+          <svg width="18" height="18" viewBox="0 0 17 17" fill="none" aria-hidden>
             <path
               d="M1.5 4A2.5 2.5 0 014 1.5h9A2.5 2.5 0 0115.5 4v5.5A2.5 2.5 0 0113 12H9.5l-3 3v-3H4A2.5 2.5 0 011.5 9.5V4z"
-              stroke={T.gold}
+              stroke="currentColor"
               strokeWidth="1.4"
-              fill="none"
               strokeLinejoin="round"
             />
-            <circle cx="5.5" cy="6.75" r="1" fill={T.gold} />
-            <circle cx="8.5" cy="6.75" r="1" fill={T.gold} />
-            <circle cx="11.5" cy="6.75" r="1" fill={T.gold} />
+            <circle cx="5.5" cy="6.75" r="1" fill="currentColor" />
+            <circle cx="8.5" cy="6.75" r="1" fill="currentColor" />
+            <circle cx="11.5" cy="6.75" r="1" fill="currentColor" />
           </svg>
         )}
       </button>
@@ -415,338 +241,313 @@ function ChatWidget() {
   )
 }
 
-/* ── Loading screen ─────────────────────────────────────────── */
-function LoadingScreen({ onDone }: { onDone: () => void }) {
+/* ── intro (once per session) ──────────────────────────────── */
+function IntroScreen({ onDone }: { onDone: () => void }) {
   useEffect(() => {
-    const t = setTimeout(onDone, 1900)
+    const t = setTimeout(onDone, 1100)
     return () => clearTimeout(t)
   }, [onDone])
-
   return (
-    <div
-      className="hero fixed inset-0 flex flex-col items-center justify-center"
-      aria-label="Loading"
-      role="status"
-    >
-      <div className="flex flex-col items-center gap-7 animate-fade-in">
-        <AugieMark size={56} />
-        <h1 className="display t-h1" style={{ color: "#fff", textAlign: "center" }}>
-          Augie <em style={{ color: T.gold }}>Analysis</em>
-        </h1>
-        <div
-          role="progressbar"
-          aria-label="Loading"
-          style={{ width: 160, height: 2, borderRadius: 1, background: "rgba(255,255,255,0.14)", overflow: "hidden" }}
-        >
-          <div
-            className="h-full animate-progress"
-            style={{ background: T.gold, borderRadius: 1, animationDelay: "0.15s" }}
-          />
-        </div>
+    <div className="hero intro" role="status" aria-label="Loading Augie Analysis">
+      <div className="intro-inner animate-fade-in">
+        <AdmissionsDial size={220} showCenter={false} sweep />
+        <p className="display intro-word">
+          Augie <em>Analysis</em>
+        </p>
       </div>
     </div>
   )
 }
 
-/* ── Landing / login ────────────────────────────────────────── */
-function LandingPage({
-  onStart,
+/* ── landing ───────────────────────────────────────────────── */
+// Each point maps to something the results page really shows.
+const LANDING_POINTS = [
+  { title: "Which channels help", body: "Each channel's modeled applications, with an honest verdict on how far to trust it." },
+  { title: "What the calendar explains", body: "Separates the admissions cycle from what marketing added." },
+  { title: "How far to trust it", body: "Fit on weeks the model never saw, and the data gaps, stated plainly." },
+]
+
+function LandingPage({ onDemo, onLogin }: { onDemo: () => void; onLogin: () => void }) {
+  const sources = summarizeSources()
+  return (
+    <div className="hero landing">
+      <div aria-hidden className="landing-grid-bg" />
+      <main id="main-content" className="landing-inner">
+        <div className="landing-copy animate-fade-in">
+          <p className="eyebrow eyebrow-rule landing-eyebrow">
+            <span>
+              Augustana College<span className="hide-sm"> · Marketing &amp; Communications</span>
+            </span>
+          </p>
+          <h1 className="display t-hero landing-title" tabIndex={-1} data-page-title>
+            Augie <em>Analysis</em>
+          </h1>
+          <p className="lead landing-lead">
+            A Marketing Mix Model for Augustana's admissions marketing: how much each channel, from Meta to billboards,
+            actually moves weekly applications, and how much is simply the admissions calendar.
+          </p>
+          <div className="landing-ctas">
+            <button type="button" onClick={onLogin} className="btn btn-gold btn-lg">
+              Sign in <span className="arrow"><IconArrowRight size={15} /></span>
+            </button>
+            <button type="button" onClick={onDemo} className="btn btn-outline-light btn-lg">
+              Explore the demo
+            </button>
+          </div>
+          <p className="landing-status">
+            {sources.onFile} of {sources.total} data sources on file · Status as of{" "}
+            <time dateTime={STATUS_AS_OF}>{formatStatusDate()}</time>
+          </p>
+        </div>
+        <div className="landing-art">
+          <AdmissionsDial size="100%" tone="dark" />
+        </div>
+        <ul className="landing-points" role="list" aria-label="What Augie Analysis answers">
+          {LANDING_POINTS.map((p) => (
+            <li key={p.title} className="landing-point">
+              <p className="landing-point-title">{p.title}</p>
+              <p className="landing-point-body">{p.body}</p>
+            </li>
+          ))}
+        </ul>
+      </main>
+    </div>
+  )
+}
+
+/* ── sign in ───────────────────────────────────────────────── */
+function LoginPage({
+  onBack,
+  onDemo,
   onSignedIn,
+  notice,
 }: {
-  onStart: () => void
+  onBack: () => void
+  onDemo: () => void
   onSignedIn: (token: string, email: string | null) => void
+  notice: string | null
 }) {
-  const [showForm, setShowForm] = useState(false)
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [error, setError] = useState<string | null>(null)
   const [loading, setLoading] = useState(false)
 
-  async function handleSubmit(e: React.FormEvent) {
+  async function submit(e: React.FormEvent) {
     e.preventDefault()
+    if (loading) return
     setError(null)
     setLoading(true)
     try {
-      const result = await apiLogin(email, password)
-      onSignedIn(result.token, result.email)
+      const r = await apiLogin(email.trim(), password)
+      onSignedIn(r.token, r.email)
     } catch (err) {
-      setError(err instanceof Error ? err.message : String(err))
+      setError(errText(err))
     } finally {
       setLoading(false)
     }
   }
 
-  const fieldOnDark: React.CSSProperties = {
-    background: "rgba(255,255,255,0.07)",
-    borderColor: "rgba(255,255,255,0.22)",
-    color: "#fff",
-  }
-
-  if (showForm) {
-    return (
-      <div className="hero fixed inset-0 flex items-center justify-center px-6">
-        <div className="on-dark animate-scale-in" style={{ width: "100%", maxWidth: 380 }}>
-          <div style={{ textAlign: "center", marginBottom: 30 }}>
-            <AugieMark size={44} />
-            <p
-              className="eyebrow eyebrow-rule"
-              style={{ justifyContent: "center", color: "rgba(255,255,255,0.55)", marginTop: 20 }}
-            >
-              Augustana College
-            </p>
-            <h1 className="display t-h3" style={{ color: "#fff", marginTop: 8 }}>
-              Sign in to <em style={{ color: T.gold }}>Augie Analysis</em>
-            </h1>
-          </div>
-          <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-            <div>
-              <label htmlFor="email" className="field-label" style={{ color: "rgba(255,255,255,0.68)" }}>
-                Email
-              </label>
-              <input
-                id="email"
-                type="email"
-                required
-                placeholder="you@augustana.edu"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                className="field"
-                style={fieldOnDark}
-              />
-            </div>
-            <div>
-              <label htmlFor="password" className="field-label" style={{ color: "rgba(255,255,255,0.68)" }}>
-                Password
-              </label>
-              <input
-                id="password"
-                type="password"
-                required
-                placeholder="Password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="field"
-                style={fieldOnDark}
-              />
-            </div>
-            {error && (
-              <p role="alert" style={{ color: "#FFC4C4", fontSize: 13 }}>
-                {error}
-              </p>
-            )}
-            <button type="submit" disabled={loading} className="btn btn-gold btn-lg btn-block">
-              {loading ? "Signing in…" : "Sign in"}
-            </button>
-            <button
-              type="button"
-              onClick={onStart}
-              className="btn btn-ghost btn-block"
-              style={{ color: "rgba(255,255,255,0.65)" }}
-            >
-              Continue without an account (demo data)
-            </button>
-          </form>
-        </div>
-      </div>
-    )
-  }
-
   return (
-    <div className="hero fixed inset-0 flex flex-col items-center justify-center text-center px-6" style={{ overflow: "hidden" }}>
-      <div
-        aria-hidden
-        className="absolute inset-0 opacity-[0.04]"
-        style={{
-          backgroundImage:
-            "linear-gradient(#FFDD00 1px,transparent 1px),linear-gradient(90deg,#FFDD00 1px,transparent 1px)",
-          backgroundSize: "48px 48px",
-        }}
-      />
-      <div
-        aria-hidden
-        className="absolute"
-        style={{ width: 460, height: 460, borderRadius: "50%", border: "1px solid rgba(255,221,0,0.08)" }}
-      />
-      <div
-        aria-hidden
-        className="absolute"
-        style={{ width: 260, height: 260, borderRadius: "50%", border: "1px solid rgba(255,221,0,0.14)" }}
-      />
-
-      <div className="relative animate-fade-in" style={{ maxWidth: 640 }}>
-        <div style={{ display: "flex", justifyContent: "center" }}>
-          <AugieMark size={76} />
+    <div className="hero login">
+      <main id="main-content" className="login-card on-dark animate-scale-in">
+        <button type="button" className="login-back" onClick={onBack}>
+          ← Back
+        </button>
+        <div style={{ textAlign: "center", marginBottom: 28 }}>
+          <div style={{ display: "flex", justifyContent: "center" }}>
+            <AugieMark size={48} />
+          </div>
+          <p className="eyebrow eyebrow-rule" style={{ justifyContent: "center", color: "rgba(255,255,255,0.6)", marginTop: 20 }}>
+            Augustana College
+          </p>
+          <h1 className="display t-h3" style={{ color: "#fff", marginTop: 8 }} tabIndex={-1} data-page-title>
+            Sign in to <em style={{ color: T.gold }}>Augie Analysis</em>
+          </h1>
         </div>
-        <p
-          className="eyebrow eyebrow-rule"
-          style={{ justifyContent: "center", color: "rgba(255,255,255,0.58)", marginTop: 26 }}
-        >
-          Augustana College · Marketing &amp; Communications
-        </p>
-        <h1 className="display t-hero" style={{ color: "#fff", marginTop: 16 }}>
-          Augie <em style={{ color: T.gold }}>Analysis</em>
-        </h1>
-        <p className="lead" style={{ color: "rgba(255,255,255,0.72)", marginTop: 18, maxWidth: 480, marginInline: "auto" }}>
-          A Marketing Mix Model for Augustana's admissions marketing — how much each
-          channel, from Meta to billboards, actually moves weekly applications.
-        </p>
-
-        <div style={{ marginTop: 36, display: "flex", gap: 12, justifyContent: "center", flexWrap: "wrap" }}>
-          <button onClick={() => setShowForm(true)} className="btn btn-gold btn-lg hover-lift">
-            Login <span className="arrow">→</span>
+        {notice && (
+          <p role="status" className="login-notice">
+            <IconWarning size={15} /> {notice}
+          </p>
+        )}
+        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+          <div>
+            <label htmlFor="email" className="field-label login-label">
+              Email
+            </label>
+            <input
+              id="email"
+              type="email"
+              required
+              autoComplete="username"
+              placeholder="you@augustana.edu"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              className="field field-dark"
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="field-label login-label">
+              Password
+            </label>
+            <input
+              id="password"
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="field field-dark"
+            />
+          </div>
+          {error && (
+            <p role="alert" className="login-error">
+              {error}
+            </p>
+          )}
+          <button type="submit" aria-disabled={loading || undefined} className="btn btn-gold btn-lg btn-block">
+            {loading ? "Signing in…" : "Sign in"}
           </button>
-          <button onClick={onStart} className="btn btn-outline-light btn-lg">
-            Explore the demo
+          <button type="button" onClick={onDemo} className="btn btn-ghost btn-block login-demo">
+            Continue with the demo (sample data)
           </button>
-        </div>
-      </div>
+        </form>
+      </main>
     </div>
   )
 }
 
-/* ── Options page ───────────────────────────────────────────── */
-const OPTIONS = [
-  {
-    id: "mmm",
-    label: "MMM",
-    sub: "Media Mix Modeling",
-    active: true,
-    info: "Marketing Mix Modeling estimates how much each channel — Meta, Snapchat, Google, billboards, plus seasonality — actually contributes to applications, using historical spend and outcome data instead of click-level tracking. It outputs: per-channel contribution over time, model fit quality (R², cross-validated), which channels are over/under-invested, and where multicollinearity makes an estimate unreliable.",
-    icon: (isH: boolean) => (
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-        <circle cx="9" cy="9" r="7" stroke={isH ? T.gold : T.navy} strokeWidth="1.3" fill="none" />
-        <path d="M9 9V4" stroke={isH ? T.gold : T.navy} strokeWidth="1.3" strokeLinecap="round" />
-        <path d="M9 9l4 2.5" stroke={isH ? T.gold : T.navy} strokeWidth="1.3" strokeLinecap="round" />
-        <circle cx="9" cy="9" r="1.5" fill={isH ? T.gold : T.navy} />
-      </svg>
-    ),
-  },
-  {
-    id: "general",
-    label: "General Analysis",
-    sub: "Trends & anomalies",
-    active: false,
-    info: "",
-    icon: (isH: boolean) => (
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-        <rect x="2" y="11" width="3" height="5" rx="0.8" fill={isH ? T.gold : T.navy} />
-        <rect x="7" y="7" width="3" height="9" rx="0.8" fill={isH ? T.gold : T.navy} />
-        <rect x="12" y="3" width="3" height="13" rx="0.8" fill={isH ? T.gold : T.navy} />
-      </svg>
-    ),
-  },
-  {
-    id: "deep",
-    label: "Deep Dive",
-    sub: "Cohort & funnel",
-    active: false,
-    info: "",
-    icon: (isH: boolean) => (
-      <svg width="18" height="18" viewBox="0 0 18 18" fill="none">
-        <circle cx="9" cy="7.5" r="5" stroke={isH ? T.gold : T.navy} strokeWidth="1.3" fill="none" />
-        <path d="M9 12.5v4" stroke={isH ? T.gold : T.navy} strokeWidth="1.3" strokeLinecap="round" />
-        <circle cx="9" cy="7.5" r="2" fill={isH ? T.gold : T.navy} />
-      </svg>
-    ),
-  },
-]
+/* ── data status section (Options + Overview) ──────────────── */
+// Reads the audited facts in projectStatus.ts, so it renders whether or not
+// the backend is reachable.
+function DataStatusSection() {
+  return (
+    <section aria-labelledby="data-status-title" className="data-status">
+      <div style={{ marginBottom: 22 }}>
+        <p className="eyebrow eyebrow-rule">Data &amp; next steps</p>
+        <h2 id="data-status-title" className="display t-h3" style={{ marginTop: 8 }}>
+          Where the data <em>stands</em>
+        </h2>
+        <p className="step-lead">What the model has to learn from today, and what's still needed to firm up its estimates.</p>
+      </div>
+      <div className="cov-layout">
+        <DataCoveragePanel />
+        <ProjectChecklist variant="compact" headingLevel={3} />
+      </div>
+    </section>
+  )
+}
 
-function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
-  const [hov, setHov] = useState<string | null>(null)
+/* ── choose an analysis (signed out) ───────────────────────── */
+const spendFacts = DATA_SOURCES.find((s) => s.id === "spend")
+const fmtYM = (ym: string) => {
+  const [y, m] = ym.split("-").map(Number)
+  return new Date(Date.UTC(y, m - 1, 1)).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })
+}
 
+function OptionsPage({
+  onOpen,
+  onHome,
+  onSignIn,
+  signedIn,
+}: {
+  onOpen: () => void
+  onHome: () => void
+  onSignIn?: () => void
+  signedIn: boolean
+}) {
   return (
     <div className="site bg-mesh">
-      <SiteHeader variant="demo" />
+      <SiteHeader
+        variant="demo"
+        onBack={onHome}
+        backLabel={signedIn ? "Overview" : "Home"}
+        backAriaLabel={signedIn ? "Back to your overview" : "Back to home"}
+        onSignIn={onSignIn}
+      />
       <main className="section" id="main-content">
-        <div className="container-x" style={{ maxWidth: 920 }}>
-          <div className="animate-fade-in" style={{ textAlign: "center", marginBottom: 44 }}>
+        <div className="container-x" style={{ maxWidth: 1040 }}>
+          <div className="options-intro animate-fade-in">
             <p className="eyebrow eyebrow-rule" style={{ justifyContent: "center" }}>
               Choose an analysis
             </p>
-            <h1 className="display t-h1" style={{ marginTop: 10 }}>
+            <h1 className="display t-h1" style={{ marginTop: 10 }} tabIndex={-1} data-page-title>
               What do you want to <em>understand</em>?
             </h1>
-            <p className="lead" style={{ maxWidth: 540, marginInline: "auto", marginTop: 12 }}>
-              Marketing Mix Modeling is live on Augustana's real data. The rest are on the
-              roadmap as more history comes in from Anthony and Lucas.
+            <p className="lead">
+              The demo runs on a synthetic sample shaped like Augustana's data.{" "}
+              {onSignIn ? (
+                <>
+                  <button type="button" className="link" onClick={onSignIn}>
+                    Sign in
+                  </button>{" "}
+                  to run the model on the real thing.
+                </>
+              ) : (
+                <>
+                  Your live results are on{" "}
+                  <button type="button" className="link" onClick={onHome}>
+                    your overview
+                  </button>
+                  .
+                </>
+              )}
             </p>
           </div>
 
-          <div
-            className="grid gap-4"
-            style={{ gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))" }}
-            role="list"
-          >
-            {OPTIONS.map((opt) => {
-              const isH = hov === opt.id
-              return (
-                <div key={opt.id} style={{ position: "relative" }}>
-                  <button
-                    role="listitem"
-                    className={`card text-left${opt.active ? " card-interactive" : ""}`}
-                    style={{
-                      padding: 22,
-                      width: "100%",
-                      display: "flex",
-                      flexDirection: "column",
-                      gap: 14,
-                      borderColor: isH && opt.active ? T.navy : undefined,
-                      cursor: opt.active ? "pointer" : "default",
-                      opacity: opt.active ? 1 : 0.55,
-                      outline: "none",
-                    }}
-                    onMouseEnter={() => opt.active && setHov(opt.id)}
-                    onMouseLeave={() => setHov(null)}
-                    onFocus={() => opt.active && setHov(opt.id)}
-                    onBlur={() => setHov(null)}
-                    onClick={() => opt.active && onSelect(opt.id)}
-                    aria-disabled={!opt.active}
-                    tabIndex={opt.active ? 0 : -1}
-                  >
-                    <div
-                      style={{
-                        width: 40,
-                        height: 40,
-                        borderRadius: 4,
-                        background: isH ? T.navy : T.sand,
-                        display: "flex",
-                        alignItems: "center",
-                        justifyContent: "center",
-                        transition: "background 0.2s ease",
-                      }}
-                    >
-                      {opt.icon(isH)}
-                    </div>
-                    <div>
-                      <p style={{ fontSize: 15, fontWeight: 700, color: T.tp, marginBottom: 2 }}>{opt.label}</p>
-                      <p style={{ fontSize: 12.5, color: T.ts }}>{opt.active ? opt.sub : "Coming soon"}</p>
-                    </div>
-                  </button>
-                  {isH && opt.info && (
-                    <div
-                      role="tooltip"
-                      className="card"
-                      style={{
-                        position: "absolute",
-                        top: "calc(100% + 8px)",
-                        left: 0,
-                        right: 0,
-                        zIndex: 20,
-                        padding: "14px 16px",
-                        fontSize: 12.5,
-                        lineHeight: 1.6,
-                        color: T.ts,
-                        boxShadow: "var(--shadow-lg)",
-                        pointerEvents: "none",
-                      }}
-                    >
-                      {opt.info}
-                    </div>
+          <ul className="options-grid" role="list">
+            <li>
+              <button type="button" className="card card-interactive option-main" onClick={onOpen}>
+                <span className="option-icon" aria-hidden>
+                  <svg width="22" height="22" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
+                    <circle cx="9" cy="9" r="7" />
+                    <path d="M9 9V4M9 9l4 2.5" />
+                    <circle cx="9" cy="9" r="1.4" fill="currentColor" />
+                  </svg>
+                </span>
+                <span className="option-kicker">Available now</span>
+                <span className="option-title display">Marketing Mix Model</span>
+                <span className="option-desc">
+                  How much each channel, from Meta to billboards, contributes to weekly applications once the admissions
+                  calendar is accounted for, and how far each estimate can be trusted.
+                </span>
+                <span className="option-facts">
+                  <span>
+                    <strong>{fmtYM(MODEL_WINDOW.start)} – {fmtYM(MODEL_WINDOW.end)}</strong> model window
+                  </span>
+                  <span>
+                    <strong>{DATA_SOURCES.length}</strong> data sources tracked
+                  </span>
+                  {spendFacts && (
+                    <span>
+                      <strong>{spendFacts.coverageLabel.replace(" of the window", "")}</strong> spend history on file
+                    </span>
                   )}
+                </span>
+                <span className="btn btn-primary btn-sm option-cta" aria-hidden>
+                  Open the MMM demo <IconArrowRight size={14} />
+                </span>
+              </button>
+            </li>
+            {[
+              { label: "General analysis", sub: "Trends & anomalies", reason: "Not built yet. Planned once the MMM is on firmer data." },
+              {
+                label: "Deep dive",
+                sub: "Cohort & funnel",
+                reason: "Needs admits and deposits data, which isn't on file yet.",
+              },
+            ].map((o) => (
+              <li key={o.label}>
+                <div className="option-soon" aria-label={`${o.label}: coming soon. ${o.reason}`}>
+                  <span className="badge">Coming soon</span>
+                  <span className="option-title-sm">{o.label}</span>
+                  <span className="option-sub">{o.sub}</span>
+                  <span className="option-reason">{o.reason}</span>
                 </div>
-              )
-            })}
-          </div>
+              </li>
+            ))}
+          </ul>
+
+          <DataStatusSection />
         </div>
       </main>
       <SiteFooter />
@@ -754,156 +555,143 @@ function OptionsPage({ onSelect }: { onSelect: (id: string) => void }) {
   )
 }
 
-/* ── Profile overview ───────────────────────────────────────── */
-function displayName(email: string | null): string {
-  if (!email) return "there"
-  const local = email.split("@")[0]
-  if (/^irene\b/i.test(local)) return "Irene"
-  return local
-    .replace(/[._-]+/g, " ")
-    .replace(/\b\w/g, (c) => c.toUpperCase())
+/* ── overview (signed in) ──────────────────────────────────── */
+function useElapsed(running: boolean) {
+  const [s, setS] = useState(0)
+  useEffect(() => {
+    if (!running) return
+    setS(0)
+    const t = setInterval(() => setS((v) => v + 1), 1000)
+    return () => clearInterval(t)
+  }, [running])
+  return s
 }
 
-function ProfileOverview({
-  email,
-  token,
-  onEnterMMM,
+function Overview({
+  name,
+  live,
+  onOpen,
+  onRun,
   onSignOut,
 }: {
-  email: string | null
-  token: string
-  onEnterMMM: () => void
+  name: string
+  live: LiveRunState
+  onOpen: () => void
+  onRun: () => void
   onSignOut: () => void
 }) {
-  const [result, setResult] = useState<PipelineResult | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    runPipeline(token)
-      .then((r) => {
-        if (!cancelled) setResult(r)
-      })
-      .catch((err) => {
-        if (!cancelled) setError(err instanceof Error ? err.message : String(err))
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [token])
-
-  const name = displayName(email)
-
-  // Rank spend channels by their standardized adstock coefficient — the
-  // model's read on which channels move applications most, positively or
-  // negatively, given everything else it's controlling for.
-  const channelCoefs = result
-    ? Object.entries(result.coefficients)
-        .filter(([k]) => k.endsWith("_spend_adstock"))
-        .map(([k, v]) => ({ channel: humanizeChannel(k.replace("_adstock", "")), coef: v }))
-        .sort((a, b) => b.coef - a.coef)
-    : []
-  const topChannel = channelCoefs[0]
-  const spendCoveragePct = result?.spend_coverage
-    ? Math.round((result.spend_coverage.weeks_covered / result.spend_coverage.total_weeks) * 100)
-    : null
+  const r = live.result
+  const ledger = useMemo(() => (r ? driverLedger(r) : []), [r])
+  const t = useMemo(() => (r ? trust(r) : null), [r])
+  const h = ledger.length ? headline(ledger) : null
+  const elapsed = useElapsed(live.running)
 
   return (
     <div className="site bg-mesh">
       <SiteHeader variant="signedIn" name={name} onSignOut={onSignOut} />
       <main className="section" id="main-content" style={{ paddingTop: 52 }}>
-        <div className="container-x animate-fade-in" style={{ maxWidth: 900 }}>
-          <p className="eyebrow eyebrow-rule">Augustana College · Marketing &amp; Communications</p>
-          <h1 className="display t-h1" style={{ marginTop: 10, marginBottom: 32 }}>
-            Welcome back, <em style={{ color: T.goldDeep }}>{name}</em>
-          </h1>
+        <div className="container-x" style={{ maxWidth: 1080 }}>
+          <div className="overview-hero animate-fade-in">
+            <div className="overview-copy">
+              <p className="eyebrow eyebrow-rule">Augustana College · Marketing &amp; Communications</p>
+              <h1 className="display t-h1" style={{ marginTop: 10 }} tabIndex={-1} data-page-title>
+                Welcome back, <em style={{ color: T.goldDeep }}>{name}</em>
+              </h1>
 
-          {loading && (
-            <div className="card" style={{ padding: 20 }}>
-              <p style={{ fontSize: 14, color: T.ts }}>Loading the latest model run…</p>
-            </div>
-          )}
-
-          {!loading && error && (
-            <div className="card" style={{ padding: 20, borderColor: T.error }}>
-              <p style={{ fontSize: 14, color: T.error, marginBottom: 14 }}>
-                Couldn't load a live snapshot ({error}). You can still open the full analysis below.
-              </p>
-              <button onClick={onEnterMMM} className="btn btn-primary">
-                Open MMM Analysis <span className="arrow">→</span>
-              </button>
-            </div>
-          )}
-
-          {!loading && !error && result && (
-            <>
-              <div
-                className="grid gap-4"
-                style={{ gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", marginBottom: 20 }}
-              >
-                <div className="card" style={{ padding: 20 }}>
-                  <p className="eyebrow" style={{ marginBottom: 8 }}>
-                    Data on file
+              {live.running && !r && (
+                <div role="status" className="overview-loading">
+                  <div className="skeleton" style={{ height: 22, width: "88%" }} />
+                  <div className="skeleton" style={{ height: 22, width: "70%" }} />
+                  <p>
+                    Running the model on Augustana's live data… <span className="num">{elapsed}s</span>
                   </p>
-                  <p className="num" style={{ fontSize: 24, fontWeight: 700, color: T.navy }}>
-                    {result.rows} weeks
-                  </p>
-                  <p style={{ fontSize: 12, color: T.ts, marginTop: 4 }}>
-                    {result.date_range[0]} → {result.date_range[1]}
-                  </p>
-                </div>
-                <div className="card" style={{ padding: 20 }}>
-                  <p className="eyebrow" style={{ marginBottom: 8 }}>
-                    Model fit
-                  </p>
-                  <p className="num" style={{ fontSize: 24, fontWeight: 700, color: T.navy }}>
-                    R² {result.in_sample_metrics["R²"]?.toFixed(2)}
-                  </p>
-                  <p style={{ fontSize: 12, color: T.ts, marginTop: 4 }}>
-                    Cross-val {result.cross_validation.mean_r2.toFixed(2)} out-of-sample
-                  </p>
-                </div>
-                <div className="card" style={{ padding: 20 }}>
-                  <p className="eyebrow" style={{ marginBottom: 8 }}>
-                    Spend coverage
-                  </p>
-                  <p className="num" style={{ fontSize: 24, fontWeight: 700, color: T.navy }}>
-                    {spendCoveragePct !== null ? `${spendCoveragePct}%` : "—"}
-                  </p>
-                  <p style={{ fontSize: 12, color: T.ts, marginTop: 4 }}>
-                    {result.spend_channels.length} channels tracked
-                  </p>
-                </div>
-              </div>
-
-              {topChannel && (
-                <div className="card" style={{ padding: "18px 20px", marginBottom: 20 }}>
-                  <p className="eyebrow" style={{ marginBottom: 8 }}>
-                    What's driving applications right now
-                  </p>
-                  <p style={{ fontSize: 14, color: T.tp, lineHeight: 1.6 }}>
-                    <strong>{topChannel.channel}</strong> has the strongest positive association with weekly
-                    applications among tracked channels. Seasonality — especially the November deadline
-                    spike — still explains most of the variance year over year.
-                  </p>
-                  {result.multicollinearity?.warning && (
-                    <p className="alert alert-warning" style={{ marginTop: 12 }}>
-                      <span aria-hidden>⚠</span>
-                      <span>{result.multicollinearity.warning}</span>
-                    </p>
-                  )}
                 </div>
               )}
 
-              <button onClick={onEnterMMM} className="btn btn-gold btn-lg hover-lift">
-                Open full MMM analysis <span className="arrow">→</span>
-              </button>
-            </>
-          )}
+              {live.error && !r && (
+                <div className="alert alert-error" role="alert" style={{ marginTop: 22 }}>
+                  <IconWarning size={18} />
+                  <div className="alert-body">
+                    <span className="alert-title">The latest run didn't finish</span>
+                    {live.error}
+                    <div style={{ marginTop: 14 }}>
+                      <button type="button" onClick={onRun} className="btn btn-primary btn-sm">
+                        Try again
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {r && live.running && (
+                <p role="status" className="overview-rerun">
+                  Re-running the model on live data… <span className="num">{elapsed}s</span>. The figures below are from the
+                  previous run.
+                </p>
+              )}
+              {r && live.error && !live.running && (
+                <div className="alert alert-error" role="alert" style={{ marginTop: 22 }}>
+                  <IconWarning size={18} />
+                  <div className="alert-body">
+                    <span className="alert-title">The re-run didn't finish</span>
+                    {live.error} Showing the previous run.
+                  </div>
+                </div>
+              )}
+
+              {r && h && t && (
+                <>
+                  <p className="overview-finding">
+                    {h.lead} <mark className="finding-mark">{h.figure}</mark> {h.rest}
+                  </p>
+                  <p className="overview-paid">{h.paid}</p>
+                  <dl className="overview-figures">
+                    <div>
+                      <dt>Fit on unseen weeks</dt>
+                      <dd>
+                        <span className="num">{t.cvMean.toFixed(2)}</span> <small>{FIT_WORDS[t.rating].toLowerCase()}</small>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Typical weekly miss</dt>
+                      <dd>
+                        <span className="num">{t.mae !== undefined ? Math.round(t.mae) : "—"}</span>{" "}
+                        <small>{t.maeShare !== undefined ? `apps · ${Math.round(t.maeShare * 100)}% of a week` : "apps"}</small>
+                      </dd>
+                    </div>
+                    <div>
+                      <dt>Data through</dt>
+                      <dd>
+                        {new Date(t.dataEnd).toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" })}{" "}
+                        <small>{t.weeksStale} wks ago</small>
+                      </dd>
+                    </div>
+                  </dl>
+                  <div className="overview-actions">
+                    <button type="button" onClick={onOpen} className="btn btn-gold btn-lg">
+                      Open the full analysis <span className="arrow"><IconArrowRight size={15} /></span>
+                    </button>
+                    <button type="button" onClick={onRun} className="btn btn-ghost" aria-disabled={live.running || undefined}>
+                      {live.running ? "Re-running…" : "Re-run"}
+                    </button>
+                  </div>
+                  <p className="overview-stamp">
+                    Run {new Date(live.ranAt).toLocaleString("en-US", { dateStyle: "medium", timeStyle: "short" })}
+                  </p>
+                </>
+              )}
+            </div>
+            <div className="overview-dial card">
+              <AdmissionsDial size="100%" tone="light" dataEnd={t?.dataEnd} />
+              <p className="overview-dial-cap">
+                {t
+                  ? "Hatched: weeks between the latest data and today, which no run can see yet."
+                  : "Where Augustana is in the admissions year."}
+              </p>
+            </div>
+          </div>
+
+          <DataStatusSection />
         </div>
       </main>
       <SiteFooter />
@@ -911,75 +699,253 @@ function ProfileOverview({
   )
 }
 
-/* ── Root ───────────────────────────────────────────────────── */
+/* ── root ──────────────────────────────────────────────────── */
+/** Steer the AI readout with the page's own verdicts so the two can't disagree. */
+function readoutBrief(r: PipelineResult): string {
+  const rows = driverLedger(r).filter((x) => x.key !== "baseline")
+  const verdicts = rows.map((x) => `${x.label}: ${VERDICT_LABEL[x.verdict].toLowerCase()}`).join("; ")
+  const cant = rows.filter((x) => x.verdict === "cant-tell").map((x) => x.label)
+  return [
+    "Write the standard readout for this run.",
+    `Keep it consistent with the reliability verdicts shown on the results page: ${verdicts}.`,
+    cant.length
+      ? `${cant.join(" and ")} came out negative because of overlap or coarse data. Don't recommend cutting them; say the model can't tell yet.`
+      : "",
+  ]
+    .filter(Boolean)
+    .join(" ")
+}
+
 export default function App() {
-  const [loaded, setLoaded] = useState(false)
-  const [page, setPage] = useState<Page>("landing")
-  const [authToken, setAuthToken] = useState<string | null>(() => {
-    try {
-      return sessionStorage.getItem("mmm_auth_token")
-    } catch {
-      return null
-    }
-  })
-  const [authEmail, setAuthEmail] = useState<string | null>(() => {
-    try {
-      return sessionStorage.getItem("mmm_auth_email")
-    } catch {
-      return null
-    }
-  })
+  const [token, setToken] = useState<string | null>(() => ss.get("mmm_auth_token"))
+  const [email, setEmail] = useState<string | null>(() => ss.get("mmm_auth_email"))
+  const [page, setPage] = useState<Page>(() => guard(pageFromHash(location.hash), !!ss.get("mmm_auth_token")))
+  const [intro, setIntro] = useState(() => !ss.get("augie_intro_seen"))
+  const [live, setLive] = useState<LiveRunState>(() => (ss.get("mmm_auth_token") ? loadRun() : EMPTY_RUN))
+  const [loginNotice, setLoginNotice] = useState<string | null>(null)
+  // set synchronously, so a double click can't start two runs before React re-renders
+  const runningRef = useRef(false)
+  // bumped on sign-out: any request still in flight from the old session is ignored
+  const epochRef = useRef(0)
+  const firstRender = useRef(true)
 
-  function handleSignedIn(token: string, email: string | null) {
-    setAuthToken(token)
-    setAuthEmail(email)
-    try {
-      sessionStorage.setItem("mmm_auth_token", token)
-      if (email) sessionStorage.setItem("mmm_auth_email", email)
-    } catch {
-      // sessionStorage unavailable (private browsing, etc.) — token still
-      // works for this page load via component state.
+  // hash ↔ page. Hashes that aren't routes (the skip link's #main-content)
+  // are in-page anchors, not navigation, so they're left alone.
+  useEffect(() => {
+    if (location.hash !== ROUTES[page]) history.replaceState(null, "", ROUTES[page])
+    const onHash = () => {
+      if (!(Object.values(ROUTES) as string[]).includes(location.hash)) return
+      const next = guard(pageFromHash(location.hash), !!ss.get("mmm_auth_token"))
+      if (location.hash !== ROUTES[next]) history.replaceState(null, "", ROUTES[next])
+      setPage(next)
     }
-    setPage("profile")
+    window.addEventListener("hashchange", onHash)
+    return () => window.removeEventListener("hashchange", onHash)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+
+  /** Navigate. `replace` swaps the current history entry (after sign-in and sign-out). */
+  const go = useCallback((p: Page, replace = false) => {
+    if (replace) {
+      history.replaceState(null, "", ROUTES[p])
+      setPage(p)
+    } else if (location.hash === ROUTES[p]) setPage(p)
+    else location.hash = ROUTES[p]
+  }, [])
+
+  // on every page change after the first: top of page, focus the page title
+  useEffect(() => {
+    if (firstRender.current) {
+      firstRender.current = false
+      return
+    }
+    window.scrollTo(0, 0)
+    requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-page-title], [data-step-title]")?.focus({ preventScroll: true }))
+  }, [page])
+
+  // keep the latest live run for this tab, so a refresh doesn't re-run it
+  useEffect(() => {
+    if (!live.result) return
+    ss.set(
+      RUN_KEY,
+      JSON.stringify({ result: live.result, ranAt: live.ranAt, commentary: live.commentary.status === "ready" ? live.commentary.text : undefined }),
+    )
+  }, [live.result, live.ranAt, live.commentary])
+
+  const signOut = useCallback(
+    (notice: string | null = null) => {
+      epochRef.current++
+      runningRef.current = false
+      setToken(null)
+      setEmail(null)
+      setLive(EMPTY_RUN)
+      ss.del("mmm_auth_token")
+      ss.del("mmm_auth_email")
+      ss.del(RUN_KEY)
+      setLoginNotice(notice)
+      go(notice ? "login" : "landing", true)
+    },
+    [go],
+  )
+
+  /** Write (or rewrite) the AI readout for the current run. */
+  const readout = useCallback(
+    async (result: PipelineResult, ranAt: number) => {
+      const tk = ss.get("mmm_auth_token")
+      const epoch = epochRef.current
+      if (!tk) return
+      setLive((l) => (l.ranAt === ranAt ? { ...l, commentary: { status: "loading" } } : l))
+      try {
+        const ins = await getInsights(tk, readoutBrief(result))
+        if (epoch !== epochRef.current) return
+        setLive((l) => (l.ranAt === ranAt ? { ...l, commentary: { status: "ready", text: ins.commentary } } : l))
+      } catch (err) {
+        if (epoch !== epochRef.current) return
+        if (err instanceof AuthError) return signOut(err.message)
+        setLive((l) => (l.ranAt === ranAt ? { ...l, commentary: { status: "error", error: errText(err) } } : l))
+      }
+    },
+    [signOut],
+  )
+
+  const runLive = useCallback(async () => {
+    const tk = ss.get("mmm_auth_token")
+    if (!tk || runningRef.current) return
+    const epoch = epochRef.current
+    runningRef.current = true
+    setLive((l) => ({ ...l, running: true, error: null }))
+    let result: PipelineResult
+    try {
+      result = await runPipeline(tk)
+    } catch (err) {
+      if (epoch !== epochRef.current) return
+      runningRef.current = false
+      if (err instanceof AuthError) return signOut(err.message)
+      setLive((l) => ({ ...l, running: false, error: errText(err) }))
+      return
+    }
+    if (epoch !== epochRef.current) return
+    runningRef.current = false
+    const ranAt = Date.now()
+    // numbers first; the AI readout fills in when it's ready
+    setLive({ result, ranAt, running: false, error: null, commentary: { status: "loading" } })
+    readout(result, ranAt)
+  }, [signOut, readout])
+
+  const ask = useCallback(
+    async (q: string) => {
+      const tk = ss.get("mmm_auth_token")
+      if (!tk) throw new AuthError()
+      try {
+        return (await getInsights(tk, q)).commentary
+      } catch (err) {
+        if (err instanceof AuthError) signOut(err.message)
+        throw err
+      }
+    },
+    [signOut],
+  )
+
+  // the overview shows the latest run; start one if this session has none
+  useEffect(() => {
+    if (page === "overview" && token && !live.result && !live.running && !live.error) runLive()
+  }, [page, token, live.result, live.running, live.error, runLive])
+
+  // a cached run restored without its readout (refresh mid-readout): write it now
+  const restoredRef = useRef(false)
+  useEffect(() => {
+    if (restoredRef.current || !token || !live.result || live.commentary.status !== "idle") return
+    restoredRef.current = true
+    readout(live.result, live.ranAt)
+  }, [token, live.result, live.ranAt, live.commentary.status, readout])
+
+  function handleSignedIn(tk: string, em: string | null) {
+    epochRef.current++
+    setToken(tk)
+    setEmail(em)
+    ss.set("mmm_auth_token", tk)
+    if (em) ss.set("mmm_auth_email", em)
+    setLoginNotice(null)
+    setLive(EMPTY_RUN)
+    // replace the sign-in entry, so Back doesn't return to a page that bounces
+    go("overview", true)
   }
 
-  function handleSignOut() {
-    setAuthToken(null)
-    setAuthEmail(null)
-    try {
-      sessionStorage.removeItem("mmm_auth_token")
-      sessionStorage.removeItem("mmm_auth_email")
-    } catch {
-      // ignore
-    }
-    setPage("landing")
-  }
+  if (intro)
+    return (
+      <IntroScreen
+        onDone={() => {
+          ss.set("augie_intro_seen", "1")
+          setIntro(false)
+        }}
+      />
+    )
 
-  if (!loaded) return <LoadingScreen onDone={() => setLoaded(true)} />
+  const name = displayName(email)
+  const onDark = page === "landing" || page === "login"
+  const signedIn = !!token
 
   return (
     <>
-      {/* skip link for keyboard users */}
-      <a href="#main-content" className="skip-link">
+      <a
+        href="#main-content"
+        className="skip-link"
+        onClick={(e) => {
+          e.preventDefault()
+          const main = document.getElementById("main-content")
+          if (main) {
+            if (!main.hasAttribute("tabindex")) main.setAttribute("tabindex", "-1")
+            main.focus()
+          }
+        }}
+      >
         Skip to main content
       </a>
 
-      {page === "landing" && <LandingPage onStart={() => setPage("options")} onSignedIn={handleSignedIn} />}
-      {page === "options" && <OptionsPage onSelect={(id) => id === "mmm" && setPage("mmm")} />}
-      {page === "profile" && authToken && (
-        <ProfileOverview
-          email={authEmail}
-          token={authToken}
-          onEnterMMM={() => setPage("mmm")}
-          onSignOut={handleSignOut}
+      {page === "landing" && <LandingPage onDemo={() => go("options")} onLogin={() => go("login")} />}
+      {page === "login" && (
+        <LoginPage onBack={() => go("landing")} onDemo={() => go("options")} onSignedIn={handleSignedIn} notice={loginNotice} />
+      )}
+      {page === "options" && (
+        <OptionsPage
+          onOpen={() => go("demo")}
+          onHome={() => go(signedIn ? "overview" : "landing")}
+          onSignIn={signedIn ? undefined : () => go("login")}
+          signedIn={signedIn}
         />
       )}
-      {page === "mmm" && (
-        <div className="fixed inset-0 overflow-auto animate-fade-in" style={{ animationDuration: "0.35s" }}>
-          <MMMWorkflow onBack={() => setPage(authToken ? "profile" : "options")} authToken={authToken} />
+      {page === "overview" && token && (
+        <Overview name={name} live={live} onOpen={() => go("analysis")} onRun={runLive} onSignOut={() => signOut()} />
+      )}
+      {(page === "demo" || page === "analysis") && (
+        <div className="workflow-scroll">
+          <Suspense
+            fallback={
+              <div className="workflow-loading" role="status">
+                Loading the analysis…
+              </div>
+            }
+          >
+            {page === "demo" ? (
+              <MMMWorkflow
+                onBack={() => go("options")}
+                onSignIn={signedIn ? undefined : () => go("login")}
+                userName={signedIn ? name : undefined}
+              />
+            ) : (
+              <MMMWorkflow
+                onBack={() => go("overview")}
+                userName={name}
+                live={live}
+                onRunLive={runLive}
+                onAsk={ask}
+                onReadout={() => live.result && readout(live.result, live.ranAt)}
+              />
+            )}
+          </Suspense>
         </div>
       )}
-      <ChatWidget />
+      <ChatWidget onDark={onDark} token={token} />
     </>
   )
 }

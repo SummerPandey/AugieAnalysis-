@@ -111,5 +111,19 @@ export function featureGroup(key: string): FeatureGroup {
   return "Seasonality & trend"
 }
 
+/**
+ * Display-only: swap raw model feature keys that appear inside backend
+ * prose (e.g. the multicollinearity warning's "meta_spend_adstock") for the
+ * names a marketer knows ("Meta (IG/FB)"). Only recognised feature keys are
+ * touched; everything else in the sentence is left exactly as sent.
+ */
+export function humanizeFeatureNames(text: string): string {
+  return text.replace(/\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/g, (m) => {
+    if (m.endsWith("_adstock")) return channelLabel(m.replace(/_adstock$/, ""))
+    if (m.endsWith("_spend") || /^(sin|cos)_\d$/.test(m) || m in FEATURE_LABELS) return featureLabel(m)
+    return m
+  })
+}
+
 /** Kept for App.tsx / callers that predate this module. */
 export const humanizeChannel = channelLabel
