@@ -1,0 +1,25 @@
+/* "Why this data helps" scene. Motion comes from the shared lp-s56-title /
+   lp-s56-pop classes (which already fall back to fades under reduced motion);
+   this file only colors the cards and icons. */
+
+.lp-s7-card {
+  fill: #fff;
+  stroke: var(--color-line-strong);
+  stroke-width: 2;
+}
+
+.lp-s7-stroke {
+  fill: none;
+  stroke: var(--color-navy);
+  stroke-width: 7;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.lp-s7-fill {
+  fill: var(--color-navy);
+}
+
+.lp-s7-gold {
+  fill: var(--color-gold);
+}

@@ -5,18 +5,20 @@ import { SceneChannels } from "./scenes/Scene2Channels"
 import { SceneQuestion } from "./scenes/Scene3Question"
 import { SceneLineup } from "./scenes/Scene4Lineup"
 import { SceneStack } from "./scenes/Scene5Stack"
+import { SceneWhy } from "./scenes/SceneWhy"
 import { SceneDemo } from "./scenes/Scene6Demo"
 
 /**
- * 30-second animated explainer for the "How it works" page. Six scenes of
- * five seconds each, driven by one interval tick. Visuals are plain SVG
+ * 30-second animated explainer for the "How it works" page. Seven scenes
+ * sharing 30 seconds (about 4.3 s each), driven by one interval tick. Visuals are plain SVG
  * shapes animated with CSS; captions and controls are HTML so they stay
  * readable and screen-reader friendly at every width.
  */
 
-const SCENE_MS = 5000
-const SCENE_COUNT = 6
-const TOTAL_MS = SCENE_MS * SCENE_COUNT
+// The site promises "30 seconds", so scenes share that budget.
+const TOTAL_MS = 30_000
+const SCENE_COUNT = 7
+const SCENE_MS = TOTAL_MS / SCENE_COUNT
 const TICK_MS = 100
 // After a seek, or on first load, a paused stage still plays the scene's
 // entrance for this long so the picture is visible, then freezes.
@@ -28,6 +30,7 @@ const CAPTIONS = [
   "The question: how much came from ads, and how much from the calendar?",
   "The model lines up each week's ads, the calendar, and carryover from past spend.",
   "In the model, most applications are assigned to the calendar. The ads' share is still being measured.",
+  "Why it matters: knowing the baseline helps you plan, test and judge spend fairly.",
   "Try the demo to explore the same method on sample data.",
 ]
 
@@ -51,6 +54,8 @@ function renderScene(index: number) {
       return <SceneLineup />
     case 4:
       return <SceneStack />
+    case 5:
+      return <SceneWhy />
     default:
       return <SceneDemo />
   }
