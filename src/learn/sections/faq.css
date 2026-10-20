@@ -12,7 +12,25 @@
   border-bottom: 1px solid var(--color-line);
 }
 
+/* Open and close animate the answer height. Browsers without ::details-content just snap. */
+.lp-faq-list {
+  interpolate-size: allow-keywords;
+}
+
+.lp-faq-item::details-content {
+  block-size: 0;
+  overflow: hidden;
+  transition:
+    block-size 0.35s cubic-bezier(0.2, 0.7, 0.2, 1),
+    content-visibility 0.35s allow-discrete;
+}
+
+.lp-faq-item[open]::details-content {
+  block-size: auto;
+}
+
 .lp-faq-item > summary {
+  position: relative;
   list-style: none;
   display: flex;
   align-items: center;
@@ -21,6 +39,23 @@
   padding: 20px 4px;
   cursor: pointer;
   min-width: 0;
+}
+
+/* Gold accent that grows down the left edge of the row on hover. */
+.lp-faq-item > summary::before {
+  content: "";
+  position: absolute;
+  left: -12px;
+  top: 14px;
+  bottom: 14px;
+  width: 2px;
+  background: var(--color-gold);
+  transform: scaleY(0);
+  transition: transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1);
+}
+
+.lp-faq-item > summary:hover::before {
+  transform: scaleY(1);
 }
 
 .lp-faq-item > summary::-webkit-details-marker {
@@ -52,7 +87,13 @@
   flex: none;
   display: inline-flex;
   color: var(--color-navy);
-  transition: transform 0.18s ease;
+  transition:
+    transform 0.25s cubic-bezier(0.2, 0.7, 0.2, 1),
+    translate 0.25s ease;
+}
+
+.lp-faq-item > summary:hover .lp-faq-chev {
+  translate: 3px 0;
 }
 
 .lp-faq-item[open] .lp-faq-chev {
@@ -308,6 +349,16 @@
   border-left: 3px solid var(--color-navy);
   border-radius: var(--radius);
   min-width: 0;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.3s ease,
+    border-left-color 0.3s ease;
+}
+
+.lp-faq-term:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+  border-left-color: var(--color-gold);
 }
 
 .lp-faq-term dt {
@@ -357,7 +408,18 @@
 
 @media (prefers-reduced-motion: reduce) {
   .lp-faq-q,
-  .lp-faq-chev {
+  .lp-faq-chev,
+  .lp-faq-term,
+  .lp-faq-item::details-content,
+  .lp-faq-item > summary::before {
     transition: none;
+  }
+
+  .lp-faq-term:hover {
+    transform: none;
+  }
+
+  .lp-faq-item > summary:hover .lp-faq-chev {
+    translate: none;
   }
 }

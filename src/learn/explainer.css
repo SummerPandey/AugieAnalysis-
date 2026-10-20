@@ -33,6 +33,12 @@
   height: 100%;
 }
 
+/* Paused or ended: freeze every CSS animation on the stage so nothing keeps moving.
+   Removing the class (play, or a short settle after a seek) lets them run again. */
+.lp-video-player.is-frozen .lp-video-svg * {
+  animation-play-state: paused;
+}
+
 /* Scrim + big play button shown until the viewer starts the preview. */
 .lp-video-overlay {
   position: absolute;
@@ -45,6 +51,7 @@
 }
 
 .lp-video-big-play {
+  position: relative;
   display: inline-flex;
   align-items: center;
   gap: 12px;
@@ -52,16 +59,56 @@
   text-align: center;
   font-size: clamp(14px, 2.4vw, 17px);
   line-height: 1.3;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow 0.25s ease;
 }
 
 .lp-video-big-play svg {
   flex: 0 0 auto;
+  transition: transform 0.25s cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+.lp-video-big-play:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.lp-video-big-play:hover svg {
+  transform: translateX(2px);
+}
+
+.lp-video-big-play:active {
+  transform: translateY(0) scale(0.96);
+}
+
+/* Soft breathing halo while the preview is waiting to start. */
+.lp-video-big-play::after {
+  content: "";
+  position: absolute;
+  inset: -6px;
+  border-radius: inherit;
+  border: 3px solid var(--color-gold-deep);
+  opacity: 0;
+  pointer-events: none;
+  animation: lp-video-halo 2.4s ease-out infinite;
 }
 
 /* ---------- SVG scene styles (sizes are in viewBox units) ---------- */
 
+/* A scene fades and settles in; the outgoing scene (.lp-video-scene-leave) fades out. */
 .lp-video-scene {
-  animation: lp-video-fade 0.5s ease both;
+  transform-box: view-box;
+  transform-origin: 50% 50%;
+  animation: lp-video-scene-in 0.35s ease-out both;
+}
+
+.lp-video-scene.lp-video-scene-leave {
+  animation: lp-video-scene-out 0.35s ease-in both;
+  pointer-events: none;
+}
+
+/* The outgoing scene jumps its own motion to the finished picture so it only fades. */
+.lp-video-scene-leave * {
+  animation-delay: -20s !important;
 }
 
 .lp-video-fill-navy {
@@ -202,6 +249,21 @@
   to { opacity: 1; }
 }
 
+@keyframes lp-video-fade-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
+@keyframes lp-video-scene-in {
+  from { opacity: 0; transform: scale(0.985); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+@keyframes lp-video-scene-out {
+  from { opacity: 1; }
+  to { opacity: 0; }
+}
+
 @keyframes lp-video-grow {
   from { transform: scaleY(0); }
   to { transform: scaleY(1); }
@@ -232,6 +294,11 @@
   to { transform: scale(1.12); opacity: 0; }
 }
 
+@keyframes lp-video-halo {
+  0% { transform: scale(0.96); opacity: 0.6; }
+  100% { transform: scale(1.14); opacity: 0; }
+}
+
 @keyframes lp-video-blink {
   0%, 100% { opacity: 0.35; }
   50% { opacity: 1; }
@@ -244,23 +311,29 @@
   100% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
 }
 
+@keyframes lp-video-caption-in {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
 /* ---------- Scene animation classes ---------- */
 
+/* Small overshoot on grow so bars and blocks settle with a tiny bounce. */
 .lp-video-grow,
 .lp-video-gold-seg {
   transform-box: fill-box;
   transform-origin: 50% 100%;
-  animation: lp-video-grow 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0s both;
+  animation: lp-video-grow 0.8s cubic-bezier(0.34, 1.2, 0.64, 1) 0s both;
 }
 
 .lp-video-grow-x {
   transform-box: fill-box;
   transform-origin: 0% 50%;
-  animation: lp-video-grow-x 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0s both;
+  animation: lp-video-grow-x 0.6s cubic-bezier(0.34, 1.2, 0.64, 1) 0s both;
 }
 
 .lp-video-slide {
-  animation: lp-video-slide 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0s) both;
+  animation: lp-video-slide 0.9s cubic-bezier(0.22, 1.15, 0.36, 1) var(--d, 0s) both;
 }
 
 .lp-video-fadein {
@@ -313,6 +386,7 @@
 .lp-video-caption-text {
   flex: 1 1 280px;
   min-width: 0;
+  animation: lp-video-caption-in 0.45s ease-out both;
 }
 
 /* ---------- Controls ---------- */
@@ -360,20 +434,36 @@
   border-radius: 2px;
 }
 
+/* Fill is a scaleX bar so it glides between 100 ms ticks instead of jumping. */
 .lp-video-seg-fill {
   position: absolute;
   left: 0;
   top: 50%;
+  width: 100%;
   height: 6px;
   margin-top: -3px;
-  max-width: 100%;
   background: var(--color-navy);
   border-radius: 2px;
-  transition: width 100ms linear;
+  transform-origin: 0% 50%;
+  transform: scaleX(0);
+  transition: transform 0.12s linear;
 }
 
 .lp-video-seg:hover::before {
   background: var(--color-ink-3);
+}
+
+/* Active segment: thicker track, gold fill. */
+.lp-video-seg[aria-current="step"]::before {
+  height: 8px;
+  margin-top: -4px;
+  background: var(--color-blue-100);
+}
+
+.lp-video-seg[aria-current="step"] .lp-video-seg-fill {
+  height: 8px;
+  margin-top: -4px;
+  background: var(--color-gold-deep);
 }
 
 .lp-video-seg:focus-visible {
@@ -422,6 +512,34 @@
   .lp-video-ring {
     transform: none;
     animation: lp-video-blink 2.4s ease-in-out infinite;
+  }
+
+  .lp-video-scene {
+    animation-name: lp-video-fade;
+  }
+
+  .lp-video-scene.lp-video-scene-leave {
+    animation-name: lp-video-fade-out;
+  }
+
+  .lp-video-caption-text {
+    animation-name: lp-video-fade;
+  }
+
+  .lp-video-big-play,
+  .lp-video-big-play svg {
+    transition: none;
+  }
+
+  .lp-video-big-play:hover,
+  .lp-video-big-play:active,
+  .lp-video-big-play:hover svg {
+    transform: none;
+  }
+
+  .lp-video-big-play::after {
+    animation: none;
+    display: none;
   }
 
   .lp-video-seg-fill {

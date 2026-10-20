@@ -8,6 +8,12 @@
  * results view, ledger and caveats as a live run. The model settings chosen
  * in the demo change the output in the direction the real model would move,
  * which is what makes the settings worth touching.
+ *
+ * Like the live model, it also scores a calendar-only model on the same
+ * folds (marketing_lift). The sample is built so that, as on the real data,
+ * marketing doesn't beat the calendar alone, so the demo shows the same
+ * "Can't tell yet" result a signed-in user sees today. Billboards are
+ * described, not fit as a driver, again matching the live model.
  */
 import type { PipelineResult } from "./api"
 import { isoWeek } from "./insights"
@@ -138,10 +144,6 @@ export function sampleResult(s: SampleSettings = DEFAULT_SETTINGS): PipelineResu
       point[ch.key] = round(v)
       paid += v
     }
-    if (s.sources.billboards) {
-      point.billboard_spend = round(2.2 + level * 0.004)
-      paid += point.billboard_spend as number
-    }
     if (s.sources.impressions) {
       const on = active(ym, IMPRESSION_WINDOWS)
       point.impressions = on ? round(6 + level * 0.02) : 0
@@ -180,8 +182,22 @@ export function sampleResult(s: SampleSettings = DEFAULT_SETTINGS): PipelineResu
     const fit = r2(a.slice(lo, hi), p.slice(lo, hi))
     folds.push(round(fit - 1.15 * scarce * scarce - overfit * 2 + (rand() - 0.5) * 0.12, 4))
   }
-  const cvMean = folds.reduce((acc, v) => acc + v, 0) / folds.length
+  const mean = (xs: number[]) => xs.reduce((acc, v) => acc + v, 0) / xs.length
+  const cvMean = mean(folds)
   const cvStd = Math.sqrt(folds.reduce((acc, v) => acc + (v - cvMean) ** 2, 0) / folds.length)
+  const sorted = [...folds].sort((x, y) => x - y)
+  const cvMedian = sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+
+  // Calendar-only benchmark on the same folds. With any marketing source in,
+  // the calendar alone scores higher on all but one fold, as on the live
+  // data; with none, the two models are the same and there's nothing to test.
+  const hasMarketing = channels.length > 0 || s.sources.impressions
+  const baselineFolds = folds.map((v, k) =>
+    round(hasMarketing ? v + (k === 1 ? -0.03 : 0.14 + rand() * 0.08) : v, 4),
+  )
+  const diffs = folds.map((v, k) => v - baselineFolds[k])
+  const lift = mean(diffs)
+  const won = diffs.filter((d) => d > 0).length
 
   /* ── coefficients (standardized, illustrative) ────────────── */
   const coefficients: Record<string, number> = { week_num: -1.4 }
@@ -195,10 +211,10 @@ export function sampleResult(s: SampleSettings = DEFAULT_SETTINGS): PipelineResu
     coefficients[`cos_${h}`] = round(harmonicSize[h] * (h % 2 ? 0.9 : -0.8), 2)
   }
   if (s.sources.impressions) {
-    coefficients.impressions = 5.8
-    coefficients.campaign_active = 2.9
-    coefficients.impressions_lag1 = 11.6
+    coefficients.impressions_observed = -4.1
+    coefficients.impressions = 14.2
   }
+  if (channels.length) coefficients.spend_observed = 2.3
   const chanCoef: Record<string, number> = {
     meta_spend: 9.1,
     google_ppc_spend: 6.3,
@@ -208,7 +224,6 @@ export function sampleResult(s: SampleSettings = DEFAULT_SETTINGS): PipelineResu
     google_ip_spend: 0.8,
   }
   for (const ch of channels) coefficients[`${ch.key}_adstock`] = round(chanCoef[ch.key] * (0.8 + s.adstockDecay * 0.4), 2)
-  if (s.sources.billboards) coefficients.billboard_spend_adstock = 1.5
 
   const vif: Record<string, number> = {}
   for (const k of Object.keys(coefficients)) vif[k] = round(1.4 + rand() * 5, 2)
@@ -223,15 +238,32 @@ export function sampleResult(s: SampleSettings = DEFAULT_SETTINGS): PipelineResu
   return {
     rows: n,
     date_range: [weekly[0].date, weekly[n - 1].date],
-    spend_channels: [...channels.map((c) => c.key), ...(s.sources.billboards ? ["billboard_spend"] : [])],
+    spend_channels: channels.map((c) => c.key),
     spend_coverage: s.sources.spend ? { weeks_covered: spendWeeks, total_weeks: n } : null,
     features_used: Object.keys(coefficients),
     selected_ridge_alpha: round(4 + s.harmonics * 1.3, 3),
     in_sample_metrics: { "R²": round(inR2, 4), "Adj R²": round(inR2 - 0.03, 4), MAE: round(mae, 3), "Durbin-Watson": round(dw, 4) },
-    cross_validation: { per_fold_r2: folds, mean_r2: round(cvMean, 4), std_r2: round(cvStd, 4) },
+    cross_validation: {
+      per_fold_r2: folds,
+      mean_r2: round(cvMean, 4),
+      median_r2: round(cvMedian, 4),
+      std_r2: round(cvStd, 4),
+      min_train_weeks: 52,
+    },
+    // no marketing inputs → no marketing test to report
+    marketing_lift: hasMarketing
+      ? {
+          full_mean_r2: round(cvMean, 4),
+          baseline_mean_r2: round(mean(baselineFolds), 4),
+          lift: round(lift, 4),
+          folds_won: won,
+          folds: folds.length,
+          identified: lift >= 0.02 && won > folds.length / 2,
+        }
+      : undefined,
     coefficients,
     multicollinearity: {
-      condition_number: 48210.5,
+      condition_number: 21.7,
       high_condition_number: false,
       vif,
       high_vif_features: high,

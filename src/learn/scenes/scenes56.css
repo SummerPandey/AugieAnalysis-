@@ -1,0 +1,159 @@
+/* Scenes 5 and 6 motion for the "How it works" explainer. Class prefix: lp-s56-.
+   Pure CSS, transform and opacity only, so the player can pause it with
+   animation-play-state. Every animation has a reduced-motion fallback at the bottom. */
+
+/* ---------- Keyframes ---------- */
+
+@keyframes lp-s56-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Bar settles up from its base with a small overshoot, like a stack being set down. */
+@keyframes lp-s56-settle {
+  0% { transform: scaleY(0); }
+  72% { transform: scaleY(1.03); }
+  100% { transform: scaleY(1); }
+}
+
+@keyframes lp-s56-grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes lp-s56-slide-in {
+  from { opacity: 0; transform: translateX(-28px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+/* Slow, soft breathing sheen on the gold part: "still being measured". */
+@keyframes lp-s56-shimmer {
+  0%, 100% { opacity: 0; }
+  50% { opacity: 0.55; }
+}
+
+@keyframes lp-s56-rise {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+/* Button pops in: small, overshoots, then settles. */
+@keyframes lp-s56-pop {
+  0% { opacity: 0; transform: scale(0.4); }
+  50% { opacity: 1; transform: scale(1.1); }
+  72% { opacity: 1; transform: scale(0.96); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+/* Gentle inviting pulse after the entrance. */
+@keyframes lp-s56-idle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.025); }
+}
+
+/* Sparkles fly out once from their spot around the button, then fade. */
+@keyframes lp-s56-burst {
+  0% { opacity: 0; transform: translate(0, 0) scale(0.3); }
+  25% { opacity: 1; transform: translate(calc(var(--dx) * 0.5), calc(var(--dy) * 0.5)) scale(1.1); }
+  100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(0.5); }
+}
+
+@keyframes lp-s56-blink-once {
+  0% { opacity: 0; }
+  25% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+/* ---------- Scene 5: stacked result, built bottom-up ---------- */
+
+.lp-s56-settle {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: lp-s56-settle 0.6s cubic-bezier(0.2, 0.7, 0.3, 1) 0s both;
+}
+
+.lp-s56-gold {
+  fill: var(--color-gold);
+  stroke: var(--color-gold-deep);
+  stroke-width: 2;
+}
+
+.lp-s56-shimmer {
+  fill: var(--color-gold-tint);
+  pointer-events: none;
+  animation: lp-s56-shimmer 2.4s ease-in-out 1s infinite both;
+}
+
+.lp-s56-lead {
+  stroke: var(--color-ink-3);
+  stroke-width: 2.5;
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: lp-s56-grow-x 0.3s ease-out 0s both;
+}
+
+.lp-s56-label-in {
+  animation: lp-s56-slide-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) 0s both;
+}
+
+/* ---------- Scene 6: explore + demo call to action ---------- */
+
+.lp-s56-title {
+  animation: lp-s56-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) 0s both;
+}
+
+.lp-s56-fade {
+  animation: lp-s56-fade 0.4s ease 0s both;
+}
+
+.lp-s56-pop {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lp-s56-pop 0.7s cubic-bezier(0.2, 0.8, 0.3, 1) 0s both;
+}
+
+.lp-s56-idle {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lp-s56-idle 2.6s ease-in-out 1.2s infinite both;
+}
+
+.lp-s56-tag {
+  animation: lp-s56-rise 0.5s ease 0s both;
+}
+
+.lp-s56-spark {
+  fill: var(--color-gold);
+  stroke: var(--color-gold-deep);
+  stroke-width: 1.5;
+}
+
+.lp-s56-burst {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lp-s56-burst 0.9s cubic-bezier(0.15, 0.7, 0.3, 1) 1s 1 both;
+}
+
+/* ---------- Reduced motion: opacity changes only ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-s56-settle,
+  .lp-s56-lead,
+  .lp-s56-label-in,
+  .lp-s56-title,
+  .lp-s56-tag,
+  .lp-s56-pop {
+    transform: none;
+    animation-name: lp-s56-fade;
+  }
+
+  .lp-s56-idle {
+    transform: none;
+    animation: none;
+  }
+
+  .lp-s56-burst {
+    transform: none;
+    animation-name: lp-s56-blink-once;
+  }
+}

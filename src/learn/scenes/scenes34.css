@@ -1,0 +1,139 @@
+/* Scenes 3 and 4 motion polish. Class prefix: lp-s34-
+   Transform and opacity only. Every entrance settles by ~1.2-2s so the caption idea is readable;
+   idle motion is slow and small. Reduced motion keeps opacity fades only. */
+
+/* ---------- Scene 3: one bar, with a question ---------- */
+
+/* Navy bar rises from the baseline with a tiny overshoot. */
+.lp-s34-rise {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: lp-s34-rise 0.9s cubic-bezier(0.3, 1.25, 0.4, 1) 0s both;
+}
+
+@keyframes lp-s34-rise {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+/* Dashed "Ads?" box grows up out of the top of the bar. */
+.lp-s34-draw-top {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: lp-s34-draw-top 0.7s cubic-bezier(0.2, 0.9, 0.3, 1.15) 0.55s both;
+}
+
+@keyframes lp-s34-draw-top {
+  from { transform: scaleY(0); opacity: 0; }
+  to { transform: scaleY(1); opacity: 1; }
+}
+
+/* Outer wrapper: slow idle float after the question pops in. */
+.lp-s34-float {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lp-s34-float 3.2s ease-in-out 1.2s infinite;
+}
+
+@keyframes lp-s34-float {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-7px); }
+}
+
+/* The "?" pops in, then does a short friendly wiggle and settles. */
+.lp-s34-question {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lp-s34-question 1.9s ease-out 0.15s both;
+}
+
+@keyframes lp-s34-question {
+  0% { transform: scale(0.3) rotate(0deg); opacity: 0; }
+  40% { transform: scale(1.12) rotate(0deg); opacity: 1; }
+  52% { transform: scale(1) rotate(-9deg); }
+  66% { transform: scale(1) rotate(8deg); }
+  80% { transform: scale(1) rotate(-5deg); }
+  92% { transform: scale(1) rotate(2deg); }
+  100% { transform: scale(1) rotate(0deg); }
+}
+
+/* ---------- Scene 4: calendar flags and halving carryover ---------- */
+
+/* Flag groups slide in with a stagger and a small settle past their rest point. */
+.lp-s34-flag {
+  animation: lp-s34-flag 0.75s cubic-bezier(0.2, 0.8, 0.25, 1) var(--d, 0s) both;
+}
+
+@keyframes lp-s34-flag {
+  0% { transform: translateX(-200px); opacity: 0; }
+  60% { transform: translateX(14px); opacity: 1; }
+  80% { transform: translateX(-5px); opacity: 1; }
+  100% { transform: translateX(0); opacity: 1; }
+}
+
+/* Flag labels rise gently into place just after their flag lands. */
+.lp-s34-tag {
+  animation: lp-s34-tag 0.45s ease-out both;
+}
+
+@keyframes lp-s34-tag {
+  from { transform: translateY(10px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+/* Highlighted first flag breathes slowly once it has landed. */
+.lp-s34-dot-idle {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lp-s34-dot-idle 2.6s ease-in-out 1.4s infinite;
+}
+
+@keyframes lp-s34-dot-idle {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.07); }
+}
+
+/* Each carryover bar grows from the left with an ease-out overshoot, each one half the last. */
+.lp-s34-carry {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: lp-s34-carry 0.5s cubic-bezier(0.25, 1.3, 0.5, 1) var(--d, 0s) both;
+}
+
+@keyframes lp-s34-carry {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+/* Brief gold-tint flash over a bar once it lands, then it fades away. */
+.lp-s34-flash {
+  fill: var(--color-gold-tint);
+  stroke: none;
+  opacity: 0;
+  animation: lp-s34-flash 0.45s ease-out var(--f, 0s) both;
+}
+
+@keyframes lp-s34-flash {
+  0% { opacity: 0; }
+  35% { opacity: 0.9; }
+  100% { opacity: 0; }
+}
+
+/* ---------- Reduced motion: opacity changes only ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-s34-rise,
+  .lp-s34-draw-top,
+  .lp-s34-question,
+  .lp-s34-flag,
+  .lp-s34-tag,
+  .lp-s34-carry {
+    transform: none;
+    animation-name: lp-video-fade;
+  }
+
+  .lp-s34-float,
+  .lp-s34-dot-idle {
+    animation: none;
+  }
+}

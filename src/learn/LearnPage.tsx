@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react"
+import { useEffect, useLayoutEffect, useRef, useState } from "react"
 import { SiteFooter, SiteHeader } from "../chrome"
 import { IconArrowRight } from "../icons"
 import { ExplainerVideo } from "./ExplainerVideo"
@@ -21,6 +21,17 @@ const TOC = [
 
 type SectionId = (typeof TOC)[number]["id"]
 
+// Sections plus the cards and steps that rise in on scroll.
+const REVEAL_SELECTOR = [
+  ".lp-section",
+  ".lp-process-card",
+  ".lp-under-the-hood-card",
+  ".lp-what-it-shows-card",
+  ".lp-what-is-compare-card",
+  ".lp-reading-step",
+  ".lp-faq-term",
+].join(", ")
+
 function scrollToSection(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: "smooth", block: "start" })
 }
@@ -37,6 +48,88 @@ export default function LearnPage({
   backLabel: string
 }) {
   const [active, setActive] = useState<SectionId>(TOC[0].id)
+  const pageRef = useRef<HTMLElement>(null)
+  const tocRef = useRef<HTMLUListElement>(null)
+
+  // Scroll reveal. Content stays visible unless the page gets the
+  // lp-reveal-ready class, which is only added once the observer exists.
+  useLayoutEffect(() => {
+    const page = pageRef.current
+    if (!page || typeof IntersectionObserver === "undefined") return
+    const targets = Array.from(page.querySelectorAll<HTMLElement>(REVEAL_SELECTOR))
+    if (targets.length === 0) return
+
+    // Stagger cards that share a parent (one row or grid). Sections do not stagger.
+    const counts = new Map<Element, number>()
+    for (const el of targets) {
+      el.classList.add("lp-reveal")
+      const parent = el.parentElement
+      if (!el.classList.contains("lp-section") && parent) {
+        const index = counts.get(parent) ?? 0
+        counts.set(parent, index + 1)
+        el.style.setProperty("--lp-delay", `${Math.min(index, 4) * 90}ms`)
+      }
+    }
+    page.classList.add("lp-reveal-ready")
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        for (const entry of entries) {
+          if (!entry.isIntersecting) continue
+          entry.target.classList.add("is-visible")
+          observer.unobserve(entry.target)
+        }
+      },
+      { rootMargin: "0px 0px -6% 0px", threshold: 0 },
+    )
+    targets.forEach((el) => observer.observe(el))
+
+    // The observer only fires when a block crosses into view. Jumping past
+    // one (a menu link, End key, find-in-page, restored scroll) would leave it
+    // hidden for good, so also reveal everything at or above the viewport.
+    // ~30 blocks: cheap enough to check on every scroll event directly.
+    const revealPassed = () => {
+      const bottom = window.innerHeight
+      for (const el of targets) {
+        if (!el.classList.contains("is-visible") && el.getBoundingClientRect().top < bottom) {
+          el.classList.add("is-visible")
+          observer.unobserve(el)
+        }
+      }
+    }
+    window.addEventListener("scroll", revealPassed, { passive: true })
+    window.addEventListener("resize", revealPassed)
+    revealPassed()
+
+    return () => {
+      window.removeEventListener("scroll", revealPassed)
+      window.removeEventListener("resize", revealPassed)
+      observer.disconnect()
+      page.classList.remove("lp-reveal-ready")
+      targets.forEach((el) => {
+        el.classList.remove("lp-reveal", "is-visible")
+        el.style.removeProperty("--lp-delay")
+      })
+    }
+  }, [])
+
+  // Position the sliding "On this page" marker under the active item.
+  useLayoutEffect(() => {
+    const list = tocRef.current
+    if (!list) return
+    const place = () => {
+      const current = list.querySelector<HTMLElement>('[aria-current="true"]')
+      if (!current) return
+      // Measured against the list itself, so it's right in either layout
+      // (offsetTop depends on which ancestor happens to be positioned).
+      const y = current.getBoundingClientRect().top - list.getBoundingClientRect().top - list.clientTop
+      list.style.setProperty("--lp-toc-y", `${y}px`)
+      list.style.setProperty("--lp-toc-h", `${current.offsetHeight}px`)
+    }
+    place()
+    window.addEventListener("resize", place)
+    return () => window.removeEventListener("resize", place)
+  }, [active])
 
   useEffect(() => {
     if (typeof IntersectionObserver === "undefined") return
@@ -71,7 +164,7 @@ export default function LearnPage({
         crumb="How it works"
       />
 
-      <main id="main-content" className="lp">
+      <main id="main-content" className="lp" ref={pageRef}>
         <header className="lp-hero">
           <div className="lp-hero-inner">
             <p className="eyebrow eyebrow-rule">How it works</p>
@@ -97,7 +190,7 @@ export default function LearnPage({
         <div className="lp-body">
           <nav className="lp-toc" aria-label="On this page">
             <p className="lp-toc-label">On this page</p>
-            <ul role="list" className="lp-toc-list">
+            <ul role="list" className="lp-toc-list" ref={tocRef}>
               {TOC.map((item, index) => {
                 const isActive = active === item.id
                 return (

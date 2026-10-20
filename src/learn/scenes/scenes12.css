@@ -1,0 +1,187 @@
+/* Scenes 1 and 2 motion polish for the 30-second explainer.
+   Class prefix: lp-s12-. Pure CSS (transform and opacity only) so the player can
+   pause it with animation-play-state. Delays are set inline in the scene files. */
+
+/* ---------- Shared keyframes ---------- */
+
+@keyframes lp-s12-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* ---------- Scene 1: a year of weekly applications ---------- */
+
+/* Wave: each bar rises from the baseline with a tiny overshoot. */
+@keyframes lp-s12-grow {
+  from { transform: scale(1, 0); }
+  to { transform: scale(1, 1); }
+}
+
+.lp-s12-fill {
+  fill: var(--color-navy);
+}
+
+.lp-s12-wave {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: lp-s12-grow 0.6s cubic-bezier(0.3, 1.25, 0.5, 1) 0s both;
+}
+
+/* Peak: a short pop (stretch wider, overshoot, settle). */
+@keyframes lp-s12-peak-pop {
+  0% { transform: scale(1, 0); }
+  55% { transform: scale(1.06, 1.1); }
+  75% { transform: scale(0.98, 0.97); }
+  100% { transform: scale(1, 1); }
+}
+
+.lp-s12-peak {
+  fill: var(--color-gold);
+  stroke: var(--color-gold-deep);
+  stroke-width: 2;
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: lp-s12-peak-pop 0.6s ease-out 0s both;
+}
+
+/* Soft glow behind the peak: fades in, then breathes slowly. */
+@keyframes lp-s12-glow-in {
+  from { opacity: 0; }
+  to { opacity: 0.9; }
+}
+
+@keyframes lp-s12-glow-pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.05); }
+}
+
+.lp-s12-glow {
+  fill: var(--color-gold-tint);
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  opacity: 0;
+  animation:
+    lp-s12-glow-in 0.4s ease 1s both,
+    lp-s12-glow-pulse 2.4s ease-in-out 1.4s infinite;
+}
+
+/* "Early Nov deadline" label drops in just after the peak pops. */
+@keyframes lp-s12-drop {
+  from { transform: translateY(-28px); opacity: 0; }
+  to { transform: translateY(0); opacity: 1; }
+}
+
+.lp-s12-drop {
+  opacity: 0;
+  animation: lp-s12-drop 0.4s cubic-bezier(0.2, 1.2, 0.4, 1) 1.15s both;
+}
+
+/* ---------- Scene 2: four channels feeding one weekly bar ---------- */
+
+/* Icons pop in one by one with a small bounce (delay set inline). */
+@keyframes lp-s12-pop-in {
+  0% { opacity: 0; transform: scale(0.4); }
+  50% { opacity: 1; transform: scale(1.08); }
+  75% { opacity: 1; transform: scale(0.97); }
+  100% { opacity: 1; transform: scale(1); }
+}
+
+.lp-s12-pop {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  opacity: 0;
+  animation: lp-s12-pop-in 0.6s ease-out 0s both;
+}
+
+/* Dots travel on a gentle arc: sideways first (ease-out on x),
+   then falling into the bar (ease-in on y). The outer group moves x,
+   the inner dot moves y and fades, so the two combine into a curve. */
+@keyframes lp-s12-fly-x {
+  from { transform: translateX(0); }
+  to { transform: translateX(var(--dx)); }
+}
+
+@keyframes lp-s12-fly-y {
+  0% { transform: translateY(0); opacity: 0; }
+  12% { opacity: 1; }
+  90% { opacity: 1; }
+  100% { transform: translateY(var(--dy)); opacity: 0; }
+}
+
+.lp-s12-fly-x {
+  animation: lp-s12-fly-x 0.9s cubic-bezier(0.2, 0.6, 0.3, 1) 0s both;
+}
+
+.lp-s12-fly-y {
+  animation: lp-s12-fly-y 0.9s cubic-bezier(0.5, 0, 0.8, 0.6) 0s both;
+}
+
+/* The bar grows up to full height before the first dot lands. */
+.lp-s12-grow-bar {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: lp-s12-grow 0.6s cubic-bezier(0.3, 1.25, 0.5, 1) 0s both;
+}
+
+/* Squash and stretch on the bar as each dot lands. The origin is the bar's
+   bottom centre in viewBox units (bar spans x 720-880, bottom at y 660).
+   Landings: 1.35s, 1.55s, 1.75s, 1.95s. Total timeline 2.2s. */
+@keyframes lp-s12-squash {
+  0%, 61% { transform: scale(1, 1); }
+  63.9% { transform: scale(1.06, 0.93); }
+  66.5% { transform: scale(0.98, 1.03); }
+  68.6%, 70.4% { transform: scale(1, 1); }
+  73% { transform: scale(1.06, 0.93); }
+  75.5% { transform: scale(0.98, 1.03); }
+  77.7%, 79.5% { transform: scale(1, 1); }
+  82.1% { transform: scale(1.06, 0.93); }
+  84.6% { transform: scale(0.98, 1.03); }
+  86.8%, 88.6% { transform: scale(1, 1); }
+  91.2% { transform: scale(1.06, 0.93); }
+  93.7% { transform: scale(0.98, 1.03); }
+  95.9%, 100% { transform: scale(1, 1); }
+}
+
+.lp-s12-squash {
+  transform-box: view-box;
+  transform-origin: 800px 660px;
+  animation: lp-s12-squash 2.2s linear 0s both;
+}
+
+/* ---------- Reduced motion: opacity changes only ---------- */
+
+@keyframes lp-s12-dot-blink {
+  0% { opacity: 0; }
+  20% { opacity: 1; }
+  80% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-s12-wave,
+  .lp-s12-peak,
+  .lp-s12-grow-bar,
+  .lp-s12-drop,
+  .lp-s12-pop {
+    transform: none;
+    animation-name: lp-s12-fade;
+    animation-duration: 0.4s;
+    animation-timing-function: ease;
+  }
+
+  .lp-s12-glow {
+    transform: none;
+    animation: lp-s12-glow-in 0.4s ease 1s both;
+  }
+
+  .lp-s12-fly-x,
+  .lp-s12-squash {
+    animation: none;
+    transform: none;
+  }
+
+  .lp-s12-fly-y {
+    transform: none;
+    animation: lp-s12-dot-blink 0.9s ease 0s both;
+  }
+}

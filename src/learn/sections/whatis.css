@@ -266,6 +266,14 @@
   border: 1px solid var(--color-line);
   border-radius: var(--radius);
   background: var(--color-sand);
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.3s ease;
+}
+
+.lp-what-is-compare-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 .lp-what-is-compare-card strong {
@@ -367,5 +375,9 @@
   .lp-what-is * {
     transition: none !important;
     animation: none !important;
+  }
+
+  .lp-what-is-compare-card:hover {
+    transform: none;
   }
 }

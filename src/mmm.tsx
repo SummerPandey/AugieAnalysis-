@@ -139,7 +139,7 @@ const SOURCES: SourceCard[] = [
     id: "billboards",
     sourceId: "billboards",
     label: "Billboards",
-    description: "QC Airport and Admissions Surge billboard budgets by period, from Lucas.",
+    description: "QC Airport and Admissions Surge billboard budgets by period, from Lucas. Shown for context, not fit as a driver, until real flight dates exist.",
     role: "toggle",
     toggle: "billboards",
     columns: ["start_date", "end_date", "total_spend"],

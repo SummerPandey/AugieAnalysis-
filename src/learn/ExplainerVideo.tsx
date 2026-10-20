@@ -1,5 +1,11 @@
-import { useEffect, useState, type CSSProperties, type KeyboardEvent } from "react"
+import { useEffect, useRef, useState, type KeyboardEvent } from "react"
 import "./explainer.css"
+import { SceneCalendar } from "./scenes/Scene1Calendar"
+import { SceneChannels } from "./scenes/Scene2Channels"
+import { SceneQuestion } from "./scenes/Scene3Question"
+import { SceneLineup } from "./scenes/Scene4Lineup"
+import { SceneStack } from "./scenes/Scene5Stack"
+import { SceneDemo } from "./scenes/Scene6Demo"
 
 /**
  * 30-second animated explainer for the "How it works" page. Six scenes of
@@ -12,6 +18,9 @@ const SCENE_MS = 5000
 const SCENE_COUNT = 6
 const TOTAL_MS = SCENE_MS * SCENE_COUNT
 const TICK_MS = 100
+// After a seek, or on first load, a paused stage still plays the scene's
+// entrance for this long so the picture is visible, then freezes.
+const SETTLE_MS = 2600
 
 const CAPTIONS = [
   "Applications spike every year around the early November deadline.",
@@ -22,262 +31,12 @@ const CAPTIONS = [
   "Try the demo to explore the same method on sample data.",
 ]
 
+type SceneSlot = { key: string; scene: number }
+
 function formatTime(ms: number): string {
   const s = Math.floor(ms / 1000)
   const m = Math.floor(s / 60)
   return `${m}:${String(s % 60).padStart(2, "0")}`
-}
-
-/* ---------- Scene 1: one admissions year of weekly applications ---------- */
-
-// A stylized year, one bar every two weeks from week 1 to week 51. Shape only
-// (winter surge, summer low, early-November peak); no real numbers.
-const YEAR_BARS = [
-  150, 130, 110, 90, 80, 70, 60, 50, 40, 35, 35, 40, 45, 55, 70, 90, 110, 140, 180, 250, 330, 430, 520, 280, 170, 140,
-]
-const PEAK_INDEX = YEAR_BARS.indexOf(Math.max(...YEAR_BARS))
-
-function SceneCalendar() {
-  const base = 640
-  const step = 1040 / YEAR_BARS.length
-  return (
-    <g>
-      <line x1={260} y1={base} x2={1340} y2={base} className="lp-video-axis" />
-      {YEAR_BARS.map((h, i) => (
-        <rect
-          key={i}
-          x={280 + i * step}
-          y={base - h}
-          width={step - 10}
-          height={h}
-          rx={2}
-          className={`${i === PEAK_INDEX ? "lp-video-gold-seg" : "lp-video-bar"} lp-video-grow`}
-          style={{ animationDelay: `${0.1 + i * 0.04}s` }}
-        />
-      ))}
-      <text x={280 + PEAK_INDEX * step + (step - 10) / 2} y={base - YEAR_BARS[PEAK_INDEX] - 24} textAnchor="middle" className="lp-video-label">
-        Early Nov deadline
-      </text>
-      <text x={280 + 10 * step} y={712} textAnchor="middle" className="lp-video-label">
-        Summer low
-      </text>
-      <text x={280} y={712} className="lp-video-sub">
-        Jan
-      </text>
-      <text x={1340} y={712} textAnchor="end" className="lp-video-sub">
-        Dec
-      </text>
-    </g>
-  )
-}
-
-/* ---------- Scene 2: four ad channels feeding one weekly bar ---------- */
-
-const CHANNELS = [
-  { x: 350, label: "Social" },
-  { x: 650, label: "Video" },
-  { x: 950, label: "Search" },
-  { x: 1250, label: "Billboards" },
-]
-
-function ChannelIcon({ kind, x }: { kind: number; x: number }) {
-  return (
-    <g transform={`translate(${x} 260)`} className="lp-video-fill-navy">
-      {kind === 0 && (
-        <>
-          <rect x={-32} y={-52} width={64} height={104} rx={8} />
-          <circle cx={0} cy={38} r={5} className="lp-video-fill-paper" />
-        </>
-      )}
-      {kind === 1 && (
-        <>
-          <circle r={58} />
-          <path d="M-16 -26 L26 0 L-16 26 Z" className="lp-video-fill-paper" />
-        </>
-      )}
-      {kind === 2 && (
-        <>
-          <circle cx={-8} cy={-8} r={38} className="lp-video-stroke-navy" fill="none" strokeWidth={14} />
-          <line x1={18} y1={18} x2={50} y2={50} className="lp-video-stroke-navy" strokeWidth={16} strokeLinecap="round" />
-        </>
-      )}
-      {kind === 3 && (
-        <>
-          <rect x={-72} y={-56} width={144} height={92} rx={4} />
-          <line x1={-40} y1={36} x2={-40} y2={72} className="lp-video-stroke-navy" strokeWidth={10} />
-          <line x1={40} y1={36} x2={40} y2={72} className="lp-video-stroke-navy" strokeWidth={10} />
-        </>
-      )}
-    </g>
-  )
-}
-
-function SceneChannels() {
-  const barTopX = 800
-  const barTopY = 560
-  return (
-    <g>
-      {CHANNELS.map((c, i) => (
-        <g key={c.label}>
-          <g className="lp-video-fadein" style={{ animationDelay: `${i * 0.1}s` }}>
-            <ChannelIcon kind={i} x={c.x} />
-            <text x={c.x} y={390} textAnchor="middle" className="lp-video-label">
-              {c.label}
-            </text>
-          </g>
-        </g>
-      ))}
-      {CHANNELS.map((c, i) => (
-        <circle
-          key={`dot-${c.label}`}
-          cx={c.x}
-          cy={310}
-          r={16}
-          className="lp-video-dot lp-video-fly"
-          style={
-            {
-              "--dx": `${barTopX - c.x}px`,
-              "--dy": `${barTopY - 310}px`,
-              animationDelay: `${0.8 + i * 0.25}s`,
-            } as CSSProperties
-          }
-        />
-      ))}
-      <rect x={720} y={barTopY} width={160} height={660 - barTopY} rx={2} className="lp-video-bar lp-video-grow" style={{ animationDelay: "1.4s" }} />
-      <text x={800} y={712} textAnchor="middle" className="lp-video-label">
-        One week of ads
-      </text>
-    </g>
-  )
-}
-
-/* ---------- Scene 3: one bar, with the ad share as an open question ---------- */
-
-function SceneQuestion() {
-  return (
-    <g>
-      <text x={800} y={190} textAnchor="middle" className="lp-video-display lp-video-question lp-video-pulse-once">
-        ?
-      </text>
-      <rect x={700} y={240} width={200} height={120} rx={2} className="lp-video-dashed" fill="none" />
-      <rect x={700} y={360} width={200} height={300} rx={2} className="lp-video-bar lp-video-grow" />
-      <text x={940} y={312} className="lp-video-label">
-        Ads?
-      </text>
-      <text x={940} y={522} className="lp-video-label">
-        Calendar?
-      </text>
-    </g>
-  )
-}
-
-/* ---------- Scene 4: weeks lined up, calendar flags, fading carryover ---------- */
-
-const FLAGS = [
-  { x: 330, label: "Deadline" },
-  { x: 650, label: "Winter" },
-  { x: 970, label: "Yield" },
-  { x: 1290, label: "Summer" },
-]
-
-const CARRY = [
-  { x: 330, w: 300 },
-  { x: 642, w: 150 },
-  { x: 804, w: 75 },
-  { x: 891, w: 38 },
-]
-
-function SceneLineup() {
-  return (
-    <g>
-      <text x={330} y={120} textAnchor="middle" className="lp-video-label">
-        Calendar flags
-      </text>
-      {FLAGS.map((f, i) => (
-        <g key={f.label} className="lp-video-slide" style={{ "--d": `${i * 0.25}s` } as CSSProperties}>
-          <circle
-            cx={f.x}
-            cy={200}
-            r={28}
-            className={i === 0 ? "lp-video-dot-gold" : "lp-video-fill-navy"}
-          />
-          <g className="lp-video-fadein" style={{ animationDelay: `${0.5 + i * 0.25}s` }}>
-            <rect x={f.x - 130} y={250} width={260} height={56} rx={3} className="lp-video-fill-navy" />
-            <text x={f.x} y={291} textAnchor="middle" className="lp-video-flag-text">
-              {f.label}
-            </text>
-          </g>
-        </g>
-      ))}
-      {CARRY.map((c, i) => (
-        <rect
-          key={c.x}
-          x={c.x}
-          y={420}
-          width={c.w}
-          height={44}
-          rx={2}
-          className="lp-video-carry lp-video-grow-x"
-          style={{ animationDelay: `${1.2 + i * 0.45}s` }}
-        />
-      ))}
-      <text x={330} y={512} className="lp-video-label">
-        Carryover from past spend
-      </text>
-    </g>
-  )
-}
-
-/* ---------- Scene 5: stacked result, calendar dominant ---------- */
-
-function SceneStack() {
-  const top = 200
-  const base = 640
-  const total = base - top
-  const navyH = Math.round(total * 0.85)
-  const navyY = base - navyH
-  return (
-    <g>
-      <rect x={360} y={navyY} width={200} height={navyH} className="lp-video-bar lp-video-grow" />
-      <rect x={360} y={top} width={200} height={navyY - top} className="lp-video-gold-seg lp-video-grow" style={{ animationDelay: "0.8s" }} />
-      <line x1={340} y1={base} x2={580} y2={base} className="lp-video-axis" />
-      <text x={620} y={420} className="lp-video-label">
-        The calendar
-      </text>
-      <text x={620} y={470} className="lp-video-sub">
-        about 80 to 90% in the model
-      </text>
-      <text x={620} y={248} className="lp-video-label">
-        Ads
-      </text>
-      <text x={620} y={296} className="lp-video-sub">
-        still being measured
-      </text>
-    </g>
-  )
-}
-
-/* ---------- Scene 6: demo call to action ---------- */
-
-function SceneDemo() {
-  return (
-    <g>
-      <text x={800} y={230} textAnchor="middle" className="lp-video-display lp-video-title lp-video-fadein">
-        Explore the method
-      </text>
-      <rect x={600} y={380} width={400} height={120} rx={3} className="lp-video-ring" />
-      <rect x={600} y={380} width={400} height={120} rx={3} className="lp-video-button" />
-      <text x={800} y={455} textAnchor="middle" className="lp-video-button-text">
-        Try the demo
-      </text>
-      <g className="lp-video-fadein" style={{ animationDelay: "0.6s" }}>
-        <rect x={620} y={550} width={360} height={64} rx={3} className="lp-video-fill-navy" />
-        <text x={800} y={594} textAnchor="middle" className="lp-video-flag-text">
-          Synthetic sample
-        </text>
-      </g>
-    </g>
-  )
 }
 
 function renderScene(index: number) {
@@ -301,11 +60,19 @@ export function ExplainerVideo() {
   const [elapsed, setElapsed] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [started, setStarted] = useState(false)
+  // True while the stage is allowed to animate even though the timeline is paused.
+  const [settling, setSettling] = useState(true)
   // Bumped on every restart or seek so the scene remounts and its CSS animations replay.
   const [run, setRun] = useState(0)
+  // The previous scene, kept mounted briefly so it can fade out under the new one.
+  const [leaving, setLeaving] = useState<SceneSlot | null>(null)
+  const lastSlot = useRef<SceneSlot>({ key: "0-0", scene: 0 })
+  const settleTimer = useRef<number | undefined>(undefined)
 
   const ended = elapsed >= TOTAL_MS
   const scene = Math.min(SCENE_COUNT - 1, Math.floor(elapsed / SCENE_MS))
+  const sceneKey = `${run}-${scene}`
+  const frozen = !playing && !settling
 
   // Single timeline tick, only while playing. Cleaned up on pause and unmount.
   useEffect(() => {
@@ -321,9 +88,37 @@ export function ExplainerVideo() {
     if (playing && elapsed >= TOTAL_MS) setPlaying(false)
   }, [playing, elapsed])
 
+  // First load: let scene 1 settle into view under the overlay, then freeze.
+  useEffect(() => {
+    const timer = settleTimer
+    timer.current = window.setTimeout(() => setSettling(false), SETTLE_MS)
+    return () => window.clearTimeout(timer.current)
+  }, [])
+
+  // When the scene changes, keep the old one mounted so it can fade out.
+  useEffect(() => {
+    const last = lastSlot.current
+    if (last.key === sceneKey) return
+    lastSlot.current = { key: sceneKey, scene }
+    setLeaving(last)
+  }, [sceneKey, scene])
+
+  // A paused stage must not leave a half-faded outgoing scene behind.
+  useEffect(() => {
+    if (frozen) setLeaving(null)
+  }, [frozen])
+
+  function settleStage() {
+    setSettling(true)
+    window.clearTimeout(settleTimer.current)
+    settleTimer.current = window.setTimeout(() => setSettling(false), SETTLE_MS)
+  }
+
   function togglePlay() {
     setStarted(true)
     if (playing) {
+      window.clearTimeout(settleTimer.current)
+      setSettling(false)
       setPlaying(false)
       return
     }
@@ -346,6 +141,7 @@ export function ExplainerVideo() {
     setStarted(true)
     setElapsed(index * SCENE_MS)
     setRun((r) => r + 1)
+    settleStage()
   }
 
   function onPlayerKeyDown(e: KeyboardEvent<HTMLDivElement>) {
@@ -356,7 +152,7 @@ export function ExplainerVideo() {
     }
   }
 
-  const playerClass = `lp-video-player${started ? "" : " is-idle"}`
+  const playerClass = `lp-video-player${started ? "" : " is-idle"}${frozen ? " is-frozen" : ""}`
 
   return (
     <div className="lp-video-root" role="region" aria-label="30-second preview: how Augie Analysis works">
@@ -367,7 +163,18 @@ export function ExplainerVideo() {
         aria-label="Preview player. Press space or enter to play or pause."
       >
         <svg viewBox="0 0 1600 900" className="lp-video-svg" aria-hidden="true" focusable="false">
-          <g key={`${run}-${scene}`} className="lp-video-scene">
+          {leaving && (
+            <g
+              key={`leave-${leaving.key}`}
+              className="lp-video-scene lp-video-scene-leave"
+              onAnimationEnd={(e) => {
+                if (e.target === e.currentTarget) setLeaving(null)
+              }}
+            >
+              {renderScene(leaving.scene)}
+            </g>
+          )}
+          <g key={sceneKey} className="lp-video-scene">
             {renderScene(scene)}
           </g>
         </svg>
@@ -386,7 +193,7 @@ export function ExplainerVideo() {
 
       <p className="lp-video-caption" aria-live="polite">
         <span className="lp-video-caption-step">Scene {scene + 1} of {SCENE_COUNT}</span>
-        <span className="lp-video-caption-text">{CAPTIONS[scene]}</span>
+        <span key={scene} className="lp-video-caption-text">{CAPTIONS[scene]}</span>
       </p>
 
       <div className="lp-video-controls">
@@ -413,7 +220,7 @@ export function ExplainerVideo() {
                 aria-current={i === scene ? "step" : undefined}
                 onClick={() => seek(i)}
               >
-                <span className="lp-video-seg-fill" style={{ width: `${fraction * 100}%` }} />
+                <span className="lp-video-seg-fill" style={{ transform: `scaleX(${fraction})` }} />
               </button>
             )
           })}

@@ -453,6 +453,14 @@
   padding: 20px;
   box-shadow: var(--shadow-sm);
   min-width: 0;
+  transition:
+    transform 0.3s cubic-bezier(0.2, 0.7, 0.2, 1),
+    box-shadow 0.3s ease;
+}
+
+.lp-what-it-shows-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-md);
 }
 
 .lp-what-it-shows-card:nth-child(2) {
@@ -528,6 +536,10 @@
   .lp-what-it-shows * {
     transition: none !important;
     animation: none !important;
+  }
+
+  .lp-what-it-shows-card:hover {
+    transform: none;
   }
 }
 

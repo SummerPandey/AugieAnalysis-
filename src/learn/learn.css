@@ -254,10 +254,25 @@
   }
 
   .lp-toc-list {
+    position: relative;
     flex-direction: column;
     flex-wrap: nowrap;
     gap: 2px;
     border-left: 1px solid var(--color-line);
+  }
+
+  /* Sliding marker on the rail; LearnPage.tsx sets --lp-toc-y and --lp-toc-h. */
+  .lp-toc-list::before {
+    content: "";
+    position: absolute;
+    left: -1px;
+    top: 0;
+    width: 2px;
+    height: var(--lp-toc-h, 0px);
+    background: var(--color-gold);
+    transform: translate3d(0, var(--lp-toc-y, 0px), 0);
+    transition: transform 0.45s cubic-bezier(0.22, 0.8, 0.3, 1), height 0.45s ease;
+    pointer-events: none;
   }
 
   .lp-toc-list li {
@@ -281,10 +296,11 @@
     color: var(--color-navy);
   }
 
+  /* The gold rail marker above slides between items; the active link keeps no border of its own. */
   .lp-toc-link[aria-current="true"] {
     background: transparent;
     border-color: transparent;
-    border-left-color: var(--color-gold);
+    border-left-color: transparent;
     color: var(--color-navy);
     font-weight: 600;
   }
@@ -305,6 +321,41 @@
   }
 }
 
+/* ---------- Scroll reveal ----------
+   LearnPage.tsx adds .lp-reveal to sections and cards, .lp-reveal-ready to the page,
+   and .is-visible once each block first scrolls into view. The hidden state only
+   applies after JS sets up the observer, so content is always visible otherwise. */
+
+@keyframes lp-page-rise {
+  from {
+    opacity: 0;
+    transform: translate3d(0, 18px, 0);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes lp-page-fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.lp-reveal-ready .lp-reveal:not(.is-visible) {
+  opacity: 0;
+  transform: translate3d(0, 18px, 0);
+}
+
+/* "backwards" fill means no transform is left behind, so card hover lifts keep working. */
+.lp-reveal.is-visible {
+  animation: lp-page-rise 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) var(--lp-delay, 0ms) backwards;
+}
+
 /* ---------- Motion ---------- */
 
 @media (prefers-reduced-motion: reduce) {
@@ -312,7 +363,29 @@
     transition: none;
   }
 
+  .lp-toc-list::before {
+    transition: none;
+  }
+
   .lp {
     scroll-behavior: auto;
+  }
+
+  .lp-reveal-ready .lp-reveal:not(.is-visible) {
+    transform: none;
+  }
+
+  .lp-reveal.is-visible {
+    animation-name: lp-page-fade;
+    animation-duration: 0.4s;
+  }
+}
+
+/* Printing never waits for a scroll: show every block. */
+@media print {
+  .lp-reveal-ready .lp-reveal {
+    opacity: 1 !important;
+    transform: none !important;
+    animation: none !important;
   }
 }
