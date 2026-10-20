@@ -10,7 +10,7 @@ const VERDICTS = [
   {
     key: "helping",
     name: "Positive association",
-    text: "evidence consistent with a positive association: steady and well supported. It is not proof of extra applications. Keep it running and consider a small test increase.",
+    text: "a positive estimate that held up across the test periods. It is evidence of an association, not proof of extra applications, so the next step is a small, time-boxed test.",
   },
   {
     key: "directional",

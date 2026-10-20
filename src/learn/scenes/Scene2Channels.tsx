@@ -7,7 +7,7 @@ const CHANNELS = [
   { x: 350, label: "Social" },
   { x: 650, label: "Video" },
   { x: 950, label: "Search" },
-  { x: 1250, label: "Billboards" },
+  { x: 1250, label: "Display" },
 ]
 
 // Icons pop in one by one; each dot leaves after its icon has settled.
@@ -39,9 +39,11 @@ function ChannelIcon({ kind, x }: { kind: number; x: number }) {
       )}
       {kind === 3 && (
         <>
-          <rect x={-72} y={-56} width={144} height={92} rx={4} />
-          <line x1={-40} y1={36} x2={-40} y2={72} className="lp-video-stroke-navy" strokeWidth={10} />
-          <line x1={40} y1={36} x2={40} y2={72} className="lp-video-stroke-navy" strokeWidth={10} />
+          {/* a web page with a banner ad */}
+          <rect x={-72} y={-56} width={144} height={112} rx={8} />
+          <rect x={-58} y={-30} width={116} height={34} rx={3} className="lp-video-dot" />
+          <rect x={-58} y={14} width={70} height={10} rx={3} className="lp-video-fill-paper" />
+          <rect x={-58} y={32} width={96} height={10} rx={3} className="lp-video-fill-paper" />
         </>
       )}
     </g>

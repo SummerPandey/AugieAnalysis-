@@ -157,7 +157,7 @@ export default function LearnPage({
   return (
     <>
       <SiteHeader
-        variant="demo"
+        variant="guide"
         onBack={onBack}
         backLabel={backLabel}
         onSignIn={onSignIn}
@@ -184,7 +184,7 @@ export default function LearnPage({
         </header>
 
         <div className="lp-video-wrap">
-          <ExplainerVideo />
+          <ExplainerVideo onDemo={onDemo} />
         </div>
 
         <div className="lp-body">
@@ -233,7 +233,7 @@ export default function LearnPage({
             </h2>
             <p className="lp-cta-text">
               The demo runs this whole method on a synthetic sample shaped like
-              Augustana's data, with the same charts and verdicts the team sees.
+              Augustana's data, with the same charts and verdict labels the live results use.
             </p>
             <button type="button" className="btn btn-gold btn-lg" onClick={onDemo}>
               Explore the demo

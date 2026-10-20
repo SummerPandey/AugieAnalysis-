@@ -117,11 +117,14 @@ function ChatWidget({
   onDark,
   token,
   resultsBrief,
+  resultsSource,
 }: {
   onDark: boolean
   token: string | null
   /** Summary of the latest run (live, else demo sample); null when there isn't one. */
   resultsBrief: string | null
+  /** Which run the summary describes, so the footer doesn't call the sample "your run". */
+  resultsSource: "live" | "sample" | null
 }) {
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState<ChatMsg[]>([
@@ -158,7 +161,14 @@ function ChatWidget({
       const reply = await sendChatMessage(text, history, token, resultsBrief)
       setMsgs((m) => [...m, { role: "ai", text: reply }])
     } catch (err) {
-      setMsgs((m) => [...m, { role: "ai", text: `I couldn't answer just now. ${errText(err)}`, failed: true }])
+      // Keep the unanswered question out of future history (no back-to-back
+      // user turns) and put it back in the box so it can be sent again.
+      setMsgs((m) => [
+        ...m.slice(0, -1),
+        { ...m[m.length - 1], failed: true },
+        { role: "ai", text: `I couldn't answer just now. ${errText(err)} Your question is back in the box to try again.`, failed: true },
+      ])
+      setInput((cur) => cur || text)
     } finally {
       setTyping(false)
     }
@@ -225,9 +235,11 @@ function ChatWidget({
           </form>
           <p className="chat-foot">
             AI answers can be wrong.{" "}
-            {resultsBrief
+            {resultsSource === "live"
               ? "It can see a summary of your latest run."
-              : "Run the analysis (or the demo sample) so it can see the results."}
+              : resultsSource === "sample"
+                ? "It can see a summary of the demo's sample run."
+                : "Run the analysis (or the demo sample) so it can see the results."}
           </p>
         </div>
       )}
@@ -282,8 +294,8 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
 /* ── landing ───────────────────────────────────────────────── */
 // Each point maps to something the results page really shows.
 const LANDING_POINTS = [
-  { title: "Which channels help", body: "Each channel's modeled applications, with an honest verdict on how far to trust it." },
-  { title: "What the calendar explains", body: "Separates the admissions cycle from what marketing added." },
+  { title: "How each channel relates", body: "Each digital channel's estimated share of applications, with a plain verdict on how far to trust it." },
+  { title: "What the calendar explains", body: "Separates the admissions cycle from the part marketing may account for." },
   { title: "How far to trust it", body: "Fit on weeks the model never saw, and the data gaps, stated plainly." },
 ]
 
@@ -303,8 +315,9 @@ function LandingPage({ onDemo, onLogin, onLearn }: { onDemo: () => void; onLogin
             Augie <em>Analysis</em>
           </h1>
           <p className="lead landing-lead">
-            A Marketing Mix Model for Augustana's admissions marketing: how much each channel, from Meta to billboards,
-            actually moves weekly applications, and how much is simply the admissions calendar.
+            A Marketing Mix Model for Augustana's admissions marketing: it separates the admissions calendar from what
+            Meta, Google and other digital channels may add to weekly applications, and says plainly how far each
+            estimate can be trusted.
           </p>
           <div className="landing-ctas">
             <button type="button" onClick={onLogin} className="btn btn-gold btn-lg">
@@ -321,7 +334,8 @@ function LandingPage({ onDemo, onLogin, onLearn }: { onDemo: () => void; onLogin
             </button>
           </p>
           <p className="landing-status">
-            {sources.onFile} of {sources.total} data sources on file · Status as of{" "}
+            {sources.live + sources.partial} data sources in use · {sources.reference} reference only ·{" "}
+            {sources.pending} pending · Status as of{" "}
             <time dateTime={STATUS_AS_OF}>{formatStatusDate()}</time>
           </p>
         </div>
@@ -540,7 +554,7 @@ function OptionsPage({
                 <span className="option-kicker">Available now</span>
                 <span className="option-title display">Marketing Mix Model</span>
                 <span className="option-desc">
-                  How much each channel, from Meta to billboards, contributes to weekly applications once the admissions
+                  How each digital channel, from Meta to Google search, relates to weekly applications once the admissions
                   calendar is accounted for, and how far each estimate can be trusted.
                 </span>
                 <span className="option-facts">
@@ -552,7 +566,7 @@ function OptionsPage({
                   </span>
                   {spendFacts && (
                     <span>
-                      <strong>{spendFacts.coverageLabel.replace(" of the window", "")}</strong> spend history on file
+                      <strong>{spendFacts.coverageLabel.match(/\d+%/)?.[0] ?? spendFacts.coverageLabel}</strong> of weeks with spend on file
                     </span>
                   )}
                 </span>
@@ -562,7 +576,7 @@ function OptionsPage({
               </button>
             </li>
             {[
-              { label: "General analysis", sub: "Trends & anomalies", reason: "Not built yet. Planned once the MMM is on firmer data." },
+              { label: "General analysis", sub: "Trends & anomalies", reason: "Planned once the MMM is on firmer data." },
               {
                 label: "Deep dive",
                 sub: "Cohort & funnel",
@@ -570,7 +584,7 @@ function OptionsPage({
               },
             ].map((o) => (
               <li key={o.label}>
-                <div className="option-soon" aria-label={`${o.label}: coming soon. ${o.reason}`}>
+                <div className="option-soon">
                   <span className="badge">Coming soon</span>
                   <span className="option-title-sm">{o.label}</span>
                   <span className="option-sub">{o.sub}</span>
@@ -1010,6 +1024,7 @@ export default function App() {
               ? chatBrief(demoRun.result, demoRun.ranAt, "synthetic")
               : null
         }
+        resultsSource={token && live.result ? "live" : demoRun ? "sample" : null}
       />
     </>
   )

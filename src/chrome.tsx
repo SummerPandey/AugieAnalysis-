@@ -49,7 +49,8 @@ export function SiteHeader({
   backLabel = "Back",
   backAriaLabel,
 }: {
-  variant: "demo" | "signedIn"
+  /** "guide" is a public page with no demo badge (e.g. How it works). */
+  variant: "demo" | "signedIn" | "guide"
   name?: string | null
   onSignOut?: () => void
   /** Demo pages: offer the way into the live tool. */
@@ -95,7 +96,7 @@ export function SiteHeader({
             {variant === "demo" && (
               <span className="badge badge-demo hide-md">
                 <IconFlask size={12} />
-                Demo · sample data
+                Demo · synthetic sample
               </span>
             )}
             {variant === "signedIn" && name && (
@@ -114,7 +115,7 @@ export function SiteHeader({
                 <span className="hide-sm">{backLabel}</span>
               </button>
             )}
-            {variant === "demo" && onSignIn && (
+            {(variant === "demo" || variant === "guide") && onSignIn && (
               <button type="button" className="btn btn-primary btn-sm" onClick={onSignIn}>
                 Sign in
               </button>
@@ -149,9 +150,9 @@ export function SiteFooter() {
             </span>
           </div>
           <p style={{ fontSize: 12.5, lineHeight: 1.7, maxWidth: 320, color: "rgba(255,255,255,0.7)" }}>
-            An internal Marketing Mix Model for Augustana College admissions marketing, built to
-            show which channels move weekly applications using Augustana's own Slate, Carnegie
-            and billboard data.
+            An internal Marketing Mix Model for Augustana College admissions marketing. It tests how
+            Carnegie spend and impressions relate to weekly Slate applications, and says plainly
+            where the evidence is still too thin.
           </p>
         </div>
         <div>
@@ -159,7 +160,7 @@ export function SiteFooter() {
           <ul>
             <li style={listItem}>Sponsor: Irene, Marketing &amp; Communications</li>
             <li style={listItem}>Analyst: Summer Pandey, CS &amp; Data Science</li>
-            <li style={listItem}>Ridge regression · walk-forward cross-validation</li>
+            <li style={listItem}>Statistical model, tested on weeks it never saw</li>
             <li style={listItem}>
               Model window: {formatMonth(MODEL_WINDOW.start)} – {formatMonth(MODEL_WINDOW.end)}
             </li>

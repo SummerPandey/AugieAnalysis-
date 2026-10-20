@@ -546,3 +546,23 @@
     transition: none;
   }
 }
+
+/* Clickable area over the drawn "Try the demo" button in the last scene
+   (SVG rect x 600–1000, y 380–500 of the 1600×900 stage). */
+.lp-video-demo-hit {
+  position: absolute;
+  left: 37.5%;
+  top: 42.2%;
+  width: 25%;
+  height: 13.4%;
+  padding: 0;
+  border: 0;
+  border-radius: 4px;
+  background: transparent;
+  cursor: pointer;
+}
+
+.lp-video-demo-hit:focus-visible {
+  outline: 3px solid var(--color-navy);
+  outline-offset: 3px;
+}

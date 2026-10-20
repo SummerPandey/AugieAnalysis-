@@ -26,7 +26,7 @@ const SETTLE_MS = 2600
 
 const CAPTIONS = [
   "Applications spike every year around the early November deadline.",
-  "Marketing also runs ads during the same weeks: Meta, Snapchat, search, billboards.",
+  "Marketing also runs ads during the same weeks: Meta, Snapchat, YouTube and search.",
   "The question: how much came from ads, and how much from the calendar?",
   "The model lines up each week's ads, the calendar, and carryover from past spend.",
   "In the model, most applications are assigned to the calendar. The ads' share is still being measured.",
@@ -61,7 +61,7 @@ function renderScene(index: number) {
   }
 }
 
-export function ExplainerVideo() {
+export function ExplainerVideo({ onDemo }: { onDemo?: () => void } = {}) {
   const [elapsed, setElapsed] = useState(0)
   const [playing, setPlaying] = useState(false)
   const [started, setStarted] = useState(false)
@@ -163,6 +163,7 @@ export function ExplainerVideo() {
     <div className="lp-video-root" role="region" aria-label="30-second preview: how Augie Analysis works">
       <div
         className={playerClass}
+        role="group"
         tabIndex={0}
         onKeyDown={onPlayerKeyDown}
         aria-label="Preview player. Press space or enter to play or pause."
@@ -183,6 +184,13 @@ export function ExplainerVideo() {
             {renderScene(scene)}
           </g>
         </svg>
+
+        {/* The last scene draws a "Try the demo" button; make it a real one. */}
+        {onDemo && started && scene === SCENE_COUNT - 1 && (
+          <button type="button" className="lp-video-demo-hit" onClick={onDemo}>
+            <span className="sr-only">Try the demo</span>
+          </button>
+        )}
 
         {!started && (
           <div className="lp-video-overlay">

@@ -159,12 +159,26 @@
     border-bottom: 0;
     background: transparent !important;
   }
+  /* hidden visually (the mobile line under the name shows them), but still
+     read by screen readers, since that line is aria-hidden */
   .ledger td {
-    display: none;
-    border-bottom: 0;
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
+    border: 0;
     background: transparent !important;
   }
   .ledger td:last-child {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip: auto;
+    white-space: normal;
     display: block;
     padding: 14px 16px 0 8px;
   }

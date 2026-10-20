@@ -32,7 +32,7 @@ const STEPS: Step[] = [
   {
     num: 5,
     title: "Test on weeks it has not seen",
-    body: "We train on at least a year of earlier weeks, test on later ones, and repeat five times, like checking yourself on practice questions you did not study. Inputs are scaled separately inside each training window, so the weeks being tested never inform it. The regularization strength is picked using these same five test folds, which flatters the scores; a stricter check that picks it inside each training window scores both models lower, and the calendar alone still wins. The calendar-only model runs the same test and is the benchmark. Marketing only gets credit if adding it predicts unseen weeks better. Today it scores 0.60 and the calendar alone 0.78, so channel numbers aren't supported yet.",
+    body: "We train on at least a year of earlier weeks, test on later weeks the model never saw, and repeat five times. We run the same test with the calendar alone: that is the benchmark. Marketing only gets credit if adding it predicts unseen weeks better. Today the full model scores 0.60 and the calendar alone 0.78, so channel numbers aren't supported yet. Under the hood explains the details.",
   },
   {
     num: 6,
@@ -100,7 +100,7 @@ export function ProcessSection() {
           How we build one, <em>step by step</em>
         </h2>
         <p className="lp-intro">
-          Six steps turn agency reports and admissions data into one answer. Augie Analysis, our
+          Six steps turn agency reports and admissions data into a result you can read. Augie Analysis, our
           Marketing Mix Model, estimates how much each channel may be linked to weekly applications,
           and how much of the total the admissions calendar accounts for in the model.
         </p>

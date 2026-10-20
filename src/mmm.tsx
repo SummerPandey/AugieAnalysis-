@@ -139,9 +139,8 @@ const SOURCES: SourceCard[] = [
     id: "billboards",
     sourceId: "billboards",
     label: "Billboards",
-    description: "QC Airport and Admissions Surge billboard budgets by period, from Lucas. Shown for context, not fit as a driver, until real flight dates exist.",
-    role: "toggle",
-    toggle: "billboards",
+    description: "QC Airport and Admissions Surge billboard budgets by period, from Lucas. Kept for context, not a model input, until real flight dates exist.",
+    role: "reference",
     columns: ["start_date", "end_date", "total_spend"],
     icon: ic(
       <>
@@ -281,9 +280,9 @@ function SourcesStep({
         info={
           <PageInfoButton title="Why these sources">
             A marketing mix model lines up two kinds of weekly history: the outcome (applications) and everything that
-            might move it (spend, impressions, offline media, and the admissions calendar). Augustana's lives in separate
-            systems: Slate for applications, Carnegie for digital, Lucas for billboards. Leaving a source out shows how
-            much the model leans on it.
+            might move it (spend, impressions and the admissions calendar). Augustana's history lives in separate places:
+            Slate for applications and Carnegie for digital ads, with billboard budgets from Lucas kept for context.
+            Leaving a source out shows how much the model leans on it.
           </PageInfoButton>
         }
       />
@@ -370,7 +369,8 @@ function SettingsStep({
   onBack: () => void
   onNext: () => void
 }) {
-  const changed = JSON.stringify(settings) !== JSON.stringify(DEFAULT_SETTINGS)
+  // sources are chosen on step 1, so they don't count as a changed setting here
+  const changed = JSON.stringify({ ...settings, sources: DEFAULT_SETTINGS.sources }) !== JSON.stringify(DEFAULT_SETTINGS)
   const decayPct = Math.round(settings.adstockDecay * 100)
   return (
     <div className="wf-stack">
@@ -381,7 +381,7 @@ function SettingsStep({
             How the model <em>reads</em> a week
           </>
         }
-        lead="These are the real model's settings, at Augustana's defaults. Change one and the sample run responds the way the live model would."
+        lead="These are the real model's settings, at Augustana's defaults. Change one and the sample run moves in the same direction the live model would."
         actions={
           changed ? (
             <button type="button" className="btn btn-outline btn-sm" onClick={() => onChange({ ...DEFAULT_SETTINGS, sources: settings.sources })}>
@@ -511,7 +511,6 @@ function Summary({ settings }: { settings: SampleSettings }) {
     "Applications",
     settings.sources.spend && "Channel spend",
     settings.sources.impressions && "Impressions",
-    settings.sources.billboards && "Billboards",
   ].filter(Boolean) as string[]
   const rows: [string, string][] = [
     ["Sources", src.join(", ")],
@@ -641,7 +640,10 @@ function LiveRunStep({
         <div role="status" aria-live="polite" className="live-run-status">
           <Spinner size={14} />
           <span>
-            Fetching data and fitting the model… <span className="num">{elapsed}s</span>
+            Fetching data and fitting the model…{" "}
+            <span className="num" aria-hidden="true">
+              {elapsed}s
+            </span>
           </span>
         </div>
       )}
@@ -760,7 +762,12 @@ export default function MMMWorkflow({
     const offFlags = FLAG_INFO.filter((f) => !s.seasonFlags[f.key]).map((f) => f.label.toLowerCase())
     if (offFlags.length) diffs.push(`without ${offFlags.join(", ")}`)
     const offSrc = (Object.keys(s.sources) as (keyof SampleSettings["sources"])[]).filter((k) => !s.sources[k])
-    if (offSrc.length) diffs.push(`without ${offSrc.join(", ")}`)
+    const srcName: Record<keyof SampleSettings["sources"], string> = {
+      spend: "channel spend",
+      impressions: "impressions",
+      billboards: "billboards",
+    }
+    if (offSrc.length) diffs.push(`without ${offSrc.map((k) => srcName[k]).join(", ")}`)
     return diffs.length ? <>This run: {diffs.join(" · ")}.</> : null
   }, [sample])
 

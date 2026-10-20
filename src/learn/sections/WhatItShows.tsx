@@ -30,8 +30,16 @@ const STAT_TILES = [
 
 const CHECKS = [
   { label: "Channels ran in the same weeks", status: "Flagged", ok: false },
-  { label: "Fit checked on unseen weeks", status: "Clear", ok: true },
+  { label: "Marketing beats the calendar alone", status: "Not yet", ok: false },
   { label: "Spend history covers the period", status: "Flagged", ok: false },
+]
+
+// Rows as the current real-data run shows them (marketing isn't identified,
+// so channels read "Can't tell yet" and their numbers aren't shown).
+const EXAMPLE_ROWS = [
+  { driver: "Calendar & trend", apps: "24,786", share: "84%", weeks: "177", verdict: "The calendar" },
+  { driver: "Meta", apps: "—", share: "not estimated", weeks: "61", verdict: "Can't tell yet" },
+  { driver: "Google PPC", apps: "—", share: "not estimated", weeks: "55", verdict: "Can't tell yet" },
 ]
 
 const CHART_STACK = [
@@ -67,15 +75,6 @@ function Step({
       </div>
       {visual ? <div className="lp-what-it-shows-visual">{visual}</div> : null}
     </li>
-  )
-}
-
-function Placeholder({ wide }: { wide?: boolean }) {
-  return (
-    <span
-      className={"lp-what-it-shows-ph" + (wide ? " lp-what-it-shows-ph--wide" : "")}
-      aria-hidden="true"
-    />
   )
 }
 
@@ -124,10 +123,11 @@ export function WhatItShowsSection() {
           title="Start with the headline"
           visual={
             <div className="lp-what-it-shows-summary">
-              <span className="lp-what-it-shows-tag">Summary</span>
-              <Placeholder wide />
-              <Placeholder wide />
-              <Placeholder />
+              <span className="lp-what-it-shows-tag">Example</span>
+              <p className="lp-what-it-shows-summary-text">
+                In this run, <strong>84%</strong> of modeled applications are assigned to the admissions calendar and
+                long-term trend. No individual channel has an estimate the model can support yet.
+              </p>
             </div>
           }
         >
@@ -165,25 +165,20 @@ export function WhatItShowsSection() {
                   </tr>
                 </thead>
                 <tbody>
-                  {["Calendar", "Meta", "Google PPC"].map((driver) => (
-                    <tr key={driver}>
-                      <th scope="row">{driver}</th>
+                  {EXAMPLE_ROWS.map((row) => (
+                    <tr key={row.driver}>
+                      <th scope="row">{row.driver}</th>
+                      <td>{row.apps}</td>
+                      <td>{row.share}</td>
+                      <td>{row.weeks}</td>
                       <td>
-                        <Placeholder />
-                      </td>
-                      <td>
-                        <Placeholder />
-                      </td>
-                      <td>
-                        <Placeholder />
-                      </td>
-                      <td>
-                        <Placeholder />
+                        <span className="lp-what-it-shows-verdict-chip">{row.verdict}</span>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
+              <p className="lp-what-it-shows-note">Example rows from the current run.</p>
             </div>
           }
         >
@@ -256,6 +251,7 @@ export function WhatItShowsSection() {
               <figcaption>Stacked by driver</figcaption>
             </figure>
           </div>
+          <p className="lp-what-it-shows-note">Illustrations of each chart type, not real data.</p>
         </Step>
 
         <Step

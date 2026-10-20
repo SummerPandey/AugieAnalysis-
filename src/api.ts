@@ -92,7 +92,7 @@ async function handle<T>(resp: Response, what: string): Promise<T> {
   if (resp.status === 429) throw new Error("Too many requests right now. Wait a minute and try again.")
   if (resp.status === 502 || resp.status === 503 || resp.status === 504)
     throw new Error(`${what} is temporarily unavailable (${resp.status}). Try again in a minute.`)
-  if (resp.status >= 500) throw new Error(`${what} hit a server error (${resp.status}). Try again; if it keeps happening, let Summer know.`)
+  if (resp.status >= 500) throw new Error(`${what} hit a server error (${resp.status}). Try again in a few minutes. If it keeps happening, contact the Augie Analysis team.`)
   throw new Error(detail ?? `${what} failed (${resp.status}).`)
 }
 

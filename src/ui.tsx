@@ -4,7 +4,7 @@
  * the chart chrome every Recharts block uses. Split out of mmm.tsx so the
  * workflow shell and results.tsx draw from one set.
  */
-import { useState, type CSSProperties, type ReactNode } from "react"
+import { useRef, useState, type CSSProperties, type ReactNode } from "react"
 import { T } from "./theme"
 import { IconArrowLeft, IconArrowRight, IconChevron, IconError, IconFlask, IconInfo, IconWarning } from "./icons"
 
@@ -89,6 +89,9 @@ export function Alert({
 /** Small "?" with a tip. Opens on hover, focus AND tap, so it works on touch. */
 export function InfoTooltip({ tip }: { tip: string }) {
   const [show, setShow] = useState(false)
+  // One tap fires hover, focus and click; remember what started it so the
+  // click doesn't immediately toggle the tip closed again on touch screens.
+  const pointer = useRef<string | null>(null)
   return (
     <span style={{ position: "relative", display: "inline-flex" }}>
       <button
@@ -96,11 +99,19 @@ export function InfoTooltip({ tip }: { tip: string }) {
         className="hit-44"
         aria-label={`Info: ${tip}`}
         aria-expanded={show}
-        onMouseEnter={() => setShow(true)}
-        onFocus={() => setShow(true)}
-        onMouseLeave={() => setShow(false)}
-        onBlur={() => setShow(false)}
-        onClick={() => setShow((s) => !s)}
+        onPointerDown={(e) => (pointer.current = e.pointerType)}
+        onPointerEnter={(e) => e.pointerType === "mouse" && setShow(true)}
+        onPointerLeave={(e) => e.pointerType === "mouse" && setShow(false)}
+        onFocus={() => pointer.current === null && setShow(true)}
+        onBlur={() => {
+          pointer.current = null
+          setShow(false)
+        }}
+        onClick={() => {
+          // mouse: hover already shows it; touch and keyboard: toggle
+          if (pointer.current !== "mouse") setShow((s) => !s)
+          pointer.current = null
+        }}
         onKeyDown={(e) => e.key === "Escape" && setShow(false)}
         style={{
           width: 18,

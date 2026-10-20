@@ -85,7 +85,7 @@ const signed = (v: number, d = 2) => (v < 0 ? `−${Math.abs(v).toFixed(d)}` : v
 
 const VERDICT_UI: Record<Verdict, { cls: string; Icon: (p: { size?: number }) => ReactNode }> = {
   calendar: { cls: "badge verdict-calendar", Icon: IconCalendar },
-  helping: { cls: "badge badge-success", Icon: IconCheck },
+  helping: { cls: "badge badge-info", Icon: IconCheck },
   directional: { cls: "badge badge-info", Icon: IconArrowRight },
   thin: { cls: "badge", Icon: IconInfo },
   "cant-tell": { cls: "badge badge-warning", Icon: IconQuestion },
@@ -548,18 +548,22 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
   const [view, setView] = useState<"all" | "ads">("all")
   const shown = ledger.filter((row) => row.verdict !== "cant-tell" && row.total > 0).map((row) => row.key)
   const hidden = ledger.filter((row) => row.verdict === "cant-tell")
-  const keys = orderSeries(view === "ads" ? shown.filter((k) => k !== "baseline") : shown)
+  // nothing to show on its own when every channel is unsupported
+  const hasAds = shown.some((k) => k !== "baseline")
+  const unidentified = !!r.marketing_lift && !r.marketing_lift.identified
+  const keys = orderSeries(view === "ads" && hasAds ? shown.filter((k) => k !== "baseline") : shown)
   const ticks = useMemo(() => quarterTicks(r.channel_contribution_weekly.map((w) => w.date)), [r])
   return (
     <div style={{ ...card, padding: 0 }}>
       <SectionHeader
         title="Where modeled applications came from, week by week"
         caption={
-          view === "all"
+          view === "all" || !hasAds
             ? "Stacked by driver. Gray is baseline demand and the admissions calendar; colors are advertising. These are model allocations, not measured contributions."
             : "Advertising only, on its own scale, so the channels are readable. The calendar is left out."
         }
         action={
+          hasAds && (
           <div className="seg no-print" role="group" aria-label="Drivers shown">
             <button type="button" aria-pressed={view === "all"} onClick={() => setView("all")}>
               All drivers
@@ -568,6 +572,7 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
               Advertising only
             </button>
           </div>
+          )
         }
       />
       <div className="section-body">
@@ -604,9 +609,10 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
         </div>
         {hidden.length > 0 && (
           <p className="chart-note">
-            <IconInfo size={14} /> Not drawn: {hidden.map((h) => h.label).join(" and ")}. Their estimates came out
-            negative, which usually reflects overlap with other channels rather than a measured effect, so the stack runs a
-            little above the modeled total.
+            <IconInfo size={14} /> Not drawn: {hidden.map((h) => h.label).join(", ")}.{" "}
+            {unidentified
+              ? "Marketing didn't beat the calendar alone on unseen weeks in this run, so no channel's share is drawn as a driver."
+              : "Their estimates came out negative, which usually reflects overlap with other channels rather than a measured effect, so the stack runs a little above the modeled total."}
           </p>
         )}
       </div>
@@ -855,10 +861,17 @@ export function ResultsView({
           value={signed(t.cvMean)}
           tone={t.unstable ? "caution" : undefined}
           sub={
-            <>
-              {FIT_WORDS[t.rating]} · periods ranged <span className="num">{signed(t.foldMin)}</span> to{" "}
-              <span className="num">{signed(t.foldMax)}</span>
-            </>
+            result.marketing_lift && !result.marketing_lift.identified ? (
+              <>
+                Calendar alone: <span className="num">{signed(result.marketing_lift.baseline_mean_r2)}</span> · periods ranged{" "}
+                <span className="num">{signed(t.foldMin)}</span> to <span className="num">{signed(t.foldMax)}</span>
+              </>
+            ) : (
+              <>
+                {FIT_WORDS[t.rating]} · periods ranged <span className="num">{signed(t.foldMin)}</span> to{" "}
+                <span className="num">{signed(t.foldMax)}</span>
+              </>
+            )
           }
         />
         <KpiCard

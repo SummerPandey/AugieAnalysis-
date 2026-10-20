@@ -10,7 +10,7 @@ function HarborVisual() {
   const boats = [
     { x: 70, label: "Meta" },
     { x: 170, label: "Google" },
-    { x: 270, label: "Billboards" },
+    { x: 270, label: "Snapchat" },
   ]
   const wave = (y: number) =>
     `M0 ${y} Q 21 ${y - 6} 42.5 ${y} T 85 ${y} T 127.5 ${y} T 170 ${y} T 212.5 ${y} T 255 ${y} T 297.5 ${y} T 340 ${y}`
@@ -19,7 +19,7 @@ function HarborVisual() {
       className="lp-what-is-harbor"
       viewBox="0 0 340 200"
       role="img"
-      aria-label="Three boats, labeled Meta, Google and Billboards, float on water labeled the admissions calendar. A dashed arrow above each boat marks the extra lift a channel might add."
+      aria-label="Three boats, labeled Meta, Google and Snapchat, float on water labeled the admissions calendar. A dashed arrow above each boat marks the extra lift a channel might add."
     >
       <rect x="0" y="0" width="340" height="200" rx="4" className="lp-what-is-harbor-sky" />
       <path d={`${wave(tide)} L340 200 L0 200 Z`} className="lp-what-is-harbor-water" />
@@ -61,8 +61,8 @@ export function WhatIsSection() {
         </h2>
         <p className="lp-intro">
           Applications climb every fall toward the early-November deadline, partly because it is
-          admissions season. A Marketing Mix Model, or MMM, separates that calendar effect from
-          what each marketing channel adds on top.
+          admissions season. A Marketing Mix Model, or MMM, tries to separate that calendar effect
+          from what each marketing channel may add on top.
         </p>
       </div>
 

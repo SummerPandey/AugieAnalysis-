@@ -2,7 +2,7 @@
  * Single source of truth for "where does the project's data stand" — read by
  * the data-coverage panel (coverage.tsx) and the project checklist
  * (checklist.tsx). Facts here come from the files in the MMM repo's data/
- * folder as of the 2026-09-28 audit; update this file, not the components,
+ * folder as of the 2026-10-20 re-check; update this file, not the components,
  * when a new export arrives.
  *
  * Months are "YYYY-MM" strings. Segments are inclusive on both ends.
@@ -12,7 +12,7 @@
 export const MODEL_WINDOW = { start: "2023-01", end: "2026-05" } as const
 
 /** Date the facts in this file were last checked against the data folder. */
-export const STATUS_AS_OF = "2026-09-28"
+export const STATUS_AS_OF = "2026-10-20"
 
 export type SourceStatus = "live" | "partial" | "reference" | "pending"
 
@@ -58,7 +58,7 @@ export const DATA_SOURCES: DataSource[] = [
     label: "Slate applications",
     owner: "Admissions (Slate)",
     status: "live",
-    coverageLabel: "100% · 181 weeks",
+    coverageLabel: "100% · 178 weeks",
     segments: [{ start: "2023-01", end: "2026-05" }],
     note: "The outcome the model explains. Ends at 2026-W22, so it doesn't cover the Fall 2026 cycle yet.",
   },
@@ -67,20 +67,20 @@ export const DATA_SOURCES: DataSource[] = [
     label: "Carnegie impressions",
     owner: "Irene / Carnegie",
     status: "partial",
-    coverageLabel: "81% of weeks on file",
+    coverageLabel: "83% of weeks on file",
     segments: [
       { start: "2023-01", end: "2024-07" },
       { start: "2024-10", end: "2025-06" },
       { start: "2025-09", end: "2025-12" },
     ],
-    note: "No rows for Aug–Sep 2024 or most of Jul–Aug 2025, and nothing after Jan 1, 2026. Impressions are zero while campaigns were dark (Jul–Aug 2023, May–Jul 2024, Jul–Aug 2025), so only 122 of 181 weeks (67%) had ads running.",
+    note: "No rows for Aug–Sep 2024 or most of Jul–Aug 2025, and nothing after Jan 1, 2026. Impressions are zero while campaigns were dark (Jul–Aug 2023, May–Jul 2024, Jul–Aug 2025), so only 122 of 178 weeks (69%) had ads running.",
   },
   {
     id: "spend",
     label: "Carnegie channel spend",
     owner: "Irene / Carnegie",
     status: "partial",
-    coverageLabel: "37% of the window",
+    coverageLabel: "38% of weeks",
     segments: [
       { start: "2024-10", end: "2025-06" },
       { start: "2025-08", end: "2026-01" },
@@ -91,10 +91,10 @@ export const DATA_SOURCES: DataSource[] = [
     id: "billboards",
     label: "Billboards",
     owner: "Lucas",
-    status: "live",
+    status: "reference",
     coverageLabel: "100% · 4 budget periods",
     segments: [{ start: "2023-01", end: "2026-05" }],
-    note: "Four budget-period totals spread evenly across weeks. There are no real flight dates yet.",
+    note: "Four budget-period totals spread evenly across weeks, with no flight dates yet, so billboards are shown for context and not fit in the model.",
   },
   {
     id: "conversions",
@@ -145,7 +145,7 @@ export const CHECKLIST: ChecklistItem[] = [
   {
     id: "slate-loaded",
     title: "Load Slate application history",
-    detail: "181 weeks of submitted applications, Jan 2023 to May 2026.",
+    detail: "178 weeks of submitted applications, Jan 2023 to May 2026.",
     owner: "Summer",
     phase: "done",
     defaultDone: true,
@@ -180,7 +180,7 @@ export const CHECKLIST: ChecklistItem[] = [
     id: "carnegie-media-plan",
     title: "Export the full 24-month Carnegie Media Plan",
     detail:
-      "Media Plan → Pivot Table, back to Jun 2023. This is the biggest improvement available: spend coverage goes from 37% toward full history.",
+      "Media Plan → Pivot Table, back to Jun 2023. This is the biggest improvement available: spend coverage goes from 38% toward full history.",
     owner: "Irene",
     phase: "now",
     defaultDone: false,

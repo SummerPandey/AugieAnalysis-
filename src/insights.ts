@@ -133,7 +133,7 @@ export function driverLedger(r: PipelineResult): LedgerRow[] {
       return {
         ...base,
         verdict: "directional" as const,
-        reason: `Positive, but it moved with other channels (VIF ${vif.toFixed(0)}), so the size is uncertain.`,
+        reason: "Positive, but it rose and fell with other channels, so its size is uncertain.",
       }
     if (runShaky)
       return {
@@ -255,10 +255,7 @@ export function headline(ledger: LedgerRow[]): Headline {
   const base = ledger.find((r) => r.key === "baseline")
   const share = Math.max(0, Math.min(1, base?.share ?? 0))
   const pct = `${Math.round(share * 100)}%`
-  const lead =
-    share >= 0.6
-      ? "Most of the modeled total is assigned to the admissions baseline:"
-      : "The model assigns the admissions baseline a smaller share:"
+  const lead = "In this run,"
   const credible = (r: LedgerRow) => r.verdict === "helping" || r.verdict === "directional"
   // Impressions measure advertising overall; the headline names a channel.
   const top = ledger
@@ -273,7 +270,7 @@ export function headline(ledger: LedgerRow[]): Headline {
   return {
     lead,
     figure: pct,
-    rest: "of modeled applications are assigned to baseline demand and seasonality, a model allocation rather than a measured cause.",
+    rest: "of modeled applications are assigned to the admissions calendar and long-term trend. That's a model allocation, not a measured cause.",
     paid,
   }
 }

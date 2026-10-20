@@ -15,7 +15,7 @@ const FAQS: FaqItem[] = [
   },
   {
     heading: "Why is the fit on unseen weeks lower?",
-    body: "The 0.70 score measures fit on weeks the model learned from, where the calendar pattern does most of the work. The 0.60 score comes from walk-forward testing: the model trains on at least a year of earlier weeks and predicts later weeks it never saw. It is the more honest number, and it can fall below zero. The calendar-only model is the benchmark. It scores 0.78 on the same test, so marketing doesn't add measurable signal yet. Channel spend covers only about 38% of weeks, from October 2024 to January 2026, so more history is the main fix.",
+    body: "The 0.70 score measures fit on weeks the model learned from, where the calendar pattern does most of the work. The 0.60 score comes from walk-forward testing: the model trains on at least a year of earlier weeks and predicts later weeks it never saw. It is the more honest of the two numbers, though still a little flattering (see Cross-validation below), and it can fall below zero. The calendar-only model is the benchmark. It scores 0.78 on the same test, so marketing doesn't add measurable signal yet. Channel spend covers only about 38% of weeks, from October 2024 to January 2026, so more history is the main fix.",
     visual: "bars",
   },
   {
@@ -69,7 +69,7 @@ function Visual({ kind }: { kind: FaqItem["visual"] }) {
           </div>
           <div className="card lp-faq-mini lp-faq-mini--hl">
             <span className="lp-faq-mini-label">Impressions</span>
-            <span className="lp-faq-mini-text">counts everyone who saw an ad</span>
+            <span className="lp-faq-mini-text">counts every time an ad was shown</span>
           </div>
         </div>
       )
