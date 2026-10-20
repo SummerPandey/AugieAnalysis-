@@ -1,0 +1,100 @@
+/* "How we build it" section. All classes prefixed lp-process-. */
+
+.lp-process-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
+  gap: 16px;
+  min-width: 0;
+}
+
+.lp-process-card {
+  position: relative;
+  min-width: 0;
+  padding: 24px 22px 22px;
+  background: var(--lp-surface);
+  border: 1px solid var(--color-line);
+  border-top: 3px solid var(--color-navy);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  overflow-wrap: anywhere;
+}
+
+.lp-process-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin: 0;
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-navy);
+}
+
+.lp-process-num {
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--radius-sm);
+  background: var(--color-navy);
+  color: var(--color-gold);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-process-body {
+  margin: 12px 0 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+}
+
+.lp-process-visual {
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 1px solid var(--color-line);
+}
+
+.lp-process-svg {
+  display: block;
+  width: 100%;
+  max-width: 260px;
+  height: auto;
+  margin-inline: auto;
+}
+
+.lp-process-axis {
+  stroke: var(--color-line-strong);
+  stroke-width: 1;
+}
+
+.lp-process-bar {
+  fill: var(--color-navy);
+}
+
+.lp-process-bar--hot {
+  fill: var(--color-gold);
+  stroke: var(--color-navy);
+  stroke-width: 1.5;
+}
+
+.lp-process-svg-label {
+  fill: var(--color-ink-2);
+  font-family: var(--font-sans);
+  font-size: 10px;
+  font-weight: 600;
+}
+
+@media (max-width: 480px) {
+  .lp-process-card {
+    padding: 20px 18px 18px;
+  }
+}

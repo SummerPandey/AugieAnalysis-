@@ -1,0 +1,430 @@
+/* 30-second explainer on the "How it works" page. Class prefix: lp-video-.
+   Stage is a 16:9 box holding one SVG scene; captions and controls sit below it.
+   Scenes animate with CSS keyframes that remount per scene (see ExplainerVideo.tsx). */
+
+.lp-video-root {
+  width: 100%;
+  max-width: 880px;
+  margin: 0 auto;
+  min-width: 0;
+}
+
+/* ---------- Stage ---------- */
+
+.lp-video-player {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-sm);
+  box-shadow: var(--shadow-md);
+  overflow: hidden;
+}
+
+.lp-video-player:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 3px;
+}
+
+.lp-video-svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+/* Scrim + big play button shown until the viewer starts the preview. */
+.lp-video-overlay {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: color-mix(in srgb, var(--color-paper) 62%, transparent);
+}
+
+.lp-video-big-play {
+  display: inline-flex;
+  align-items: center;
+  gap: 12px;
+  max-width: 100%;
+  text-align: center;
+  font-size: clamp(14px, 2.4vw, 17px);
+  line-height: 1.3;
+}
+
+.lp-video-big-play svg {
+  flex: 0 0 auto;
+}
+
+/* ---------- SVG scene styles (sizes are in viewBox units) ---------- */
+
+.lp-video-scene {
+  animation: lp-video-fade 0.5s ease both;
+}
+
+.lp-video-fill-navy {
+  fill: var(--color-navy);
+}
+
+.lp-video-fill-paper {
+  fill: var(--color-paper);
+}
+
+.lp-video-stroke-navy {
+  stroke: var(--color-navy);
+}
+
+.lp-video-label {
+  font-family: var(--font-sans);
+  font-size: 40px;
+  font-weight: 600;
+  fill: var(--color-navy);
+}
+
+.lp-video-sub {
+  font-family: var(--font-sans);
+  font-size: 36px;
+  fill: var(--color-ink-2);
+}
+
+.lp-video-num {
+  font-family: var(--font-sans);
+  font-size: 36px;
+  font-weight: 600;
+  fill: var(--color-navy);
+}
+
+.lp-video-flag-text {
+  font-family: var(--font-sans);
+  font-size: 36px;
+  font-weight: 600;
+  fill: var(--color-paper);
+}
+
+.lp-video-display {
+  font-family: var(--font-display);
+  fill: var(--color-navy);
+}
+
+.lp-video-title {
+  font-size: 72px;
+}
+
+.lp-video-question {
+  font-size: 180px;
+}
+
+.lp-video-button-text {
+  font-family: var(--font-sans);
+  font-size: 48px;
+  font-weight: 700;
+  fill: var(--color-navy);
+}
+
+.lp-video-axis {
+  stroke: var(--color-line-strong);
+  stroke-width: 3;
+}
+
+/* Scene 1 */
+.lp-video-cell {
+  fill: var(--color-blue-50);
+  stroke: var(--color-line-strong);
+  stroke-width: 2;
+}
+
+.lp-video-cell-hot {
+  fill: var(--color-gold);
+  stroke: var(--color-gold-deep);
+}
+
+.lp-video-bar {
+  fill: var(--color-navy);
+}
+
+/* Scene 2 */
+.lp-video-dot {
+  fill: var(--color-gold);
+  stroke: var(--color-gold-deep);
+  stroke-width: 2;
+}
+
+.lp-video-dot-gold {
+  fill: var(--color-gold);
+  stroke: var(--color-navy);
+  stroke-width: 3;
+}
+
+/* Scene 3 */
+.lp-video-dashed {
+  stroke: var(--color-gold-deep);
+  stroke-width: 6;
+  stroke-dasharray: 16 12;
+  fill: var(--color-gold-tint);
+}
+
+/* Scene 4 */
+.lp-video-carry {
+  fill: var(--color-gold);
+  stroke: var(--color-gold-deep);
+  stroke-width: 1.5;
+}
+
+/* Scene 5 */
+.lp-video-gold-seg {
+  fill: var(--color-gold);
+  stroke: var(--color-gold-deep);
+  stroke-width: 2;
+}
+
+/* Scene 6 */
+.lp-video-button {
+  fill: var(--color-gold);
+  stroke: var(--color-gold-deep);
+  stroke-width: 2;
+}
+
+.lp-video-ring {
+  fill: none;
+  stroke: var(--color-gold-deep);
+  stroke-width: 4;
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lp-video-ring 2.4s ease-out infinite;
+}
+
+/* ---------- Keyframes (opacity and transform only) ---------- */
+
+@keyframes lp-video-fade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes lp-video-grow {
+  from { transform: scaleY(0); }
+  to { transform: scaleY(1); }
+}
+
+@keyframes lp-video-grow-x {
+  from { transform: scaleX(0); }
+  to { transform: scaleX(1); }
+}
+
+@keyframes lp-video-slide {
+  from { transform: translateX(-180px); opacity: 0; }
+  to { transform: translateX(0); opacity: 1; }
+}
+
+@keyframes lp-video-pulse-gold {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.08); }
+}
+
+@keyframes lp-video-pulse-once {
+  0%, 100% { transform: scale(1); }
+  40% { transform: scale(1.18); }
+}
+
+@keyframes lp-video-ring {
+  from { transform: scale(1); opacity: 0.9; }
+  to { transform: scale(1.12); opacity: 0; }
+}
+
+@keyframes lp-video-blink {
+  0%, 100% { opacity: 0.35; }
+  50% { opacity: 1; }
+}
+
+@keyframes lp-video-fly {
+  0% { transform: translate(0, 0); opacity: 0; }
+  12% { opacity: 1; }
+  85% { opacity: 1; }
+  100% { transform: translate(var(--dx), var(--dy)); opacity: 0; }
+}
+
+/* ---------- Scene animation classes ---------- */
+
+.lp-video-grow,
+.lp-video-gold-seg {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: lp-video-grow 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) 0s both;
+}
+
+.lp-video-grow-x {
+  transform-box: fill-box;
+  transform-origin: 0% 50%;
+  animation: lp-video-grow-x 0.6s cubic-bezier(0.2, 0.7, 0.2, 1) 0s both;
+}
+
+.lp-video-slide {
+  animation: lp-video-slide 0.9s cubic-bezier(0.2, 0.7, 0.2, 1) var(--d, 0s) both;
+}
+
+.lp-video-fadein {
+  animation: lp-video-fade 0.6s ease both;
+}
+
+.lp-video-pulse-gold {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lp-video-pulse-gold 1.2s ease-in-out 0.6s 3 both;
+}
+
+.lp-video-pulse-once {
+  transform-box: fill-box;
+  transform-origin: 50% 50%;
+  animation: lp-video-pulse-once 1.1s ease-in-out 0.3s 1 both;
+}
+
+.lp-video-fly {
+  animation: lp-video-fly 1.4s cubic-bezier(0.4, 0, 0.6, 1) 0s both;
+}
+
+/* ---------- Caption ---------- */
+
+.lp-video-caption {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 14px;
+  margin: 16px 0 0;
+  padding: 14px 18px;
+  min-height: 3.2em;
+  background: var(--color-navy-900);
+  color: var(--color-paper);
+  border-radius: var(--radius-sm);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+}
+
+.lp-video-caption-step {
+  flex: 0 0 auto;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-gold);
+}
+
+.lp-video-caption-text {
+  flex: 1 1 280px;
+  min-width: 0;
+}
+
+/* ---------- Controls ---------- */
+
+.lp-video-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 12px;
+  margin-top: 14px;
+}
+
+.lp-video-btn {
+  flex: 0 0 auto;
+}
+
+.lp-video-progress {
+  flex: 1 1 260px;
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  min-width: 0;
+}
+
+.lp-video-seg {
+  position: relative;
+  flex: 1 1 0;
+  min-width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  background: none;
+  cursor: pointer;
+}
+
+.lp-video-seg::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  background: var(--color-line-strong);
+  border-radius: 2px;
+}
+
+.lp-video-seg-fill {
+  position: absolute;
+  left: 0;
+  top: 50%;
+  height: 6px;
+  margin-top: -3px;
+  max-width: 100%;
+  background: var(--color-navy);
+  border-radius: 2px;
+  transition: width 100ms linear;
+}
+
+.lp-video-seg:hover::before {
+  background: var(--color-ink-3);
+}
+
+.lp-video-seg:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 2px;
+  border-radius: 2px;
+}
+
+.lp-video-time {
+  flex: 0 0 auto;
+  font-family: var(--font-sans);
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-2);
+}
+
+@media (max-width: 560px) {
+  .lp-video-progress {
+    flex: 1 1 100%;
+    order: 3;
+  }
+
+  .lp-video-time {
+    margin-left: auto;
+  }
+}
+
+/* ---------- Reduced motion: opacity changes only ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-video-grow,
+  .lp-video-gold-seg,
+  .lp-video-grow-x,
+  .lp-video-slide,
+  .lp-video-pulse-gold,
+  .lp-video-pulse-once,
+  .lp-video-fly {
+    transform: none;
+    animation-name: lp-video-fade;
+  }
+
+  .lp-video-fly {
+    animation-duration: 1.2s;
+  }
+
+  .lp-video-ring {
+    transform: none;
+    animation: lp-video-blink 2.4s ease-in-out infinite;
+  }
+
+  .lp-video-seg-fill {
+    transition: none;
+  }
+}

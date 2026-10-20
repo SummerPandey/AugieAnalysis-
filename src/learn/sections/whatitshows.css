@@ -1,0 +1,553 @@
+/* "What it shows" section. Shared .lp-section / .lp-section-head / .lp-intro
+   come from learn.css. Every class here uses the lp-what-it-shows- prefix. */
+
+/* ---------- Step list ---------- */
+
+.lp-what-it-shows-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  max-width: 920px;
+}
+
+.lp-what-it-shows-step {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 20px;
+  padding: 32px 0;
+  border-top: 1px solid var(--color-line);
+  min-width: 0;
+}
+
+.lp-what-it-shows-step:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.lp-what-it-shows-step--wide {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.lp-what-it-shows-copy {
+  min-width: 0;
+}
+
+.lp-what-it-shows-num {
+  display: inline-block;
+  font-family: var(--font-display);
+  font-size: 13px;
+  letter-spacing: 0.08em;
+  color: var(--color-gold-deep);
+  margin-bottom: 6px;
+}
+
+.lp-what-it-shows-title {
+  color: var(--color-navy);
+  margin: 0 0 10px;
+}
+
+.lp-what-it-shows-body {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-ink-2);
+}
+
+.lp-what-it-shows-note {
+  margin-top: 16px;
+}
+
+.lp-what-it-shows-visual {
+  min-width: 0;
+}
+
+/* Desktop: copy on the left, visual on the right. Wide steps stay stacked. */
+@media (min-width: 820px) {
+  .lp-what-it-shows-step {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    gap: 40px;
+    align-items: start;
+  }
+
+  .lp-what-it-shows-step--wide {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 20px;
+  }
+}
+
+/* ---------- Step 1: summary card ---------- */
+
+.lp-what-it-shows-summary {
+  background: var(--color-navy);
+  color: var(--color-paper);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  padding: 24px;
+  display: grid;
+  gap: 12px;
+}
+
+.lp-what-it-shows-tag {
+  justify-self: start;
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--color-navy-950);
+  background: var(--color-gold);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+}
+
+/* ---------- Placeholders (decorative skeleton bars) ---------- */
+
+.lp-what-it-shows-ph {
+  display: block;
+  height: 10px;
+  width: 64px;
+  max-width: 100%;
+  border-radius: var(--radius-sm);
+  background: var(--color-line-strong);
+}
+
+.lp-what-it-shows-ph--wide {
+  width: 100%;
+  height: 12px;
+  background: color-mix(in srgb, var(--color-paper) 28%, transparent);
+}
+
+.lp-what-it-shows-summary .lp-what-it-shows-ph {
+  background: color-mix(in srgb, var(--color-paper) 28%, transparent);
+}
+
+.lp-what-it-shows-summary .lp-what-it-shows-ph--wide {
+  width: 100%;
+}
+
+/* ---------- Step 2: stat tiles ---------- */
+
+.lp-what-it-shows-tiles {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.lp-what-it-shows-tile {
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-top: 2px solid var(--color-navy);
+  border-radius: var(--radius);
+  padding: 16px 18px;
+  min-width: 0;
+}
+
+.lp-what-it-shows-tile-label {
+  margin: 0;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+}
+
+.lp-what-it-shows-tile-value {
+  margin: 6px 0 6px;
+  font-family: var(--font-display);
+  font-size: clamp(24px, 3.4vw, 32px);
+  line-height: 1.1;
+  color: var(--color-navy);
+  overflow-wrap: anywhere;
+}
+
+.lp-what-it-shows-tile-text {
+  margin: 0;
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--color-ink-2);
+}
+
+@media (min-width: 720px) {
+  .lp-what-it-shows-tiles {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Step 3: mock driver table ---------- */
+
+.lp-what-it-shows-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-paper);
+  -webkit-overflow-scrolling: touch;
+}
+
+.lp-what-it-shows-table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  font-size: 13px;
+  color: var(--color-ink);
+}
+
+.lp-what-it-shows-table th,
+.lp-what-it-shows-table td {
+  padding: 12px 14px;
+  text-align: left;
+  border-bottom: 1px solid var(--color-line);
+  vertical-align: middle;
+}
+
+.lp-what-it-shows-table thead th {
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-navy);
+  background: var(--color-blue-50);
+  border-bottom: 1px solid var(--color-line-strong);
+}
+
+.lp-what-it-shows-table tbody th {
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
+.lp-what-it-shows-table tbody tr:last-child th,
+.lp-what-it-shows-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+/* ---------- Step 4: verdict list ---------- */
+
+.lp-what-it-shows-chips {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 10px;
+}
+
+.lp-what-it-shows-verdict {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+  align-items: start;
+  padding: 12px 16px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+}
+
+.lp-what-it-shows-chip {
+  justify-self: start;
+  display: inline-block;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  padding: 4px 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid currentColor;
+  white-space: nowrap;
+}
+
+.lp-what-it-shows-chip--calendar {
+  color: var(--color-navy);
+  background: var(--color-blue-50);
+}
+
+.lp-what-it-shows-chip--helping {
+  color: var(--color-success);
+  background: var(--color-paper);
+}
+
+.lp-what-it-shows-chip--directional {
+  color: var(--color-blue);
+  background: var(--color-blue-50);
+}
+
+.lp-what-it-shows-chip--little {
+  color: var(--color-ink-3);
+  background: var(--color-sand);
+}
+
+.lp-what-it-shows-chip--unclear {
+  color: var(--color-warning);
+  background: var(--color-gold-tint);
+}
+
+.lp-what-it-shows-verdict-text {
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--color-ink-2);
+}
+
+@media (min-width: 640px) {
+  .lp-what-it-shows-verdict {
+    grid-template-columns: 200px minmax(0, 1fr);
+    gap: 16px;
+    align-items: center;
+  }
+}
+
+/* ---------- Step 5: three charts ---------- */
+
+.lp-what-it-shows-charts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.lp-what-it-shows-figure {
+  margin: 0;
+  padding: 16px;
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.lp-what-it-shows-figure figcaption {
+  margin-top: 10px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: var(--color-ink-3);
+}
+
+.lp-what-it-shows-chart {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-height: 140px;
+}
+
+.lp-what-it-shows-axis {
+  stroke: var(--color-line-strong);
+  stroke-width: 1;
+}
+
+.lp-what-it-shows-line {
+  fill: none;
+  stroke: var(--color-navy);
+  stroke-width: 2;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+
+.lp-what-it-shows-line-muted {
+  fill: none;
+  stroke: var(--color-gold);
+  stroke-width: 1.6;
+  stroke-dasharray: 3 3;
+  stroke-linejoin: round;
+}
+
+.lp-what-it-shows-year-muted {
+  fill: none;
+  stroke: var(--color-blue-100);
+  stroke-width: 1.4;
+  stroke-linejoin: round;
+}
+
+.lp-what-it-shows-highlight {
+  fill: var(--color-gold-tint);
+}
+
+.lp-what-it-shows-bar-a {
+  fill: var(--color-navy);
+}
+
+.lp-what-it-shows-bar-b {
+  fill: var(--color-blue);
+}
+
+.lp-what-it-shows-bar-c {
+  fill: var(--color-gold);
+}
+
+@media (min-width: 720px) {
+  .lp-what-it-shows-charts {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Step 6: checklist ---------- */
+
+.lp-what-it-shows-checks {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 0;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-paper);
+}
+
+.lp-what-it-shows-check {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--color-line);
+  font-size: 14px;
+  color: var(--color-ink);
+}
+
+.lp-what-it-shows-check:last-child {
+  border-bottom: 0;
+}
+
+.lp-what-it-shows-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 1px solid currentColor;
+}
+
+.lp-what-it-shows-mark--ok {
+  color: var(--color-success);
+  background: var(--color-paper);
+}
+
+.lp-what-it-shows-mark--warn {
+  color: var(--color-warning);
+  background: var(--color-gold-tint);
+}
+
+.lp-what-it-shows-check-label {
+  min-width: 0;
+  line-height: 1.4;
+}
+
+.lp-what-it-shows-check-status {
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  white-space: nowrap;
+}
+
+/* ---------- Step 7: two cards ---------- */
+
+.lp-what-it-shows-pair {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+}
+
+.lp-what-it-shows-card {
+  background: var(--color-paper);
+  border: 1px solid var(--color-line);
+  border-left: 3px solid var(--color-navy);
+  border-radius: var(--radius);
+  padding: 20px;
+  box-shadow: var(--shadow-sm);
+  min-width: 0;
+}
+
+.lp-what-it-shows-card:nth-child(2) {
+  border-left-color: var(--color-gold);
+}
+
+.lp-what-it-shows-card-label {
+  margin: 0 0 8px;
+  font-family: var(--font-display);
+  font-size: 18px;
+  color: var(--color-navy);
+}
+
+.lp-what-it-shows-card-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+}
+
+@media (min-width: 640px) {
+  .lp-what-it-shows-pair {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* ---------- Step 8: three-step strip ---------- */
+
+.lp-what-it-shows-strip {
+  list-style: none;
+  margin: 20px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px 14px;
+}
+
+.lp-what-it-shows-strip-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: var(--color-navy);
+  color: var(--color-paper);
+  border-radius: var(--radius);
+  font-size: 14px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+
+.lp-what-it-shows-strip-num {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--color-gold);
+  color: var(--color-navy-950);
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.lp-what-it-shows-strip-arrow {
+  display: inline-flex;
+  color: var(--color-navy);
+}
+
+/* ---------- Motion + focus ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-what-it-shows * {
+    transition: none !important;
+    animation: none !important;
+  }
+}
+
+.lp-what-it-shows :focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 380px) {
+  .lp-what-it-shows-step {
+    padding: 24px 0;
+  }
+
+  .lp-what-it-shows-summary {
+    padding: 18px;
+  }
+
+  .lp-what-it-shows-tiles {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

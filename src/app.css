@@ -76,6 +76,18 @@
   gap: 12px;
   margin-top: 34px;
 }
+.landing-learn {
+  margin-top: 18px;
+  font-size: 14px;
+  color: rgba(255, 255, 255, 0.78);
+}
+.landing-learn-link {
+  color: var(--color-gold);
+  font-weight: 600;
+}
+.landing-learn-link:hover {
+  color: #fff;
+}
 .landing-status {
   margin-top: 22px;
   font-size: 12.5px;

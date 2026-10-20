@@ -1,0 +1,277 @@
+/* "Under the hood" section. Shared .lp-section / .lp-section-head / .lp-intro
+   come from learn.css. Every class here uses the lp-under-the-hood- prefix. */
+
+/* ---------- Idea cards (2-up on wide screens, stacked on phones) ---------- */
+
+.lp-under-the-hood-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  min-width: 0;
+}
+
+@media (min-width: 680px) {
+  .lp-under-the-hood-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 20px;
+  }
+}
+
+.lp-under-the-hood-card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding: 24px 22px 22px;
+  background: var(--lp-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+.lp-under-the-hood-card::before {
+  content: "";
+  position: absolute;
+  left: 22px;
+  top: 0;
+  width: 36px;
+  height: 3px;
+  background: var(--color-gold);
+}
+
+.lp-under-the-hood-num {
+  font-family: var(--font-sans);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  color: var(--color-ink-3);
+  font-variant-numeric: tabular-nums;
+  margin-bottom: 8px;
+}
+
+.lp-under-the-hood-heading {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-navy);
+  margin-bottom: 12px;
+  overflow-wrap: break-word;
+}
+
+.lp-under-the-hood-body {
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-ink-2);
+  overflow-wrap: break-word;
+}
+
+/* ---------- Adstock diagram ---------- */
+
+.lp-under-the-hood-diagram {
+  margin: 20px 0 0;
+  padding: 16px 14px 12px;
+  background: var(--color-blue-50);
+  border-radius: var(--radius-sm);
+  min-width: 0;
+}
+
+.lp-under-the-hood-svg {
+  display: block;
+  width: 100%;
+  height: auto;
+  max-width: 360px;
+  margin: 0 auto;
+  overflow: visible;
+}
+
+.lp-under-the-hood-axis {
+  stroke: var(--color-navy);
+  stroke-width: 1;
+  stroke-linecap: round;
+}
+
+.lp-under-the-hood-bar {
+  fill: var(--color-navy);
+}
+
+.lp-under-the-hood-bar-hot {
+  fill: var(--color-gold);
+  stroke: var(--color-navy);
+  stroke-width: 1;
+}
+
+.lp-under-the-hood-tick {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  fill: var(--color-ink-2);
+}
+
+.lp-under-the-hood-caption {
+  margin-top: 8px;
+  font-size: 13px;
+  line-height: 1.5;
+  color: var(--color-ink-2);
+  text-align: center;
+}
+
+/* ---------- Verdicts + limits panels ---------- */
+
+.lp-under-the-hood-panel {
+  margin-top: 24px;
+  padding: 24px 22px;
+  background: var(--lp-surface);
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  min-width: 0;
+}
+
+.lp-under-the-hood-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  line-height: 1.25;
+  color: var(--color-navy);
+  margin-bottom: 16px;
+}
+
+.lp-under-the-hood-verdicts {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0;
+  margin: 0;
+}
+
+@media (min-width: 680px) {
+  .lp-under-the-hood-verdicts {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 24px;
+  }
+}
+
+.lp-under-the-hood-verdict {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-line);
+  min-width: 0;
+}
+
+.lp-under-the-hood-verdict:first-child {
+  border-top: none;
+}
+
+.lp-under-the-hood-tag {
+  display: inline-flex;
+  align-self: flex-start;
+  align-items: center;
+  padding: 3px 9px;
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  border-radius: var(--radius-sm);
+  border: 1px solid transparent;
+  line-height: 1.4;
+}
+
+.lp-under-the-hood-verdict-text {
+  margin: 0;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+  overflow-wrap: break-word;
+}
+
+/* Verdict tag tones: navy for the baseline, success for helping, gold-deep for
+   directional, warning for too-little-signal, neutral for can't-tell-yet. */
+.lp-under-the-hood-verdict-calendar .lp-under-the-hood-tag {
+  background: var(--color-navy);
+  color: var(--color-paper);
+}
+
+.lp-under-the-hood-verdict-helping .lp-under-the-hood-tag {
+  background: var(--lp-surface);
+  color: var(--color-success);
+  border-color: var(--color-success);
+}
+
+.lp-under-the-hood-verdict-directional .lp-under-the-hood-tag {
+  background: var(--color-gold-tint);
+  color: var(--color-warning);
+  border-color: var(--color-gold-deep);
+}
+
+.lp-under-the-hood-verdict-signal .lp-under-the-hood-tag {
+  background: var(--color-sand);
+  color: var(--color-ink-2);
+  border-color: var(--color-line-strong);
+}
+
+.lp-under-the-hood-verdict-unknown .lp-under-the-hood-tag {
+  background: var(--lp-surface);
+  color: var(--color-error);
+  border-color: var(--color-error);
+}
+
+/* Limits checklist */
+
+.lp-under-the-hood-limits {
+  background: var(--color-paper);
+}
+
+.lp-under-the-hood-checklist {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.lp-under-the-hood-check {
+  position: relative;
+  padding-left: 26px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-ink);
+  overflow-wrap: break-word;
+}
+
+.lp-under-the-hood-check::before {
+  content: "";
+  position: absolute;
+  left: 2px;
+  top: 0.55em;
+  width: 9px;
+  height: 9px;
+  background: var(--color-gold);
+  border: 1px solid var(--color-navy);
+  border-radius: 1px;
+}
+
+/* ---------- Small screens ---------- */
+
+@media (max-width: 380px) {
+  .lp-under-the-hood-card,
+  .lp-under-the-hood-panel {
+    padding-left: 16px;
+    padding-right: 16px;
+  }
+
+  .lp-under-the-hood-card::before {
+    left: 16px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-under-the-hood-card,
+  .lp-under-the-hood-bar,
+  .lp-under-the-hood-bar-hot {
+    transition: none;
+  }
+}

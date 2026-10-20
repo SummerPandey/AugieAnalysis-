@@ -1,0 +1,371 @@
+/* "What is an MMM" section. Prefix: lp-what-is- */
+
+.lp-what-is {
+  display: grid;
+  gap: 0;
+  min-width: 0;
+}
+
+.lp-what-is-block {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 16px;
+  padding: 28px 0;
+  border-top: 1px solid var(--color-line);
+  min-width: 0;
+}
+
+.lp-what-is-block:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.lp-what-is-block h3 {
+  margin: 0;
+  font-size: 22px;
+  line-height: 1.25;
+  color: var(--color-navy);
+}
+
+.lp-what-is-block p {
+  margin: 0;
+  max-width: 62ch;
+  font-size: 15px;
+  line-height: 1.65;
+  color: var(--color-ink-2);
+}
+
+.lp-what-is-text {
+  display: grid;
+  gap: 12px;
+  align-content: center;
+  min-width: 0;
+}
+
+.lp-what-is-visual {
+  min-width: 0;
+}
+
+.lp-what-is-harbor {
+  display: block;
+  width: 100%;
+  max-width: 360px;
+  height: auto;
+  margin: 0 auto;
+}
+
+.lp-what-is-harbor-sky {
+  fill: var(--color-blue-50);
+}
+
+.lp-what-is-harbor-water {
+  fill: var(--color-blue-100);
+  opacity: 0.55;
+}
+
+.lp-what-is-harbor-wave {
+  fill: none;
+  stroke: var(--color-blue);
+  stroke-width: 1.2;
+  opacity: 0.5;
+}
+
+.lp-what-is-harbor-wave-soft {
+  opacity: 0.25;
+}
+
+.lp-what-is-harbor-tide {
+  stroke: var(--color-navy);
+  stroke-width: 1.6;
+  stroke-dasharray: 6 4;
+}
+
+.lp-what-is-harbor-lift {
+  stroke: var(--color-gold-deep);
+  stroke-width: 1.5;
+  stroke-dasharray: 2 3;
+}
+
+.lp-what-is-harbor-tide-label,
+.lp-what-is-harbor-boat-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  fill: var(--color-navy);
+}
+
+.lp-what-is-harbor-tide-label {
+  font-weight: 500;
+  fill: var(--color-ink-2);
+}
+
+.lp-what-is-harbor-mast {
+  stroke: var(--color-navy);
+  stroke-width: 1.4;
+}
+
+.lp-what-is-harbor-sail {
+  fill: var(--color-gold);
+  stroke: var(--color-navy);
+  stroke-width: 1;
+  stroke-linejoin: round;
+}
+
+.lp-what-is-harbor-hull {
+  fill: var(--color-navy);
+}
+
+/* Inputs flow */
+
+.lp-what-is-flow {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.lp-what-is-chip {
+  padding: 7px 12px;
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-sm);
+  background: var(--color-blue-50);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-navy);
+}
+
+.lp-what-is-arrow {
+  display: inline-flex;
+  color: var(--color-ink-3);
+  padding: 0 2px;
+}
+
+.lp-what-is-out {
+  padding: 8px 14px;
+  border-radius: var(--radius-sm);
+  background: var(--color-navy);
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--color-paper);
+}
+
+.lp-what-is-list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+  max-width: 62ch;
+}
+
+.lp-what-is-list li {
+  position: relative;
+  padding-left: 18px;
+  font-size: 15px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+}
+
+.lp-what-is-list li::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.68em;
+  width: 6px;
+  height: 6px;
+  background: var(--color-navy);
+}
+
+.lp-what-is-block .lp-what-is-note {
+  font-size: 13px;
+  color: var(--color-ink-3);
+  font-style: italic;
+}
+
+/* Numbered steps */
+
+.lp-what-is-steps {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  max-width: 680px;
+}
+
+.lp-what-is-steps li {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr);
+  gap: 12px;
+  align-items: start;
+  padding: 14px 0;
+  border-top: 1px solid var(--color-line);
+}
+
+.lp-what-is-steps li:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.lp-what-is-step-num {
+  font-family: var(--font-display);
+  font-size: 26px;
+  line-height: 1;
+  color: var(--color-navy);
+}
+
+.lp-what-is-decay-row {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 10px;
+}
+
+.lp-what-is-decay {
+  display: inline-flex;
+  align-items: flex-end;
+  gap: 3px;
+  height: 28px;
+}
+
+.lp-what-is-decay i {
+  display: block;
+  width: 10px;
+  background: var(--color-navy-700);
+  border-radius: 1px;
+}
+
+.lp-what-is-decay i:nth-child(n + 2) {
+  opacity: 0.6;
+}
+
+.lp-what-is-tag {
+  padding: 3px 8px;
+  border-radius: var(--radius-sm);
+  background: var(--color-gold-tint);
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-warning);
+}
+
+/* Click reports vs mix model */
+
+.lp-what-is-compare {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, 220px), 1fr));
+  gap: 14px;
+  max-width: 680px;
+}
+
+.lp-what-is-compare-card {
+  display: grid;
+  gap: 6px;
+  padding: 16px 18px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-sand);
+}
+
+.lp-what-is-compare-card strong {
+  font-family: var(--font-sans);
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--color-ink-2);
+}
+
+.lp-what-is-compare-card span {
+  font-size: 15px;
+  color: var(--color-ink);
+}
+
+.lp-what-is-compare-card-strong {
+  background: var(--color-blue-50);
+  border-top: 3px solid var(--color-navy);
+}
+
+.lp-what-is-compare-card-strong strong {
+  color: var(--color-navy);
+}
+
+/* Stat tiles */
+
+.lp-what-is-stats {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+  max-width: 680px;
+}
+
+.lp-what-is-stat {
+  display: grid;
+  gap: 4px;
+  padding: 14px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: var(--radius);
+  background: var(--color-blue-50);
+  min-width: 0;
+}
+
+.lp-what-is-stat-value {
+  font-family: var(--font-display);
+  font-size: clamp(24px, 4vw, 32px);
+  line-height: 1.1;
+  color: var(--color-navy);
+}
+
+.lp-what-is-stat-label {
+  font-size: 12px;
+  line-height: 1.35;
+  color: var(--color-ink-3);
+}
+
+/* Caution card */
+
+.lp-what-is-caution {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 14px;
+  align-items: start;
+  padding: 18px 20px;
+  max-width: 680px;
+  border-left: 3px solid var(--color-gold-deep);
+  border-radius: var(--radius-sm);
+  background: var(--color-gold-tint);
+}
+
+.lp-what-is-caution-icon {
+  display: inline-flex;
+  color: var(--color-warning);
+  padding-top: 2px;
+}
+
+.lp-what-is-caution p {
+  color: var(--color-ink);
+}
+
+/* Wider screens: text beside visual */
+
+@media (min-width: 760px) {
+  .lp-what-is-block-split {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 40px;
+  }
+}
+
+@media (max-width: 480px) {
+  .lp-what-is-stats {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-what-is * {
+    transition: none !important;
+    animation: none !important;
+  }
+}

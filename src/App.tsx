@@ -21,10 +21,11 @@ import "./app.css"
 
 // The workflow pulls in Recharts; load it only when someone opens an analysis.
 const MMMWorkflow = lazy(() => import("./mmm"))
+const LearnPage = lazy(() => import("./learn/LearnPage"))
 
 /* ── pages + hash routing ──────────────────────────────────── */
 // Hash routes so the browser's Back button and a refresh keep your place.
-type Page = "landing" | "login" | "options" | "demo" | "overview" | "analysis"
+type Page = "landing" | "login" | "options" | "demo" | "overview" | "analysis" | "learn"
 const ROUTES: Record<Page, string> = {
   landing: "#/",
   login: "#/sign-in",
@@ -32,6 +33,7 @@ const ROUTES: Record<Page, string> = {
   demo: "#/demo/mmm",
   overview: "#/overview",
   analysis: "#/analysis",
+  learn: "#/how-it-works",
 }
 function pageFromHash(hash: string): Page {
   const hit = (Object.keys(ROUTES) as Page[]).find((p) => ROUTES[p] === hash)
@@ -285,7 +287,7 @@ const LANDING_POINTS = [
   { title: "How far to trust it", body: "Fit on weeks the model never saw, and the data gaps, stated plainly." },
 ]
 
-function LandingPage({ onDemo, onLogin }: { onDemo: () => void; onLogin: () => void }) {
+function LandingPage({ onDemo, onLogin, onLearn }: { onDemo: () => void; onLogin: () => void; onLearn: () => void }) {
   const sources = summarizeSources()
   return (
     <div className="hero landing">
@@ -312,6 +314,12 @@ function LandingPage({ onDemo, onLogin }: { onDemo: () => void; onLogin: () => v
               Explore the demo
             </button>
           </div>
+          <p className="landing-learn">
+            New to marketing mix models?{" "}
+            <button type="button" className="link landing-learn-link" onClick={onLearn}>
+              See how it works in 30 seconds
+            </button>
+          </p>
           <p className="landing-status">
             {sources.onFile} of {sources.total} data sources on file · Status as of{" "}
             <time dateTime={STATUS_AS_OF}>{formatStatusDate()}</time>
@@ -466,11 +474,13 @@ function OptionsPage({
   onOpen,
   onHome,
   onSignIn,
+  onLearn,
   signedIn,
 }: {
   onOpen: () => void
   onHome: () => void
   onSignIn?: () => void
+  onLearn: () => void
   signedIn: boolean
 }) {
   return (
@@ -508,7 +518,12 @@ function OptionsPage({
                   </button>
                   .
                 </>
-              )}
+              )}{" "}
+              New to MMM?{" "}
+              <button type="button" className="link" onClick={onLearn}>
+                See how it works
+              </button>
+              .
             </p>
           </div>
 
@@ -922,7 +937,9 @@ export default function App() {
         Skip to main content
       </a>
 
-      {page === "landing" && <LandingPage onDemo={() => go("options")} onLogin={() => go("login")} />}
+      {page === "landing" && (
+        <LandingPage onDemo={() => go("options")} onLogin={() => go("login")} onLearn={() => go("learn")} />
+      )}
       {page === "login" && (
         <LoginPage onBack={() => go("landing")} onDemo={() => go("options")} onSignedIn={handleSignedIn} notice={loginNotice} />
       )}
@@ -931,8 +948,25 @@ export default function App() {
           onOpen={() => go("demo")}
           onHome={() => go(signedIn ? "overview" : "landing")}
           onSignIn={signedIn ? undefined : () => go("login")}
+          onLearn={() => go("learn")}
           signedIn={signedIn}
         />
+      )}
+      {page === "learn" && (
+        <Suspense
+          fallback={
+            <div className="workflow-loading" role="status">
+              Loading…
+            </div>
+          }
+        >
+          <LearnPage
+            onBack={() => go(signedIn ? "overview" : "landing")}
+            backLabel={signedIn ? "Overview" : "Home"}
+            onDemo={() => go("options")}
+            onSignIn={signedIn ? undefined : () => go("login")}
+          />
+        </Suspense>
       )}
       {page === "overview" && token && (
         <Overview name={name} live={live} onOpen={() => go("analysis")} onRun={runLive} onSignOut={() => signOut()} />

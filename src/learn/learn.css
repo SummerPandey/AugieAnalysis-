@@ -1,0 +1,318 @@
+/* "How it works" page shell. Shared section classes (.lp-section, .lp-section-head,
+   .lp-intro) live here so every section component stays consistent. */
+
+.lp {
+  /* One surface token for cards on this page (matches the global .card white). */
+  --lp-surface: #fff;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  min-width: 0;
+  overflow-x: clip;
+}
+
+/* ---------- Hero ---------- */
+
+.lp-hero {
+  padding: 56px 16px 32px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.lp-hero-inner {
+  max-width: 860px;
+  margin: 0 auto;
+}
+
+.lp-title {
+  margin-top: 10px;
+  font-size: clamp(32px, 5vw, 48px);
+  line-height: 1.12;
+  color: var(--color-navy);
+}
+
+.lp-title em {
+  color: var(--color-navy-700);
+}
+
+.lp-lead {
+  margin-top: 16px;
+  max-width: 62ch;
+  font-size: 17px;
+  line-height: 1.6;
+  color: var(--color-ink-2);
+}
+
+.lp-video-wrap {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 32px 16px 0;
+  min-width: 0;
+}
+
+/* ---------- Body: TOC rail + content ---------- */
+
+.lp-body {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 0 16px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 24px;
+  min-width: 0;
+}
+
+/* Narrow screens: horizontally wrapping chips above the sections. */
+.lp-toc {
+  position: static;
+  padding: 24px 0 8px;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.lp-toc-label {
+  font-family: var(--font-sans);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--color-ink-3);
+  margin-bottom: 10px;
+}
+
+.lp-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.lp-toc-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 12px;
+  font: inherit;
+  font-family: var(--font-sans);
+  font-size: 13px;
+  line-height: 1.3;
+  color: var(--color-navy);
+  background: var(--lp-surface);
+  border: 1px solid var(--color-line-strong);
+  border-radius: var(--radius-sm);
+  cursor: pointer;
+  transition: background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease;
+}
+
+.lp-toc-link:hover {
+  border-color: var(--color-navy);
+}
+
+.lp-toc-link:focus-visible {
+  outline: 2px solid var(--color-navy);
+  outline-offset: 2px;
+}
+
+.lp-toc-num {
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--color-ink-3);
+  font-variant-numeric: tabular-nums;
+}
+
+.lp-toc-link[aria-current="true"] {
+  background: var(--color-navy);
+  border-color: var(--color-navy);
+  color: var(--color-paper);
+}
+
+.lp-toc-link[aria-current="true"] .lp-toc-num {
+  color: var(--color-gold);
+}
+
+.lp-content {
+  min-width: 0;
+  max-width: 860px;
+  width: 100%;
+  margin: 0 auto;
+}
+
+/* ---------- Shared section classes (used by every section) ---------- */
+
+.lp-section {
+  padding-block: 56px;
+  border-top: 1px solid var(--color-line);
+  scroll-margin-top: 24px;
+  min-width: 0;
+}
+
+.lp-content > .lp-section:first-child,
+.lp-content > section:first-child.lp-section {
+  border-top: none;
+  padding-top: 40px;
+}
+
+.lp-section-head {
+  max-width: 720px;
+  margin-bottom: 32px;
+}
+
+.lp-section-head h2 {
+  margin-top: 10px;
+}
+
+.lp-intro {
+  font-size: 16px;
+  line-height: 1.65;
+  color: var(--color-ink-2);
+  max-width: 62ch;
+  margin-top: 12px;
+}
+
+/* ---------- Closing CTA band ---------- */
+
+.lp-cta {
+  margin-top: 56px;
+  background: var(--color-navy);
+  color: var(--color-paper);
+  position: relative;
+}
+
+.lp-cta::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: var(--color-gold);
+}
+
+.lp-cta-inner {
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 64px 16px 72px;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.lp-cta-rule {
+  display: block;
+  width: 48px;
+  height: 2px;
+  background: var(--color-gold);
+}
+
+.lp-cta-title {
+  color: var(--color-paper);
+  font-size: clamp(28px, 4vw, 36px);
+  line-height: 1.15;
+  margin: 0;
+}
+
+.lp-cta-text {
+  font-size: 16px;
+  line-height: 1.6;
+  color: color-mix(in srgb, var(--color-paper) 82%, transparent);
+  max-width: 56ch;
+  margin: 0 0 8px;
+}
+
+.lp-cta .btn-gold {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.lp-cta .btn-gold:focus-visible {
+  outline: 2px solid var(--color-paper);
+  outline-offset: 3px;
+}
+
+/* ---------- Wide screens: sticky left rail beside the content ---------- */
+
+@media (min-width: 960px) {
+  .lp-hero {
+    padding-top: 72px;
+    padding-bottom: 40px;
+  }
+
+  .lp-body {
+    grid-template-columns: 220px minmax(0, 1fr);
+    gap: 56px;
+    align-items: start;
+  }
+
+  .lp-toc {
+    position: sticky;
+    top: 88px;
+    padding: 40px 0 0;
+    border-bottom: none;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
+  }
+
+  .lp-toc-list {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    gap: 2px;
+    border-left: 1px solid var(--color-line);
+  }
+
+  .lp-toc-list li {
+    margin-left: -1px;
+  }
+
+  .lp-toc-link {
+    width: 100%;
+    padding: 8px 14px;
+    border: none;
+    border-left: 2px solid transparent;
+    border-radius: 0;
+    background: transparent;
+    color: var(--color-ink-2);
+  }
+
+  .lp-toc-link:hover {
+    background: var(--color-sand);
+    border-color: transparent;
+    border-left-color: var(--color-line-strong);
+    color: var(--color-navy);
+  }
+
+  .lp-toc-link[aria-current="true"] {
+    background: transparent;
+    border-color: transparent;
+    border-left-color: var(--color-gold);
+    color: var(--color-navy);
+    font-weight: 600;
+  }
+
+  .lp-toc-link[aria-current="true"] .lp-toc-num {
+    color: var(--color-navy-700);
+  }
+
+  .lp-content > .lp-section:first-child,
+  .lp-content > section:first-child.lp-section {
+    padding-top: 40px;
+  }
+}
+
+@media (min-width: 640px) {
+  .lp-cta-inner {
+    padding-block: 80px 88px;
+  }
+}
+
+/* ---------- Motion ---------- */
+
+@media (prefers-reduced-motion: reduce) {
+  .lp-toc-link {
+    transition: none;
+  }
+
+  .lp {
+    scroll-behavior: auto;
+  }
+}
