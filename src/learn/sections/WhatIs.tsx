@@ -3,55 +3,50 @@ import "./whatis.css"
 
 /** Harbor illustration: boats lifted above a rising admissions-calendar tide. */
 function HarborVisual() {
+  // The water level is the admissions calendar: it lifts every boat. Each
+  // dashed gold arrow is the extra lift a channel might add on top — the
+  // part the model is still trying to measure.
+  const tide = 112
   const boats = [
-    { x: 78, label: "Meta" },
+    { x: 70, label: "Meta" },
     { x: 170, label: "Google" },
-    { x: 262, label: "Billboards" },
+    { x: 270, label: "Billboards" },
   ]
+  const wave = (y: number) =>
+    `M0 ${y} Q 21 ${y - 6} 42.5 ${y} T 85 ${y} T 127.5 ${y} T 170 ${y} T 212.5 ${y} T 255 ${y} T 297.5 ${y} T 340 ${y}`
   return (
     <svg
       className="lp-what-is-harbor"
       viewBox="0 0 340 200"
       role="img"
-      aria-label="Boats lifted slightly above a rising admissions calendar tide line"
+      aria-label="Three boats, labeled Meta, Google and Billboards, float on water labeled the admissions calendar. A dashed arrow above each boat marks the extra lift a channel might add."
     >
-      <rect x="0" y="0" width="340" height="200" rx="3" className="lp-what-is-harbor-sky" />
-      <rect x="0" y="128" width="340" height="72" className="lp-what-is-harbor-water" />
-      <path
-        d="M0 128 Q 20 120 40 128 T 80 128 T 120 128 T 160 128 T 200 128 T 240 128 T 280 128 T 320 128 T 340 128"
-        className="lp-what-is-harbor-wave"
-      />
-      <path
-        d="M0 152 Q 20 144 40 152 T 80 152 T 120 152 T 160 152 T 200 152 T 240 152 T 280 152 T 320 152 T 340 152"
-        className="lp-what-is-harbor-wave lp-what-is-harbor-wave-soft"
-      />
-      {boats.map((b) => (
-        <line
-          key={`lift-${b.label}`}
-          x1={b.x}
-          y1={128}
-          x2={b.x}
-          y2={106}
-          className="lp-what-is-harbor-lift"
-        />
-      ))}
-      <line x1="0" y1="128" x2="340" y2="128" className="lp-what-is-harbor-tide" />
-      <text x="10" y="120" className="lp-what-is-harbor-tide-label">
-        admissions calendar
-      </text>
+      <rect x="0" y="0" width="340" height="200" rx="4" className="lp-what-is-harbor-sky" />
+      <path d={`${wave(tide)} L340 200 L0 200 Z`} className="lp-what-is-harbor-water" />
+      <path d={wave(tide)} className="lp-what-is-harbor-wave" />
+      <path d={wave(tide + 46)} className="lp-what-is-harbor-wave lp-what-is-harbor-wave-soft" />
+
       {boats.map((b) => (
         <g key={b.label}>
-          <text x={b.x} y={72} textAnchor="middle" className="lp-what-is-harbor-boat-label">
-            {b.label}
-          </text>
-          <line x1={b.x} y1={78} x2={b.x} y2={62} className="lp-what-is-harbor-mast" />
-          <path d={`M${b.x} 62 L${b.x + 12} 74 L${b.x} 74 Z`} className="lp-what-is-harbor-sail" />
+          {/* extra lift: not yet measured */}
+          <line x1={b.x} y1={50} x2={b.x} y2={28} className="lp-what-is-harbor-lift" />
+          <path d={`M${b.x - 5} 33 L${b.x} 26 L${b.x + 5} 33`} className="lp-what-is-harbor-lift-head" />
+          {/* boat sitting on the tide */}
+          <line x1={b.x} y1={tide - 12} x2={b.x} y2={58} className="lp-what-is-harbor-mast" />
+          <path d={`M${b.x + 2} 60 L${b.x + 24} ${tide - 16} L${b.x + 2} ${tide - 16} Z`} className="lp-what-is-harbor-sail" />
           <path
-            d={`M${b.x - 18} 84 L${b.x + 18} 84 L${b.x + 12} 94 L${b.x - 12} 94 Z`}
+            d={`M${b.x - 26} ${tide - 12} L${b.x + 26} ${tide - 12} L${b.x + 18} ${tide + 2} L${b.x - 18} ${tide + 2} Z`}
             className="lp-what-is-harbor-hull"
           />
+          <text x={b.x} y={tide + 24} textAnchor="middle" className="lp-what-is-harbor-boat-label">
+            {b.label}
+          </text>
         </g>
       ))}
+
+      <text x="170" y="186" textAnchor="middle" className="lp-what-is-harbor-tide-label">
+        The tide: the admissions calendar
+      </text>
     </svg>
   )
 }
