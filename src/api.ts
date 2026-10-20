@@ -28,6 +28,16 @@ export interface ChannelContributionPoint {
   [channel: string]: string | number | undefined
 }
 
+export interface MarketingLift {
+  full_mean_r2: number
+  baseline_mean_r2: number
+  lift: number
+  folds_won: number
+  folds: number
+  /** True only when marketing beat the calendar alone by a real margin on most folds. */
+  identified: boolean
+}
+
 export interface PipelineResult {
   rows: number
   date_range: [string, string]
@@ -36,7 +46,10 @@ export interface PipelineResult {
   features_used: string[]
   selected_ridge_alpha: number
   in_sample_metrics: Record<string, number>
-  cross_validation: { per_fold_r2: number[]; mean_r2: number; std_r2: number }
+  cross_validation: { per_fold_r2: number[]; mean_r2: number; std_r2: number; median_r2?: number; min_train_weeks?: number }
+  /** Full model vs calendar-only on the same unseen weeks. Absent on older runs and the demo sample. */
+  marketing_lift?: MarketingLift
+  low_confidence?: boolean
   coefficients: Record<string, number>
   multicollinearity: MulticollinearityDiagnostics
   weekly: WeeklyPoint[]

@@ -10,17 +10,17 @@ type FaqItem = {
 const FAQS: FaqItem[] = [
   {
     heading: "Why not just use clicks?",
-    body: "Clicks only count people who click. Carnegie reported that most tracked conversions were view-through: people who saw an ad on Meta or Snapchat and applied without clicking. The model reads spend and impressions against weekly applications, so it can capture that effect.",
+    body: "Clicks only count people who click. Carnegie's reporting says most tracked conversions this year were view-through: people who saw an ad and applied without clicking. Those applications don't appear in Slate, so we can't check them there. A marketing mix model can potentially pick up effects that don't involve clicks, but it needs enough variation and history to separate them from seasonality and other influences.",
     visual: "pair",
   },
   {
     heading: "Why is the fit on unseen weeks lower?",
-    body: "The 0.74 score measures fit on weeks the model learned from, where the admissions calendar explains most of the pattern. The 0.31 score comes from walk-forward testing: the model trains on earlier weeks and predicts later weeks it never saw. It is the more honest number. Channel spend covers only about 37% of weeks, from October 2024 to January 2026, so more history is the main fix.",
+    body: "The 0.70 score measures fit on weeks the model learned from, where the calendar pattern does most of the work. The 0.60 score comes from walk-forward testing: the model trains on at least a year of earlier weeks and predicts later weeks it never saw. It is the more honest number, and it can fall below zero. The calendar-only model is the benchmark. It scores 0.78 on the same test, so marketing doesn't add measurable signal yet. Channel spend covers only about 38% of weeks, from October 2024 to January 2026, so more history is the main fix.",
     visual: "bars",
   },
   {
     heading: "Why are some channels negative?",
-    body: "A negative estimate usually means channels ran at the same time and the data cannot separate them, or the weekly data is too coarse. It does not prove a channel hurt applications. These results are labeled Can't tell yet, and they are never a reason to cut a channel.",
+    body: "A negative estimate can mean channels ran in the same weeks and the data cannot separate them, or that weekly data is too coarse. It does not prove a channel hurt applications. These results are labeled Can't tell yet, and they are never a reason to cut a channel.",
     visual: "tag",
   },
   {
@@ -30,7 +30,7 @@ const FAQS: FaqItem[] = [
   },
   {
     heading: "What would make it better?",
-    body: "- Longer channel spend history\n- Email sends and direct mail, which are not in the model yet\n- Data after May 2026, so the current fall cycle is visible",
+    body: "- Longer channel spend history\n- Email sends and direct mail, which are not in the model yet\n- Recruitment events, school visits and their dates\n- Small, designed spend tests across regions or time periods\n- Enrollment and deposit data, so applications can be weighed by yield\n- Data after May 2026, so the current fall cycle is visible",
     visual: "checklist",
   },
   {
@@ -41,7 +41,7 @@ const FAQS: FaqItem[] = [
 ]
 
 const GLOSSARY_BODY =
-  "- MMM (marketing mix model): estimates how much each channel moves weekly applications.\n- Adstock: carryover. Part of a week's effect lingers into later weeks. The default decay is 0.5, so half carries forward.\n- Seasonality: the yearly admissions rhythm, such as the early-November spike in weeks 44 and 45.\n- Baseline: applications the calendar brings in on its own. It is usually 80 to 90 percent of the total.\n- R-squared: the share of weekly ups and downs the model explains, from 0 to 1.\n- Cross-validation: testing on held-out weeks, repeated across five splits.\n- Multicollinearity (VIF): channels that rise and fall together, so their separate effects are hard to tell apart.\n- Directional: positive but shaky. Read it as a direction, not a size."
+  "- MMM (marketing mix model): estimates how much each channel may add to weekly applications beyond the admissions calendar.\n- Adstock: carryover. Part of a week's effect lingers into later weeks. The model uses a decay of 0.5 for every channel, so half carries forward. Real carryover may differ by channel.\n- Seasonality: the yearly admissions rhythm, such as the early-November spike in weeks 44 and 45.\n- Baseline: applications assigned to the admissions calendar and trend. In the current decomposition that is about 80 to 90% of modeled applications. This is a model-based allocation, not a causal measurement.\n- R-squared: how closely the model tracks weekly ups and downs. 1 is a perfect fit and 0 is no better than the average week. On unseen weeks it can fall below zero.\n- Cross-validation: five walk-forward tests, each trained on earlier weeks and scored on later ones. Scaling is fit on each training window only. The tuning strength (alpha) is picked on these same folds, which flatters the scores. A stricter check that picks it inside each training window scores both models lower, and the calendar alone still wins.\n- Multicollinearity (VIF): channels that rise and fall together, so their separate effects are hard to tell apart.\n- Directional: positive but shaky. Read it as a direction, not a size."
 
 const GLOSSARY_HEADING = "Glossary"
 
@@ -79,18 +79,25 @@ function Visual({ kind }: { kind: FaqItem["visual"] }) {
           <div className="lp-faq-bar-row">
             <span className="lp-faq-bar-label">Learned weeks</span>
             <span className="lp-faq-track" aria-hidden="true">
-              <span className="lp-faq-fill" style={{ width: "74%" }} />
+              <span className="lp-faq-fill" style={{ width: "70%" }} />
             </span>
-            <span className="lp-faq-bar-value">0.74</span>
+            <span className="lp-faq-bar-value">0.70</span>
           </div>
           <div className="lp-faq-bar-row">
             <span className="lp-faq-bar-label">Unseen weeks</span>
             <span className="lp-faq-track" aria-hidden="true">
-              <span className="lp-faq-fill lp-faq-fill--gold" style={{ width: "31%" }} />
+              <span className="lp-faq-fill lp-faq-fill--gold" style={{ width: "60%" }} />
             </span>
-            <span className="lp-faq-bar-value">0.31</span>
+            <span className="lp-faq-bar-value">0.60</span>
           </div>
-          <p className="lp-faq-note">more history will help</p>
+          <div className="lp-faq-bar-row">
+            <span className="lp-faq-bar-label">Calendar alone</span>
+            <span className="lp-faq-track" aria-hidden="true">
+              <span className="lp-faq-fill" style={{ width: "78%" }} />
+            </span>
+            <span className="lp-faq-bar-value">0.78</span>
+          </div>
+          <p className="lp-faq-note">unseen weeks · more spend history will help</p>
         </div>
       )
     case "tag":

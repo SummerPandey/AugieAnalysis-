@@ -77,10 +77,11 @@ export function WhatIsSection() {
           <div className="lp-what-is-text">
             <h3 className="display">The question it answers</h3>
             <p>
-              For each week, how many applications did each channel add beyond what the calendar
-              would have brought anyway? Think of the calendar as a rising tide that lifts every boat
-              in the harbor. The model estimates how far each channel lifts applications above that
-              tide, using past data. It is an estimate, not a guarantee.
+              For each week, how many extra applications might each channel have brought beyond what
+              the calendar would have brought anyway? Think of the calendar as a rising tide that lifts
+              every boat in the harbor. The model estimates how far each channel may lift applications
+              above that tide, using past data. It is an estimate, not a proof. Today the calendar alone
+              predicts unseen weeks better, so channel numbers are not yet reliable.
             </p>
           </div>
           <div className="lp-what-is-visual">
@@ -109,7 +110,7 @@ export function WhatIsSection() {
               Spend and impressions from Carnegie, the digital agency, for Meta, Snapchat, YouTube,
               Google search and IP targeting, and display retargeting
             </li>
-            <li>Billboard spend for QC Airport and Lamar</li>
+            <li>Billboard spend for QC Airport and Lamar, shown for context but not modeled, since it is on file only as yearly totals</li>
           </ul>
           <p className="lp-what-is-note">Email sends and direct mail are not included yet.</p>
         </div>
@@ -119,8 +120,10 @@ export function WhatIsSection() {
           <h3 className="display">Why not just read click reports</h3>
           <p>
             Carnegie reported that most tracked conversions were view-through: people saw an ad,
-            never clicked, and applied later. Click reports miss that entirely. Comparing spend and
-            impressions with weekly applications can capture it.
+            never clicked, and applied later. Click reports do not count those people. A mix model
+            can potentially pick up effects that do not involve clicks, by comparing spend and
+            impressions with weekly applications. It still needs enough variation and history to
+            separate those effects from seasonality and other influences.
           </p>
           <div className="lp-what-is-compare">
             <div className="lp-what-is-compare-card">

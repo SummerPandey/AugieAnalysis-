@@ -9,8 +9,8 @@ const VERDICTS = [
   },
   {
     key: "helping",
-    name: "Helping",
-    text: "positive, steady, and well supported. Keep it running and consider a small test increase.",
+    name: "Positive association",
+    text: "evidence consistent with a positive association: steady and well supported. It is not proof of extra applications. Keep it running and consider a small test increase.",
   },
   {
     key: "directional",
@@ -25,23 +25,23 @@ const VERDICTS = [
   {
     key: "unsure",
     name: "Can't tell yet",
-    text: "the estimate came out negative. This usually reflects overlapping spend or coarse data, not proof the channel hurts. Never cut a channel on this verdict alone.",
+    text: "the estimate came out negative, or marketing as a whole didn't beat the calendar alone on unseen weeks. Either way the data can't separate the channel yet. It is not proof the channel hurts, so never cut one on this verdict alone.",
   },
 ]
 
 const NUMBERS = [
   {
-    value: "0.74",
+    value: "0.70",
     label: "fit on past weeks",
-    text: "how closely the model traces history, from 0 to 1. Seasonality does most of that work.",
+    text: "how closely the model traces history. 1 is a perfect fit and 0 is no better than the average week. Seasonality does most of that work.",
   },
   {
-    value: "0.31",
+    value: "0.60",
     label: "fit on unseen weeks",
-    text: "tested on weeks it never learned from. Accuracy is modest, and more spend history should help.",
+    text: "tested on weeks it never learned from, and it can fall below zero. The calendar-only model is the benchmark, and it scores 0.78 on the same weeks. So today marketing doesn't improve the forecast, and channel numbers show as Can't tell yet.",
   },
   {
-    value: "About 49",
+    value: "About 52",
     label: "applications a week",
     text: "the typical miss on any one week. Use the model to read direction, not to forecast a single week.",
   },
@@ -54,7 +54,7 @@ const LIMITS = [
   },
   {
     label: "Missing spend",
-    text: "channel spend covers only about 37 percent of weeks (Oct 2024 to Jan 2026). This is the biggest limit.",
+    text: "channel spend covers only about 38 percent of weeks (Oct 2024 to Jan 2026). This is the biggest limit.",
   },
   {
     label: "The current cycle",
@@ -98,10 +98,11 @@ export function ReadingSection() {
         <div className="lp-reading-block">
           <h3 className="lp-reading-h3">Start with the calendar</h3>
           <p className="lp-reading-body">
-            Most applications follow the admissions calendar, not the ads. Weeks 44 and 45, the
-            early-November deadline, spike every year, while summer weeks 20 to 30 stay quiet. In
-            a typical run, "The calendar" accounts for roughly 80 to 90 percent of applications, so
-            the channels share only the rest.
+            Weeks 44 and 45, the early-November deadline, spike every year, while summer weeks 20 to
+            30 stay quiet. In the current model decomposition, about 80 to 90 percent of modeled
+            applications are assigned to the admissions baseline. This is a model-based allocation,
+            not a causal measurement, so the channels share the rest and their share is the least
+            certain part.
           </p>
           <figure className="lp-reading-figure">
             <div className="lp-reading-bar-labels" aria-hidden="true">
@@ -112,7 +113,7 @@ export function ReadingSection() {
               viewBox="0 0 1000 44"
               preserveAspectRatio="none"
               role="img"
-              aria-label="Stacked bar: the calendar makes up most of applications, with thin slices for each channel"
+              aria-label="Stacked bar: the admissions baseline is assigned most modeled applications, with thin slices for each channel"
             >
               <rect x="0" y="0" width="860" height="44" fill="var(--color-navy)" />
               <rect x="860" y="0" width="40" height="44" fill="var(--color-gold)" />

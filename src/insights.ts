@@ -49,7 +49,7 @@ export interface LedgerRow {
 
 export const VERDICT_LABEL: Record<Verdict, string> = {
   calendar: "The calendar",
-  helping: "Helping",
+  helping: "Positive association",
   directional: "Directional",
   thin: "Too little signal",
   "cant-tell": "Can't tell yet",
@@ -59,6 +59,13 @@ export const VERDICT_LABEL: Record<Verdict, string> = {
 const MIN_WEEKS = 20
 /** Share of modeled applications below which a channel can't be told from zero. */
 const MIN_SHARE = 0.005
+
+/** One sentence on why channel estimates aren't supported in this run. */
+export function notIdentifiedReason(l: NonNullable<PipelineResult["marketing_lift"]>): string {
+  return `Adding marketing didn't predict unseen weeks better than the calendar alone (${signedFixed(l.full_mean_r2)} vs ${signedFixed(
+    l.baseline_mean_r2,
+  )}), so this number isn't supported yet.`
+}
 
 export function driverLedger(r: PipelineResult): LedgerRow[] {
   const weeks = r.channel_contribution_weekly
@@ -81,7 +88,7 @@ export function driverLedger(r: PipelineResult): LedgerRow[] {
       total += v
       if (Math.abs(v) >= 0.5) weeksActive++
     }
-    const feature = key === "impressions" ? "impressions_lag1" : `${key}_adstock`
+    const feature = key === "impressions" ? (r.coefficients["impressions"] !== undefined ? "impressions" : "impressions_lag1") : `${key}_adstock`
     const coef = r.coefficients[feature]
     const vif = highVif[feature]
     const label = key === "baseline" ? "Baseline & seasonality" : channelLabel(key)
@@ -92,6 +99,14 @@ export function driverLedger(r: PipelineResult): LedgerRow[] {
         ...base,
         verdict: "calendar" as const,
         reason: "Applications Augustana would expect from the admissions calendar and long-term trend alone.",
+      }
+    // Marketing didn't beat the calendar alone on unseen weeks: no channel
+    // number is supported, whatever its sign.
+    if (r.marketing_lift && !r.marketing_lift.identified)
+      return {
+        ...base,
+        verdict: "cant-tell" as const,
+        reason: notIdentifiedReason(r.marketing_lift),
       }
     if (total <= 0 || (coef !== undefined && coef < 0))
       return {
@@ -131,8 +146,8 @@ export function driverLedger(r: PipelineResult): LedgerRow[] {
       verdict: "helping" as const,
       reason:
         key === "impressions"
-          ? "Advertising overall: a consistent positive association between impressions and weekly applications."
-          : "A consistent positive association with weekly applications.",
+          ? "Advertising overall: impressions moved consistently with weekly applications. That's an association in past data, not proof it caused them."
+          : "Moved consistently with weekly applications. That's an association in past data, not proof this channel caused them.",
     }
   })
 
@@ -140,13 +155,24 @@ export function driverLedger(r: PipelineResult): LedgerRow[] {
   return rows.sort((a, b) => rank[a.verdict] - rank[b.verdict] || b.total - a.total)
 }
 
-/** The negative estimates the ledger leaves out, so the visible rows can add up to 100%. */
-export function ledgerOverlap(rows: LedgerRow[]): { total: number; share: number; labels: string[] } {
-  const out = rows.filter((r) => r.verdict === "cant-tell" && r.total < 0)
+/**
+ * The estimates the ledger leaves out, so the visible rows can add up to
+ * 100%: the negative ones normally, or every channel's when the run couldn't
+ * separate marketing from the calendar at all ("unidentified").
+ */
+export function ledgerOverlap(rows: LedgerRow[]): {
+  total: number
+  share: number
+  labels: string[]
+  kind: "negative" | "unidentified"
+} {
+  const unidentified = rows.some((r) => r.verdict === "cant-tell" && r.total > 0)
+  const out = rows.filter((r) => r.verdict === "cant-tell" && (unidentified || r.total < 0))
   return {
     total: out.reduce((s, r) => s + r.total, 0),
     share: out.reduce((s, r) => s + r.share, 0),
     labels: out.map((r) => r.label),
+    kind: unidentified ? "unidentified" : "negative",
   }
 }
 
@@ -215,7 +241,7 @@ export const FIT_WORDS: Record<FitRating, string> = {
 
 /* ── the one-sentence finding ──────────────────────────────── */
 export interface Headline {
-  /** Serif lead-in, e.g. "The admissions calendar explains most of it". */
+  /** Serif lead-in, e.g. "Most of the modeled total is assigned to the admissions baseline:". */
   lead: string
   /** The single highlighted figure, e.g. "91%". */
   figure: string
@@ -230,7 +256,9 @@ export function headline(ledger: LedgerRow[]): Headline {
   const share = Math.max(0, Math.min(1, base?.share ?? 0))
   const pct = `${Math.round(share * 100)}%`
   const lead =
-    share >= 0.6 ? "The admissions calendar explains most of it:" : "Marketing and the calendar share the story:"
+    share >= 0.6
+      ? "Most of the modeled total is assigned to the admissions baseline:"
+      : "The model assigns the admissions baseline a smaller share:"
   const credible = (r: LedgerRow) => r.verdict === "helping" || r.verdict === "directional"
   // Impressions measure advertising overall; the headline names a channel.
   const top = ledger
@@ -238,11 +266,16 @@ export function headline(ledger: LedgerRow[]): Headline {
     .sort((x, y) => y.total - x.total)[0]
   const apps = (v: number) => Math.round(v).toLocaleString("en-US")
   const paid = top
-    ? `Among individual channels, ${top.label} is the largest signal, about ${apps(top.total)} applications over the window${
+    ? `Among individual channels, ${top.label} has the largest positive estimate, with about ${apps(top.total)} modeled applications assigned to it over the window${
         top.verdict === "directional" ? " (directional, since it moved with other channels)" : ""
       }.`
-    : "No individual channel shows a signal the model can separate yet."
-  return { lead, figure: pct, rest: "of modeled applications come from baseline demand and seasonality.", paid }
+    : "No individual channel has an estimate the model can support yet."
+  return {
+    lead,
+    figure: pct,
+    rest: "of modeled applications are assigned to baseline demand and seasonality, a model allocation rather than a measured cause.",
+    paid,
+  }
 }
 
 /* ── deadline season, year by year ─────────────────────────── */
@@ -322,6 +355,13 @@ export function chatBrief(r: PipelineResult, ranAt: number, source: "live" | "sy
       ? `Average error: ${t.mae.toFixed(0)} applications/week against an average of ${t.meanActual.toFixed(0)}/week.`
       : "",
     r.multicollinearity?.high_condition_number ? "Diagnostics: high condition number — channels overlap heavily." : "",
+    r.marketing_lift
+      ? `Marketing test: calendar-only model scores ${signedFixed(r.marketing_lift.baseline_mean_r2)} on unseen weeks, ` +
+        `with marketing ${signedFixed(r.marketing_lift.full_mean_r2)} (better on ${r.marketing_lift.folds_won}/${r.marketing_lift.folds} folds) — ` +
+        (r.marketing_lift.identified
+          ? "marketing IS identified."
+          : "marketing is NOT identified, so no channel number below is supported.")
+      : "",
     "\nDrivers (applications attributed across all weeks · share of modeled applications · weeks active · verdict — reason):",
     ...ledger.map(
       (x) =>

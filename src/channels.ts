@@ -95,6 +95,8 @@ const FEATURE_LABELS: Record<string, string> = {
   impressions: "Ad impressions",
   campaign_active: "Campaign running",
   impressions_lag1: "Ad impressions, prior week",
+  spend_observed: "Spend data on file",
+  impressions_observed: "Impression data on file",
 }
 
 export function featureLabel(key: string): string {

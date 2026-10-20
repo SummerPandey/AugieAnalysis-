@@ -128,7 +128,7 @@ function Ledger({ rows, modeled }: { rows: LedgerRow[]; modeled: number }) {
     <div style={{ ...card, padding: 0 }}>
       <SectionHeader
         title="What each driver contributed"
-        caption="Modeled applications over the whole window. Each verdict comes from the model's own diagnostics: sign, overlap with other channels, and how many weeks had activity."
+        caption="Modeled applications over the whole window, assigned to each driver by the model. These are model allocations, not measured causes. Each verdict comes from the model's own diagnostics: sign, overlap with other channels, and how many weeks had activity."
       />
       <div className="tbl-wrap">
         <table className="tbl ledger">
@@ -189,14 +189,29 @@ function Ledger({ rows, modeled }: { rows: LedgerRow[]; modeled: number }) {
             <tfoot>
               <tr className="ledger-overlap">
                 <th scope="row">
-                  <span className="ledger-name">Overlap the model couldn't assign</span>
-                  <span className="ledger-reason">
-                    The negative estimates for {overlap.labels.join(" and ")}. They're shown here, not as drivers, so the
-                    shares add up.
-                  </span>
+                  {overlap.kind === "unidentified" ? (
+                    <>
+                      <span className="ledger-name">Marketing the model can't separate yet</span>
+                      <span className="ledger-reason">
+                        What this run assigned to advertising overall. It didn't beat the calendar alone on unseen weeks, so
+                        it's shown here as one unvalidated total, not split by channel.
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <span className="ledger-name">Overlap the model couldn't assign</span>
+                      <span className="ledger-reason">
+                        The negative estimates for {overlap.labels.join(" and ")}. They're shown here, not as drivers, so
+                        the shares add up.
+                      </span>
+                    </>
+                  )}
                 </th>
-                <td className="num">−{fmtApps(Math.abs(overlap.total))}</td>
-                <td className="num ledger-share">−{(Math.abs(overlap.share) * 100).toFixed(1)}%</td>
+                <td className="num">{overlap.total < 0 ? "−" : ""}{fmtApps(Math.abs(overlap.total))}</td>
+                <td className="num ledger-share">
+                  {overlap.share < 0 ? "−" : ""}
+                  {(Math.abs(overlap.share) * 100).toFixed(1)}%
+                </td>
                 <td />
                 <td />
               </tr>
@@ -541,7 +556,7 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
         title="Where modeled applications came from, week by week"
         caption={
           view === "all"
-            ? "Stacked by driver. Gray is baseline demand and the admissions calendar; colors are advertising."
+            ? "Stacked by driver. Gray is baseline demand and the admissions calendar; colors are advertising. These are model allocations, not measured contributions."
             : "Advertising only, on its own scale, so the channels are readable. The calendar is left out."
         }
         action={
@@ -590,7 +605,8 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
         {hidden.length > 0 && (
           <p className="chart-note">
             <IconInfo size={14} /> Not drawn: {hidden.map((h) => h.label).join(" and ")}. Their estimates came out
-            negative, which reflects overlap rather than a real effect, so the stack runs a little above the modeled total.
+            negative, which usually reflects overlap with other channels rather than a measured effect, so the stack runs a
+            little above the modeled total.
           </p>
         )}
       </div>
@@ -869,7 +885,16 @@ export function ResultsView({
         />
       </div>
 
-      {result.multicollinearity?.warning && (
+      {result.marketing_lift && !result.marketing_lift.identified && (
+        <Alert variant="warning" title="Marketing isn't separable from the calendar in this run">
+          On weeks it never saw, the model with marketing scored {result.marketing_lift.full_mean_r2.toFixed(2)} and the
+          calendar alone scored {result.marketing_lift.baseline_mean_r2.toFixed(2)} (marketing did better on{" "}
+          {result.marketing_lift.folds_won} of {result.marketing_lift.folds} test periods). So no channel's number is
+          supported yet. What would change that: fuller Carnegie spend history, real flight dates, or a deliberate,
+          time-boxed spend test.
+        </Alert>
+      )}
+      {result.marketing_lift?.identified !== false && result.multicollinearity?.warning && (
         <Alert variant="warning" title="Some channels moved together, so their estimates are directional">
           {sentenceCase(humanizeFeatureNames(result.multicollinearity.warning.replace(/^High multicollinearity detected\s*[—:-]\s*/i, "")))}
         </Alert>

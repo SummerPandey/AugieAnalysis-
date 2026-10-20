@@ -11,7 +11,7 @@ const STEPS: Step[] = [
   {
     num: 1,
     title: "Gather the weekly data",
-    body: "We pull weekly application counts from Slate, Augustana's admissions system, for January 2023 to May 2026. We add channel spend from Carnegie, our digital agency, plus impressions and billboard spend. Spend is the thinnest input. It covers only about 37% of the weeks, October 2024 to January 2026.",
+    body: "We pull weekly application counts from Slate, Augustana's admissions system, for January 2023 to May 2026. We add channel spend and impressions from Carnegie, our digital agency. Billboard spend is shown for context only, because it is on file as yearly totals with no flight dates. Spend is the thinnest input. It covers only about 38% of the weeks, October 2024 to January 2026. Weeks without a spend export are marked as unknown, not as zero spend.",
   },
   {
     num: 2,
@@ -21,23 +21,23 @@ const STEPS: Step[] = [
   {
     num: 3,
     title: "Turn spend into model inputs",
-    body: "Ads keep working after they run, so adstock lets part of each week's effect carry forward. At our default decay of 0.5, half the effect moves into the next week, like an echo. Calendar flags mark the admissions season, including the deadline weeks 44 to 46, so ads are not credited for the normal November rush. A smooth yearly pattern and a trend term complete the inputs.",
+    body: "Ads keep working after they run, so adstock lets part of each week's effect carry forward. At a starting decay of 0.5, half the effect moves into the next week, like an echo. The same 0.5 is used for every channel. Channels may really carry over at different speeds, so per-channel tuning is a next step. Calendar flags mark the admissions season, including the deadline weeks 44 to 46, so the model is less likely to credit ads for the normal November rush. A smooth yearly pattern and a trend term complete the inputs.",
     visual: "decay",
   },
   {
     num: 4,
     title: "Fit the model",
-    body: "The model finds the mix of inputs that best explains past weekly applications. We use Ridge regression, which keeps estimates steady when channels run in the same weeks. Its strength is tuned automatically.",
+    body: "The model finds the mix of inputs that best explains past weekly applications. We use Ridge regression, which keeps estimates steady when channels run in the same weeks. Steadier does not mean causal: when channels always run together, the model can split credit between them without knowing which one did the work.",
   },
   {
     num: 5,
     title: "Test on weeks it has not seen",
-    body: "We train on earlier weeks, test on later ones, and repeat five times, like checking yourself on practice questions you did not study. The model scores 0.74 on the history it learned from, but 0.31 on unseen weeks. A typical miss is about 49 applications a week, which is why the results need careful reading.",
+    body: "We train on at least a year of earlier weeks, test on later ones, and repeat five times, like checking yourself on practice questions you did not study. Inputs are scaled separately inside each training window, so the weeks being tested never inform it. The regularization strength is picked using these same five test folds, which flatters the scores; a stricter check that picks it inside each training window scores both models lower, and the calendar alone still wins. The calendar-only model runs the same test and is the benchmark. Marketing only gets credit if adding it predicts unseen weeks better. Today it scores 0.60 and the calendar alone 0.78, so channel numbers aren't supported yet.",
   },
   {
     num: 6,
     title: "Read the results with care",
-    body: "Each channel gets a verdict, from \u201cThe calendar\u201d (usually about 80 to 90% of applications) to \u201cCan\u2019t tell yet.\u201d Channels that moved together are read as a direction, not an exact size. The best next step is a small, time-boxed spend shift, then a re-run to check. The Reading section explains each verdict.",
+    body: "Each channel gets a verdict, from \u201cThe calendar\u201d to \u201cCan\u2019t tell yet.\u201d In the current breakdown, about 80 to 90% of modeled applications go to the admissions baseline. That is a model-based allocation, not a causal measure. \u201cPositive association\u201d means the pattern fits a positive link, not proven extra applications. Channels that moved together are read as a direction, not an exact size. Recruitment events, school visits and email campaigns are not in the model yet, so channel credit could absorb their effects. The best next step is a small, time-boxed spend shift, then a re-run to check. The Reading section explains each verdict.",
   },
 ]
 
@@ -101,8 +101,8 @@ export function ProcessSection() {
         </h2>
         <p className="lp-intro">
           Six steps turn agency reports and admissions data into one answer. Augie Analysis, our
-          Marketing Mix Model, shows how much each channel moves weekly applications, and how much
-          is simply the admissions calendar.
+          Marketing Mix Model, estimates how much each channel may be linked to weekly applications,
+          and how much of the total the admissions calendar accounts for in the model.
         </p>
       </div>
 

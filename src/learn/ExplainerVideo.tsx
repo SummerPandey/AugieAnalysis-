@@ -18,7 +18,7 @@ const CAPTIONS = [
   "Marketing also runs ads during the same weeks: Meta, Snapchat, search, billboards.",
   "The question: how much came from ads, and how much from the calendar?",
   "The model lines up each week's ads, the calendar, and carryover from past spend.",
-  "Most applications follow the calendar. Ads add a smaller, estimated share.",
+  "In the model, most applications are assigned to the calendar. The ads' share is still being measured.",
   "Try the demo to explore the same method on sample data.",
 ]
 
@@ -245,13 +245,13 @@ function SceneStack() {
         The calendar
       </text>
       <text x={620} y={470} className="lp-video-sub">
-        usually about 80 to 90 percent
+        about 80 to 90% in the model
       </text>
       <text x={620} y={248} className="lp-video-label">
         Ads
       </text>
       <text x={620} y={296} className="lp-video-sub">
-        a smaller, estimated share
+        still being measured
       </text>
     </g>
   )

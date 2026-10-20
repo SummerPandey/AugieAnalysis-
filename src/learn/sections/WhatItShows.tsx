@@ -8,17 +8,17 @@ const INTRO =
 const STAT_TILES = [
   {
     label: "Fit on unseen weeks",
-    value: "0.31",
-    text: "How well the model predicts weeks it never saw in training. Zero means no better than guessing the average week.",
+    value: "0.60",
+    text: "How well the model predicts weeks it never saw in training. Zero means no better than guessing the average week. Below zero means worse than that.",
   },
   {
     label: "Typical weekly miss",
-    value: "49",
+    value: "52",
     text: "The average gap between the model's estimate and the actual count for a week.",
   },
   {
     label: "Spend history on file",
-    value: "37%",
+    value: "38%",
     text: "Share of weeks with channel spend data (Oct 2024 to Jan 2026).",
   },
   {
@@ -189,8 +189,10 @@ export function WhatItShowsSection() {
         >
           <p className="lp-what-it-shows-body">
             Each row is one driver, such as Meta, Google PPC or the calendar. It shows modeled
-            applications, its share of the total, how many weeks it was active, and a verdict. The
-            calendar row usually accounts for about 80 to 90% of applications.
+            applications, its share of the total, how many weeks it was active, and a verdict. In the
+            current model decomposition, about 80 to 90% of modeled applications are assigned to the
+            admissions baseline (the calendar row). This is a model-based allocation, not a causal
+            measurement.
           </p>
         </Step>
 
