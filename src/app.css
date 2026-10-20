@@ -658,3 +658,97 @@
   color: var(--color-navy-950);
   box-shadow: 0 6px 20px rgba(0, 0, 0, 0.4);
 }
+
+/* ── explain-this pointer ─────────────────────────────────── */
+.chat-head-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.chat-point {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 30px;
+  padding: 0 9px;
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  border-radius: 3px;
+  background: none;
+  color: #fff;
+  font-size: 12.5px;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chat-point:hover {
+  border-color: var(--color-gold);
+  color: var(--color-gold);
+}
+.chat-point[aria-pressed='true'] {
+  background: var(--color-gold);
+  border-color: var(--color-gold);
+  color: var(--color-navy-950);
+}
+.explain-hint {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 70;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-wrap: wrap;
+  gap: 8px 14px;
+  padding: 10px 16px;
+  background: var(--color-navy-950);
+  border-bottom: 2px solid var(--color-gold);
+  color: #fff;
+  font-size: 14px;
+  text-align: center;
+}
+.explain-note {
+  color: var(--color-gold);
+  font-size: 13px;
+}
+.explain-cancel {
+  padding: 5px 12px;
+  border: 1px solid var(--color-gold);
+  border-radius: 3px;
+  background: none;
+  color: var(--color-gold);
+  font: inherit;
+  font-size: 13px;
+  cursor: pointer;
+}
+.explain-cancel:hover {
+  background: var(--color-gold);
+  color: var(--color-navy-950);
+}
+.explain-box {
+  position: fixed;
+  z-index: 65;
+  display: none;
+  pointer-events: none;
+  border: 2px solid var(--color-gold);
+  border-radius: 2px;
+  background: rgba(255, 221, 0, 0.14);
+  transition:
+    top 0.12s ease,
+    left 0.12s ease,
+    width 0.12s ease,
+    height 0.12s ease;
+}
+body.explain-picking,
+body.explain-picking * {
+  cursor: crosshair !important;
+}
+@media (prefers-reduced-motion: reduce) {
+  .explain-box {
+    transition: none;
+  }
+}
+
+/* while pointing, the panel steps aside so it doesn't cover the page */
+.chat-panel.is-pointing {
+  visibility: hidden;
+}

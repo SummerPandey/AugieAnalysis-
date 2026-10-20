@@ -7,6 +7,7 @@ import { ProjectChecklist } from "./checklist"
 import { DATA_SOURCES, MODEL_WINDOW, STATUS_AS_OF, formatStatusDate } from "./projectStatus"
 import { AdmissionsDial } from "./admissionsDial"
 import { chatBrief, driverLedger, headline, trust, FIT_WORDS, VERDICT_LABEL } from "./insights"
+import { EXPLAIN_PROMPT, buildPageContext, isExcluded, pickTarget } from "./explainPointer"
 import type { LiveRunState } from "./mmm"
 import {
   AuthError,
@@ -113,11 +114,26 @@ const STARTERS = [
   "What does “directional” mean for a channel?",
 ]
 
+/** Readable names for each page, sent to the chat so it knows what the visitor is looking at. */
+const PAGE_NAMES: Record<Page, string> = {
+  landing: "Landing",
+  login: "Sign in",
+  options: "Demo options",
+  demo: "Results (demo sample)",
+  overview: "Results (your latest run)",
+  analysis: "Analysis (your latest run)",
+  learn: "How it works",
+}
+
+/** A part of the page the visitor pointed at, ready to send. */
+type Picked = { context: string; label: string; typed: string }
+
 function ChatWidget({
   onDark,
   token,
   resultsBrief,
   resultsSource,
+  page,
 }: {
   onDark: boolean
   token: string | null
@@ -125,6 +141,8 @@ function ChatWidget({
   resultsBrief: string | null
   /** Which run the summary describes, so the footer doesn't call the sample "your run". */
   resultsSource: "live" | "sample" | null
+  /** The current page; pointer mode ends when it changes. */
+  page: Page
 }) {
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState<ChatMsg[]>([
@@ -132,9 +150,13 @@ function ChatWidget({
   ])
   const [input, setInput] = useState("")
   const [typing, setTyping] = useState(false)
+  const [pointing, setPointing] = useState(false)
+  const [pointNote, setPointNote] = useState<string | null>(null)
+  const [picked, setPicked] = useState<Picked | null>(null)
   const bottomRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
   const toggleRef = useRef<HTMLButtonElement>(null)
+  const boxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
@@ -142,33 +164,147 @@ function ChatWidget({
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 60)
   }, [open])
+  // closing the panel or changing page ends pointer mode
+  useEffect(() => {
+    if (!open) setPointing(false)
+  }, [open])
+  useEffect(() => {
+    setPointing(false)
+  }, [page])
+
+  // pointer mode: hover outlines the part under the pointer, a click on it
+  // is captured so the page's own buttons and links don't fire
+  useEffect(() => {
+    if (!pointing) return
+    const body = document.body
+    body.classList.add("explain-picking")
+    let hovered: Element | null = null
+
+    const place = () => {
+      const box = boxRef.current
+      if (!box) return
+      if (!hovered || !hovered.isConnected) {
+        box.style.display = "none"
+        return
+      }
+      const r = hovered.getBoundingClientRect()
+      box.style.display = "block"
+      box.style.top = `${r.top}px`
+      box.style.left = `${r.left}px`
+      box.style.width = `${r.width}px`
+      box.style.height = `${r.height}px`
+    }
+    const onMove = (e: MouseEvent) => {
+      hovered = pickTarget(e.target)
+      place()
+    }
+    const pick = (node: EventTarget | null) => {
+      const el = pickTarget(node)
+      if (!el) {
+        setPointNote("Point at text, a number, a chart or a table.")
+        return
+      }
+      const built = buildPageContext(PAGE_NAMES[page], el)
+      if (!built) {
+        setPointNote("That part of the page has a sign-in form, so it can't be sent.")
+        return
+      }
+      if (typing) {
+        setPointNote("Augie AI is still answering. Point again once the reply is in.")
+        return
+      }
+      setPicked({ ...built, typed: inputRef.current?.value.trim() ?? "" })
+      setPointing(false)
+    }
+    const onClick = (e: MouseEvent) => {
+      if (e.target instanceof Element && isExcluded(e.target)) return
+      e.preventDefault()
+      e.stopPropagation()
+      pick(e.target)
+    }
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setPointing(false)
+      // keyboard users: Tab to a part of the page, then Enter picks it
+      else if (e.key === "Enter" && document.activeElement && !isExcluded(document.activeElement)) {
+        e.preventDefault()
+        e.stopPropagation()
+        pick(document.activeElement)
+      }
+    }
+    const onFocus = (e: FocusEvent) => {
+      hovered = pickTarget(e.target)
+      place()
+    }
+    const onScroll = () => place()
+
+    document.addEventListener("mousemove", onMove)
+    document.addEventListener("click", onClick, true)
+    document.addEventListener("keydown", onKey, true)
+    document.addEventListener("focusin", onFocus)
+    window.addEventListener("scroll", onScroll, { capture: true, passive: true })
+    window.addEventListener("resize", onScroll)
+    return () => {
+      document.removeEventListener("mousemove", onMove)
+      document.removeEventListener("click", onClick, true)
+      document.removeEventListener("keydown", onKey, true)
+      document.removeEventListener("focusin", onFocus)
+      window.removeEventListener("scroll", onScroll, { capture: true })
+      window.removeEventListener("resize", onScroll)
+      body.classList.remove("explain-picking")
+      if (boxRef.current) boxRef.current.style.display = "none"
+    }
+  }, [pointing, page, typing])
+
+  // a part of the page was picked: open the chat and ask about it
+  useEffect(() => {
+    if (!picked) return
+    setPicked(null)
+    setOpen(true)
+    const shown = picked.typed
+      ? `${picked.typed} (about “${picked.label}”)`
+      : `Explain: “${picked.label}”`
+    send(picked.typed || EXPLAIN_PROMPT, { pageContext: picked.context, shown })
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [picked])
 
   function close() {
     setOpen(false)
     toggleRef.current?.focus()
   }
 
-  async function send(textIn?: string) {
+  function togglePointing() {
+    setPointNote(null)
+    setPointing((p) => !p)
+  }
+
+  async function send(textIn?: string, explain?: { pageContext: string; shown: string }) {
     const text = (textIn ?? input).trim()
     if (!text || typing) return
     setInput("")
     const history: ChatTurn[] = msgs
       .filter((m) => !m.failed)
       .map((m) => ({ role: m.role === "ai" ? "assistant" : "user", content: m.text }))
-    setMsgs((m) => [...m, { role: "user", text }])
+    setMsgs((m) => [...m, { role: "user", text: explain?.shown ?? text }])
     setTyping(true)
     try {
-      const reply = await sendChatMessage(text, history, token, resultsBrief)
+      const reply = await sendChatMessage(text, history, token, resultsBrief, explain?.pageContext ?? null)
       setMsgs((m) => [...m, { role: "ai", text: reply }])
     } catch (err) {
       // Keep the unanswered question out of future history (no back-to-back
       // user turns) and put it back in the box so it can be sent again.
+      // A pointed-at part is not kept, since the page context isn't stored.
       setMsgs((m) => [
         ...m.slice(0, -1),
         { ...m[m.length - 1], failed: true },
-        { role: "ai", text: `I couldn't answer just now. ${errText(err)} Your question is back in the box to try again.`, failed: true },
+        {
+          role: "ai",
+          text: explain
+            ? `I couldn't answer just now. ${errText(err)} Point at it again to retry.`
+            : `I couldn't answer just now. ${errText(err)} Your question is back in the box to try again.`,
+          failed: true,
+        },
       ])
-      setInput((cur) => cur || text)
+      if (!explain) setInput((cur) => cur || text)
     } finally {
       setTyping(false)
     }
@@ -177,17 +313,57 @@ function ChatWidget({
   const onlyGreeting = msgs.length === 1
 
   return (
-    <div className="chat no-print" role="region" aria-label="Augie AI assistant" onKeyDown={(e) => e.key === "Escape" && open && close()}>
+    <div
+      className="chat no-print"
+      role="region"
+      aria-label="Augie AI assistant"
+      onKeyDown={(e) => {
+        if (e.key === "Escape" && open) {
+          if (pointing) setPointing(false)
+          else close()
+        }
+      }}
+    >
+      {pointing && (
+        <div className="explain-hint" role="status">
+          <span>Click any part of the page to ask Augie AI about it (or Tab to it and press Enter) · Esc to cancel</span>
+          {pointNote && <span className="explain-note">{pointNote}</span>}
+          <button type="button" className="explain-cancel" onClick={() => setPointing(false)}>
+            Cancel
+          </button>
+        </div>
+      )}
+      {pointing && <div ref={boxRef} className="explain-box" aria-hidden="true" />}
       {open && (
-        <div role="dialog" aria-modal="false" aria-label="Augie AI chat" className="chat-panel card animate-scale-in">
+        <div
+          role="dialog"
+          aria-modal="false"
+          aria-label="Augie AI chat"
+          className={`chat-panel card animate-scale-in${pointing ? " is-pointing" : ""}`}
+        >
           <div className="chat-head">
             <div className="chat-title">
               <AugieMark size={20} boxed={false} />
               <span>Augie AI</span>
             </div>
-            <button type="button" onClick={close} aria-label="Close chat" className="chat-close">
-              ×
-            </button>
+            <div className="chat-head-actions">
+              <button
+                type="button"
+                onClick={togglePointing}
+                aria-pressed={pointing}
+                className="chat-point"
+                title="Point at a part of the page to ask Augie AI about it"
+              >
+                <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden>
+                  <circle cx="7" cy="7" r="4.5" stroke="currentColor" strokeWidth="1.3" />
+                  <path d="M7 0.5v3M7 10.5v3M0.5 7h3M10.5 7h3" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round" />
+                </svg>
+                Point at something
+              </button>
+              <button type="button" onClick={close} aria-label="Close chat" className="chat-close">
+                ×
+              </button>
+            </div>
           </div>
           <div role="log" aria-live="polite" aria-label="Chat messages" className="chat-log scroll-thin">
             {msgs.map((m, i) => (
@@ -1025,6 +1201,7 @@ export default function App() {
               : null
         }
         resultsSource={token && live.result ? "live" : demoRun ? "sample" : null}
+        page={page}
       />
     </>
   )

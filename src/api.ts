@@ -171,13 +171,19 @@ export async function sendChatMessage(
   history: ChatTurn[],
   token?: string | null,
   resultsBrief?: string | null,
+  pageContext?: string | null,
 ): Promise<string> {
   const resp = await request(
     `${API_BASE}/api/chat`,
     {
       method: "POST",
       headers: token ? authed(token) : { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, history, ...(resultsBrief ? { results_brief: resultsBrief } : {}) }),
+      body: JSON.stringify({
+        message,
+        history,
+        ...(resultsBrief ? { results_brief: resultsBrief } : {}),
+        ...(pageContext ? { page_context: pageContext } : {}),
+      }),
     },
     45_000,
     "The assistant",
