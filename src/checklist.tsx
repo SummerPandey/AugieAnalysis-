@@ -33,6 +33,8 @@ export interface ProjectChecklistProps {
   variant?: "full" | "compact"
   /** Heading level of the component title; groups sit one level below. */
   headingLevel?: 2 | 3
+  /** Collapse everything behind a single dropdown toggle, closed by default. */
+  collapsible?: boolean
 }
 
 /* ── per-viewer state (localStorage, always guarded) ─────────── */
@@ -184,8 +186,9 @@ function ChecklistRow({
 }
 
 /* ── the checklist ──────────────────────────────────────────── */
-export function ProjectChecklist({ variant = "full", headingLevel = 2 }: ProjectChecklistProps) {
+export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsible = false }: ProjectChecklistProps) {
   const uid = useId()
+  const [open, setOpen] = useState(!collapsible)
   const { overrides, persisted } = useSyncExternalStore(subscribe, getSnapshot)
   const [ownerFilter, setOwnerFilter] = useState<string | null>(null)
   const [laterOpen, setLaterOpen] = useState(false)
@@ -237,9 +240,31 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2 }: Project
   }
 
   return (
-    <section className={`card cl${compact ? " cl-compact" : ""}`} aria-label="Project checklist">
+    <section
+      className={`card cl${compact ? " cl-compact" : ""}${collapsible ? " cl-collapsible" : ""}`}
+      aria-label="Project checklist"
+    >
       {/* ── header ── */}
-      {compact ? (
+      {collapsible ? (
+        <H className="cl-dropdown-h">
+          <button
+            type="button"
+            className="cl-dropdown"
+            aria-expanded={open}
+            aria-controls={`${uid}-body`}
+            onClick={() => setOpen((o) => !o)}
+          >
+            <span className="cl-toggle-chevron">
+              <IconChevron open={open} size={16} />
+            </span>
+            <span className="cl-dropdown-title">Project checklist</span>
+            <span className="cl-dropdown-meta">
+              {doneCount} of {total} complete
+              {phase1Open > 0 ? ` · ${phase1Open} open for Phase 1` : " · Phase 1 complete"}
+            </span>
+          </button>
+        </H>
+      ) : compact ? (
         <>
           <p className="eyebrow eyebrow-rule">Project checklist</p>
           <H className="cl-h">
@@ -257,7 +282,8 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2 }: Project
         </>
       )}
 
-      {/* ── progress ── */}
+      <div id={`${uid}-body`} className="cl-dropdown-body" hidden={!open}>
+        {/* ── progress ── */}
       <div className="cl-summary">
         <p className="cl-count" aria-live="polite" aria-atomic="true">
           <strong>
@@ -388,6 +414,7 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2 }: Project
             {justReset && !hasOverrides ? "Checklist reset to defaults" : ""}
           </p>
         </div>
+      </div>
       </div>
     </section>
   )

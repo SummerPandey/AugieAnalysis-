@@ -383,3 +383,51 @@
     transition: none;
   }
 }
+
+/* ── collapsible (dropdown) variant ───────────────────────── */
+.cl-collapsible {
+  padding: 0;
+}
+.cl-dropdown-h {
+  margin: 0;
+}
+.cl-dropdown {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px 10px;
+  width: 100%;
+  min-height: 52px;
+  padding: 14px 18px;
+  border: 0;
+  background: none;
+  font: inherit;
+  text-align: left;
+  color: var(--color-navy);
+  cursor: pointer;
+}
+.cl-dropdown:hover {
+  background: var(--color-sand);
+}
+.cl-dropdown-title {
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.cl-dropdown-meta {
+  margin-left: auto;
+  font-size: 12.5px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: var(--color-ink-2);
+}
+.cl-collapsible .cl-dropdown-body {
+  padding: 0 18px 18px;
+  border-top: 1px solid var(--color-line);
+}
+@media print {
+  .cl-dropdown-body[hidden] {
+    display: block !important;
+  }
+}

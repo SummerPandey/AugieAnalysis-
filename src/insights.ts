@@ -293,3 +293,44 @@ export function downloadText(filename: string, text: string, type = "text/csv") 
   a.remove()
   setTimeout(() => URL.revokeObjectURL(url), 1000)
 }
+
+/* ── results brief for Augie AI chat ───────────────────────── */
+const pct = (v: number) => `${(v * 100).toFixed(1)}%`
+
+/**
+ * A compact plain-text summary of one run, sent with every chat message so
+ * Augie AI can answer questions about these specific results. Built from the
+ * same ledger and trust readings the results page shows, so the chat and the
+ * page never disagree.
+ */
+export function chatBrief(r: PipelineResult, ranAt: number, source: "live" | "synthetic" = "live"): string {
+  const t = trust(r)
+  const ledger = driverLedger(r)
+  const overlap = ledgerOverlap(ledger)
+  const lines = [
+    source === "live"
+      ? `Run at ${new Date(ranAt).toISOString()} on real Augustana data.`
+      : `Run at ${new Date(ranAt).toISOString()} on the DEMO's synthetic sample (shaped like Augustana's data, not real results).`,
+    `Weeks modeled: ${r.rows} (${r.date_range[0]} to ${r.date_range[1]}).`,
+    t.spendWeeks !== undefined && t.totalWeeks !== undefined
+      ? `Spend history covers ${t.spendWeeks} of ${t.totalWeeks} weeks (${pct(t.spendShare ?? 0)}).`
+      : "Spend coverage: unknown.",
+    `Fit: in-sample R² ${t.inSampleR2?.toFixed(2) ?? "n/a"}; cross-validated R² ${signedFixed(t.cvMean)} ` +
+      `(${FIT_WORDS[t.rating].toLowerCase()}; folds ranged ${signedFixed(t.foldMin)} to ${signedFixed(t.foldMax)}` +
+      `${t.unstable ? ", unstable" : ""}).`,
+    t.mae !== undefined
+      ? `Average error: ${t.mae.toFixed(0)} applications/week against an average of ${t.meanActual.toFixed(0)}/week.`
+      : "",
+    r.multicollinearity?.high_condition_number ? "Diagnostics: high condition number — channels overlap heavily." : "",
+    "\nDrivers (applications attributed across all weeks · share of modeled applications · weeks active · verdict — reason):",
+    ...ledger.map(
+      (x) =>
+        `- ${x.label}: ${Math.round(x.total)} apps · ${pct(x.share)} · ${x.weeksActive} wks · ` +
+        `${VERDICT_LABEL[x.verdict]} — ${x.reason}`,
+    ),
+    overlap.labels.length
+      ? `Negative estimates (${overlap.labels.join(", ")}) total ${Math.round(overlap.total)} apps; treat as "can't tell yet", not as harm.`
+      : "",
+  ]
+  return lines.filter(Boolean).join("\n")
+}

@@ -153,13 +153,18 @@ export interface ChatTurn {
   content: string
 }
 
-export async function sendChatMessage(message: string, history: ChatTurn[], token?: string | null): Promise<string> {
+export async function sendChatMessage(
+  message: string,
+  history: ChatTurn[],
+  token?: string | null,
+  resultsBrief?: string | null,
+): Promise<string> {
   const resp = await request(
     `${API_BASE}/api/chat`,
     {
       method: "POST",
       headers: token ? authed(token) : { "Content-Type": "application/json" },
-      body: JSON.stringify({ message, history }),
+      body: JSON.stringify({ message, history, ...(resultsBrief ? { results_brief: resultsBrief } : {}) }),
     },
     45_000,
     "The assistant",

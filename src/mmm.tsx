@@ -681,6 +681,7 @@ export default function MMMWorkflow({
   onRunLive,
   onAsk,
   onReadout,
+  onSampleRun,
 }: {
   onBack: () => void
   onSignIn?: () => void
@@ -692,6 +693,8 @@ export default function MMMWorkflow({
   onAsk?: (q: string) => Promise<string>
   /** Re-generate the AI readout for the live run. */
   onReadout?: () => void
+  /** Reports each finished demo run, so Augie AI chat can read it. */
+  onSampleRun?: (result: PipelineResult, ranAt: number) => void
 }) {
   const signedIn = !!live
   const [step, setStep] = useState<DemoStep>(1)
@@ -734,7 +737,10 @@ export default function MMMWorkflow({
     })
     timers.current.push(
       window.setTimeout(() => {
-        setSample({ result: sampleResult(settings), ranAt: Date.now(), settings })
+        const result = sampleResult(settings)
+        const ranAt = Date.now()
+        setSample({ result, ranAt, settings })
+        onSampleRun?.(result, ranAt)
         setRunning(false)
         goTo(4)
       }, per * SAMPLE_STAGES.length + 200),

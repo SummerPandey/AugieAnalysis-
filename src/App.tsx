@@ -6,7 +6,7 @@ import { DataCoveragePanel, summarizeSources } from "./coverage"
 import { ProjectChecklist } from "./checklist"
 import { DATA_SOURCES, MODEL_WINDOW, STATUS_AS_OF, formatStatusDate } from "./projectStatus"
 import { AdmissionsDial } from "./admissionsDial"
-import { driverLedger, headline, trust, FIT_WORDS, VERDICT_LABEL } from "./insights"
+import { chatBrief, driverLedger, headline, trust, FIT_WORDS, VERDICT_LABEL } from "./insights"
 import type { LiveRunState } from "./mmm"
 import {
   AuthError,
@@ -98,6 +98,10 @@ function displayName(email: string | null): string {
 const errText = (err: unknown) => (err instanceof Error ? err.message : String(err))
 
 /* ── AI chat widget ────────────────────────────────────────── */
+/** The model sometimes answers with **bold** markdown; show it as bold, not asterisks. */
+function withBold(text: string) {
+  return text.split(/\*\*(.+?)\*\*/g).map((part, i) => (i % 2 ? <strong key={i}>{part}</strong> : part))
+}
 type ChatMsg = { role: "user" | "ai"; text: string; failed?: boolean }
 const spendPct = DATA_SOURCES.find((s) => s.id === "spend")?.coverageLabel.match(/\d+%/)?.[0]
 const STARTERS = [
@@ -107,7 +111,16 @@ const STARTERS = [
   "What does “directional” mean for a channel?",
 ]
 
-function ChatWidget({ onDark, token }: { onDark: boolean; token: string | null }) {
+function ChatWidget({
+  onDark,
+  token,
+  resultsBrief,
+}: {
+  onDark: boolean
+  token: string | null
+  /** Summary of the latest run (live, else demo sample); null when there isn't one. */
+  resultsBrief: string | null
+}) {
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState<ChatMsg[]>([
     { role: "ai", text: "Hi, I'm Augie AI. Ask me about the model, the data behind it, or how to read a result." },
@@ -140,7 +153,7 @@ function ChatWidget({ onDark, token }: { onDark: boolean; token: string | null }
     setMsgs((m) => [...m, { role: "user", text }])
     setTyping(true)
     try {
-      const reply = await sendChatMessage(text, history, token)
+      const reply = await sendChatMessage(text, history, token, resultsBrief)
       setMsgs((m) => [...m, { role: "ai", text: reply }])
     } catch (err) {
       setMsgs((m) => [...m, { role: "ai", text: `I couldn't answer just now. ${errText(err)}`, failed: true }])
@@ -167,7 +180,7 @@ function ChatWidget({ onDark, token }: { onDark: boolean; token: string | null }
           <div role="log" aria-live="polite" aria-label="Chat messages" className="chat-log scroll-thin">
             {msgs.map((m, i) => (
               <div key={i} className={`chat-msg chat-${m.role}${m.failed ? " chat-failed" : ""}`}>
-                {m.text}
+                {m.role === "ai" ? withBold(m.text) : m.text}
               </div>
             ))}
             {onlyGreeting && (
@@ -208,7 +221,12 @@ function ChatWidget({ onDark, token }: { onDark: boolean; token: string | null }
               <IconArrowRight size={15} />
             </button>
           </form>
-          <p className="chat-foot">AI answers can be wrong. It doesn't see your live results.</p>
+          <p className="chat-foot">
+            AI answers can be wrong.{" "}
+            {resultsBrief
+              ? "It can see a summary of your latest run."
+              : "Run the analysis (or the demo sample) so it can see the results."}
+          </p>
         </div>
       )}
       <button
@@ -429,9 +447,9 @@ function DataStatusSection() {
         </h2>
         <p className="step-lead">What the model has to learn from today, and what's still needed to firm up its estimates.</p>
       </div>
-      <div className="cov-layout">
-        <DataCoveragePanel />
-        <ProjectChecklist variant="compact" headingLevel={3} />
+      <DataCoveragePanel />
+      <div style={{ marginTop: 20 }}>
+        <ProjectChecklist variant="compact" headingLevel={3} collapsible />
       </div>
     </section>
   )
@@ -723,6 +741,8 @@ export default function App() {
   const [intro, setIntro] = useState(() => !ss.get("augie_intro_seen"))
   const [live, setLive] = useState<LiveRunState>(() => (ss.get("mmm_auth_token") ? loadRun() : EMPTY_RUN))
   const [loginNotice, setLoginNotice] = useState<string | null>(null)
+  // latest demo (synthetic) run, so the chat can discuss it too
+  const [demoRun, setDemoRun] = useState<{ result: PipelineResult; ranAt: number } | null>(null)
   // set synchronously, so a double click can't start two runs before React re-renders
   const runningRef = useRef(false)
   // bumped on sign-out: any request still in flight from the old session is ignored
@@ -929,6 +949,7 @@ export default function App() {
             {page === "demo" ? (
               <MMMWorkflow
                 onBack={() => go("options")}
+                onSampleRun={(result, ranAt) => setDemoRun({ result, ranAt })}
                 onSignIn={signedIn ? undefined : () => go("login")}
                 userName={signedIn ? name : undefined}
               />
@@ -945,7 +966,17 @@ export default function App() {
           </Suspense>
         </div>
       )}
-      <ChatWidget onDark={onDark} token={token} />
+      <ChatWidget
+        onDark={onDark}
+        token={token}
+        resultsBrief={
+          token && live.result
+            ? chatBrief(live.result, live.ranAt)
+            : demoRun
+              ? chatBrief(demoRun.result, demoRun.ranAt, "synthetic")
+              : null
+        }
+      />
     </>
   )
 }
