@@ -128,7 +128,7 @@ const STARTERS = [
 const PAGE_NAMES: Record<Page, string> = {
   landing: "Landing",
   login: "Sign in",
-  options: "Demo options",
+  options: "Choose an analysis (data status)",
   demo: "Results (demo sample)",
   overview: "Results (your latest run)",
   analysis: "Analysis (your latest run)",

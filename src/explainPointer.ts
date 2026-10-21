@@ -4,7 +4,25 @@
  */
 
 /** Things that count as one explainable part of a page, matched nearest-first. */
-const TARGET_SELECTOR = '[data-explain], .kpi, .card, figure, table, tr, li, section, svg[role="img"], .recharts-wrapper'
+const TARGET_SELECTOR = [
+  "[data-explain]",
+  ".kpi",
+  ".coef-row",
+  ".alert",
+  "details",
+  "article",
+  '[class*="-card"]',
+  '[class*="-term"]',
+  ".card",
+  "figure",
+  "table",
+  "tr",
+  "li",
+  "section",
+  'svg[role="img"]',
+].join(", ")
+/** Clicking inside a chart explains the whole chart card (title, caption, legend), not just its drawing. */
+const CHART_SELECTOR = ".recharts-wrapper, .recharts-legend-wrapper"
 /** Never explain the chat itself or the pointer's own hint bar. */
 const EXCLUDED_SELECTOR = ".chat, .explain-hint"
 const ROOT_SELECTOR = "html, body, #root"
@@ -24,6 +42,14 @@ export function isExcluded(el: Element): boolean {
 /** The explainable part under a pointer or click, or null when there is nothing to explain. */
 export function pickTarget(node: EventTarget | null): Element | null {
   if (!(node instanceof Element) || isExcluded(node)) return null
+  const chart = node.closest(CHART_SELECTOR)
+  if (chart) {
+    // climb to the chart's card: the nearest ancestor that carries a heading
+    for (let up = chart.parentElement, i = 0; up && i < 6 && !up.matches(ROOT_SELECTOR); up = up.parentElement, i++) {
+      if (up.querySelector("h2, h3")) return up
+    }
+    return chart
+  }
   const hit = node.closest(TARGET_SELECTOR)
   if (hit && !hit.matches(ROOT_SELECTOR)) return hit
   if (!node.matches(ROOT_SELECTOR) && clean(node.textContent).length >= MIN_TEXT) return node
@@ -33,6 +59,8 @@ export function pickTarget(node: EventTarget | null): Element | null {
 /** Plain-language kind of element, matching the kinds the backend prompt expects. */
 export function elementKind(el: Element): string {
   if (el.matches(".kpi")) return "KPI tile"
+  if (el.querySelector(".recharts-wrapper") || el.matches('svg, figure')) return "chart"
+  if (el.matches(".coef-row")) return "table row"
   if (el.matches("table")) return "table"
   if (el.matches("tr")) return "table row"
   if (el.matches('figure, svg[role="img"], .recharts-wrapper')) return "chart"
@@ -50,17 +78,30 @@ function touchesPasswordForm(el: Element): boolean {
 }
 
 /** The heading the element sits under: its own heading if it is a section, else the nearest one before it. */
+/** A card, list item or FAQ row's own heading isn't the section heading for its siblings. */
+const ITEM_SELECTOR = 'li, article, details, tr, figure, .kpi, [class*="-card"]'
+function inSiblingItem(h: Element, el: Element): boolean {
+  const item = h.closest(ITEM_SELECTOR)
+  return !!item && !item.contains(el)
+}
+
 export function nearestSection(el: Element): string {
-  if (el.matches("section, .card, figure")) {
-    const own = el.querySelector("h1, h2, h3")
-    if (own) return clean(own.textContent).slice(0, 120)
+  // The heading of the section the element sits in: walk up through its
+  // ancestors and take the first heading that comes before it inside the
+  // nearest one that has any. (The last heading earlier in the page was often
+  // a neighbouring card's, e.g. a chart labeled "AI readout".)
+  for (let a = el.parentElement; a && !a.matches("html"); a = a.parentElement) {
+    const before = Array.from(a.querySelectorAll("h1, h2, h3")).find(
+      (h) =>
+        !el.contains(h) &&
+        !h.contains(el) &&
+        !h.closest(EXCLUDED_SELECTOR) &&
+        !inSiblingItem(h, el) &&
+        !!(h.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING),
+    )
+    if (before) return clean(before.textContent).slice(0, 120)
   }
-  let found: Element | null = null
-  for (const h of Array.from(document.querySelectorAll("h1, h2, h3"))) {
-    if (h.closest(EXCLUDED_SELECTOR) || h.contains(el)) continue
-    if (h.compareDocumentPosition(el) & Node.DOCUMENT_POSITION_FOLLOWING) found = h
-  }
-  return found ? clean(found.textContent).slice(0, 120) : ""
+  return ""
 }
 
 /**
@@ -83,7 +124,22 @@ function describeContent(el: Element): string | null {
   // alone" stay separate words). It never includes what's typed into an
   // input; textarea/select text could slip in, so those take the clone path.
   let text: string
-  if (el instanceof HTMLElement && !el.querySelector("textarea, select")) {
+  if (el instanceof SVGElement) {
+    // SVG has no innerText: join its text labels so "Meta" and "Google" stay separate
+    text = clean(
+      Array.from(el.querySelectorAll("text"))
+        .map((t) => t.textContent)
+        .join(" · "),
+    )
+  } else if (el instanceof HTMLDetailsElement && !el.open) {
+    // a closed FAQ row: include the hidden answer, not just the question
+    const copy = el.cloneNode(true) as Element
+    const summary = copy.querySelector("summary")
+    const question = clean(summary?.textContent)
+    summary?.remove()
+    copy.querySelectorAll("script, style, noscript, input, textarea, select").forEach((n) => n.remove())
+    text = [question, clean(copy.textContent)].filter(Boolean).join(" · ")
+  } else if (el instanceof HTMLElement && !el.querySelector("textarea, select")) {
     text = clean(el.innerText.replace(/\n+/g, " · "))
   } else {
     const copy = el.cloneNode(true) as Element

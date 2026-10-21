@@ -367,7 +367,9 @@ export function chatBrief(r: PipelineResult, ranAt: number, source: "live" | "sy
         `${VERDICT_LABEL[x.verdict]} — ${x.reason}`,
     ),
     overlap.labels.length
-      ? `Negative estimates (${overlap.labels.join(", ")}) total ${Math.round(overlap.total)} apps; treat as "can't tell yet", not as harm.`
+      ? overlap.kind === "unidentified"
+        ? `Channel credit the model can't separate from the calendar (${overlap.labels.join(", ")}) totals ${Math.round(overlap.total)} apps; it is unvalidated, not a measured effect, and not split by channel.`
+        : `Negative estimates (${overlap.labels.join(", ")}) total ${Math.round(overlap.total)} apps; treat as "can't tell yet", not as harm.`
       : "",
   ]
   return lines.filter(Boolean).join("\n")
