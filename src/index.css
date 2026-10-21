@@ -1256,6 +1256,20 @@ button.step-hit:hover .step-label {
   text-transform: uppercase;
   color: var(--color-ink-2);
 }
+.coef-group-note {
+  max-width: 70ch;
+  margin: -2px 0 10px;
+  font-size: 13px;
+  line-height: 1.55;
+  color: var(--color-ink-2);
+}
+.coef-hint {
+  display: block;
+  margin-top: 2px;
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--color-ink-2);
+}
 .coef-row {
   display: grid;
   grid-template-columns: minmax(0, 250px) minmax(0, 1fr) 60px;

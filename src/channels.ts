@@ -102,7 +102,7 @@ const FEATURE_LABELS: Record<string, string> = {
 export function featureLabel(key: string): string {
   if (FEATURE_LABELS[key]) return FEATURE_LABELS[key]
   const harmonic = key.match(/^(sin|cos)_(\d)$/)
-  if (harmonic) return `Annual cycle · ${harmonic[1]} harmonic ${harmonic[2]}`
+  if (harmonic) return `Yearly wave ${harmonic[2]} · ${harmonic[1] === "sin" ? "sine" : "cosine"} part`
   if (key.endsWith("_adstock")) return `${channelLabel(key.replace(/_adstock$/, ""))} · adstocked spend`
   return channelLabel(key)
 }

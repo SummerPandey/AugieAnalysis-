@@ -624,30 +624,59 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
 }
 
 /* ── technical detail ──────────────────────────────────────── */
-function CoefficientBar({ name, value, max, flag }: { name: string; value: number; max: number; flag?: string }) {
+/** One-line plain-language hint under a coefficient's name, for rows that don't explain themselves. */
+const COEF_HINTS: Record<string, string> = {
+  peak_deadline: "Late Oct to mid Nov, the application deadline",
+  winter_surge: "Jan and Feb, the second application rush",
+  yield_period: "Mar and Apr, when admitted students decide",
+  summer_ramp: "Aug to early Oct; corrects the waves below in those weeks",
+  week_num: "Slow drift up or down across the years",
+  spend_observed: "Data switch, not marketing: on for weeks with spend on file",
+  impressions_observed: "Data switch, not marketing: on for weeks with impressions on file",
+  sin_1: "Repeats once a year: the main busy and quiet seasons",
+  cos_1: "Repeats once a year: the main busy and quiet seasons",
+  sin_2: "Repeats twice a year: adds a second bump",
+  cos_2: "Repeats twice a year: adds a second bump",
+  sin_3: "Repeats three times a year: fine detail",
+  cos_3: "Repeats three times a year: fine detail",
+}
+
+function CoefficientBar({
+  name,
+  value,
+  max,
+  flag,
+  neutral,
+}: {
+  name: string
+  value: number
+  max: number
+  flag?: string
+  /** Sign carries no meaning (yearly waves), so draw it gray and don't call it more/fewer applications. */
+  neutral?: boolean
+}) {
   const pct = max > 0 ? Math.min(100, (Math.abs(value) / max) * 100) : 0
   const positive = value >= 0
   const label = name.endsWith("_spend_adstock") ? `${channelLabel(name.replace(/_adstock$/, ""))} spend` : featureLabel(name)
   const shown = `${positive ? "+" : "−"}${Math.abs(value).toFixed(2)}`
+  const hint = COEF_HINTS[name]
+  const reading = neutral ? "sets the timing of the yearly curve" : `moved with ${positive ? "more" : "fewer"} applications`
   return (
     <div className="coef-row">
       <div className="coef-name">
         {label}
         {flag && <span className="coef-flag">{flag}</span>}
+        {hint && <span className="coef-hint">{hint}</span>}
         {label !== name && <span className="coef-key">{name}</span>}
       </div>
-      <div
-        className="coef-track"
-        role="img"
-        aria-label={`${label}: ${shown} (moved with ${positive ? "more" : "fewer"} applications)${flag ? `, ${flag}` : ""}`}
-      >
+      <div className="coef-track" role="img" aria-label={`${label}: ${shown} (${reading})${flag ? `, ${flag}` : ""}`}>
         <div
           className="coef-bar"
           style={{
             left: positive ? "50%" : undefined,
             right: positive ? undefined : "50%",
             width: `${pct / 2}%`,
-            background: positive ? T.pos : T.neg,
+            background: neutral ? "var(--color-ink-3)" : positive ? T.pos : T.neg,
             borderRadius: positive ? "0 2px 2px 0" : "2px 0 0 2px",
             opacity: flag ? 0.55 : 1,
           }}
@@ -667,7 +696,10 @@ function Coefficients({ r }: { r: PipelineResult }) {
   const isHarmonic = (k: string) => /^(sin|cos)_\d$/.test(k)
   const ads = entries.filter(([k]) => featureGroup(k) === "Advertising signals")
   const calendar = entries.filter(([k]) => featureGroup(k) === "Seasonality & trend" && !isHarmonic(k))
-  const harmonics = entries.filter(([k]) => isHarmonic(k))
+  // waves read as one curve, so keep them in wave order (1 sine, 1 cosine, 2 …) rather than by size
+  const harmonics = entries
+    .filter(([k]) => isHarmonic(k))
+    .sort(([a], [b]) => a.slice(4).localeCompare(b.slice(4)) || b.localeCompare(a))
   const flagFor = (k: string, v: number) =>
     k in high ? `unstable · VIF ${high[k].toFixed(0)}` : k.endsWith("_adstock") && v < 0 ? "can't tell yet" : undefined
   return (
@@ -687,9 +719,22 @@ function Coefficients({ r }: { r: PipelineResult }) {
         </span>
       </div>
       {[
-        { title: "Advertising signals", rows: ads },
-        { title: "The admissions calendar & trend", rows: calendar },
-        { title: `Annual cycle terms · ${harmonics.length}`, rows: harmonics },
+        {
+          title: "Advertising signals",
+          rows: ads,
+          note: "Marketing inputs. Bars marked unstable overlap heavily with other channels, so their size, and even their direction, can flip as more data comes in.",
+        },
+        {
+          title: "The admissions calendar & trend",
+          rows: calendar,
+          note: "Periods the college already knows are busy, plus a slow drift over the years. The two \"data on file\" rows are switches for weeks with Carnegie data, not marketing effects.",
+        },
+        {
+          title: `Annual cycle terms · ${harmonics.length}`,
+          rows: harmonics,
+          neutral: true,
+          note: "Smooth waves that, added together, draw the shape of the admissions year: quiet summer, fall ramp, deadline spike. Each wave has a sine and a cosine part, and their signs only set which week the wave peaks, not whether it helps or hurts, so they're drawn in gray. Read them as one curve, not row by row. Wave 1 does most of the work.",
+        },
       ]
         .filter((g) => g.rows.length)
         .map((g) => (
@@ -697,8 +742,16 @@ function Coefficients({ r }: { r: PipelineResult }) {
             <p className="coef-group-title">
               <span>{g.title}</span>
             </p>
+            <p className="coef-group-note">{g.note}</p>
             {g.rows.map(([name, value]) => (
-              <CoefficientBar key={name} name={name} value={value} max={max} flag={flagFor(name, value)} />
+              <CoefficientBar
+                key={name}
+                name={name}
+                value={value}
+                max={max}
+                flag={flagFor(name, value)}
+                neutral={g.neutral}
+              />
             ))}
           </div>
         ))}
