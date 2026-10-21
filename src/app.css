@@ -76,6 +76,23 @@
   gap: 12px;
   margin-top: 34px;
 }
+.landing-finding {
+  margin-top: 18px;
+  max-width: 56ch;
+  padding: 10px 14px;
+  border-left: 3px solid var(--color-gold);
+  background: rgba(255, 255, 255, 0.06);
+  font-size: 14px;
+  line-height: 1.55;
+  color: rgba(255, 255, 255, 0.86);
+}
+.landing-finding strong {
+  color: var(--color-gold);
+  font-weight: 600;
+}
+.nowrap {
+  white-space: nowrap;
+}
 .landing-learn {
   margin-top: 18px;
   font-size: 14px;

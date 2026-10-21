@@ -176,7 +176,8 @@ export function ledgerOverlap(rows: LedgerRow[]): {
   }
 }
 
-const signedFixed = (v: number) => (v < 0 ? `−${Math.abs(v).toFixed(2)}` : v.toFixed(2))
+const signedFixed = (v: number | null | undefined) =>
+  typeof v !== "number" || !Number.isFinite(v) ? "—" : v < 0 ? `−${Math.abs(v).toFixed(2)}` : v.toFixed(2)
 
 /* ── how far to trust the run ──────────────────────────────── */
 export type FitRating = "weak" | "modest" | "fair" | "strong"
@@ -370,4 +371,30 @@ export function chatBrief(r: PipelineResult, ranAt: number, source: "live" | "sy
       : "",
   ]
   return lines.filter(Boolean).join("\n")
+}
+
+/* ── plain-language summary to paste into an email ─────────── */
+export function shareSummary(r: PipelineResult, live: boolean): string {
+  const ledger = driverLedger(r)
+  const h = headline(ledger)
+  const t = trust(r)
+  const l = r.marketing_lift
+  const fmtDate = (d: string) =>
+    new Date(d).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })
+  const lines = [
+    `Augie Analysis — ${live ? "Augustana data" : "synthetic demo sample (not real data)"}, ${fmtDate(r.date_range[0])} to ${fmtDate(r.date_range[1])}`,
+    "",
+    `• ${h.lead} ${h.figure} ${h.rest}`,
+    l
+      ? `• On weeks the model never saw, it scores ${signedFixed(l.full_mean_r2)} with marketing and ${signedFixed(l.baseline_mean_r2)} with the calendar alone. ${
+          l.identified
+            ? "Marketing adds measurable signal; read each channel with its verdict."
+            : "Marketing isn't separable from the calendar yet, so no channel's estimate is supported."
+        }`
+      : `• On weeks the model never saw, it scores ${signedFixed(t.cvMean)}.`,
+    t.mae !== undefined ? `• Typical weekly miss: about ${Math.round(t.mae)} applications.` : "",
+    t.spendShare !== undefined ? `• Channel spend is on file for ${Math.round(t.spendShare * 100)}% of the weeks.` : "",
+    "• What would firm it up: the full Carnegie spend history, billboard flight dates, and email send history.",
+  ]
+  return lines.filter((x, i) => x !== "" || i === 1).join("\n")
 }

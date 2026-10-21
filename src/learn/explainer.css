@@ -562,6 +562,15 @@
   cursor: pointer;
 }
 
+/* on small stages the drawn button is ~25px tall: keep the tap area finger-sized */
+@media (max-width: 640px) {
+  .lp-video-demo-hit {
+    min-height: 44px;
+    min-width: 44px;
+    transform: translateY(-25%);
+  }
+}
+
 .lp-video-demo-hit:focus-visible {
   outline: 3px solid var(--color-navy);
   outline-offset: 3px;

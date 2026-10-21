@@ -160,8 +160,9 @@
     background: transparent !important;
   }
   /* hidden visually (the mobile line under the name shows them), but still
-     read by screen readers, since that line is aria-hidden */
-  .ledger td {
+     read by screen readers, since that line is aria-hidden. Body rows only:
+     the overlap and total rows in tfoot stay visible. */
+  .ledger tbody td {
     position: absolute;
     width: 1px;
     height: 1px;
@@ -172,7 +173,7 @@
     border: 0;
     background: transparent !important;
   }
-  .ledger td:last-child {
+  .ledger tbody td:last-child {
     position: static;
     width: auto;
     height: auto;

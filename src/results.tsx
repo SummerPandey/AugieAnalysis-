@@ -32,6 +32,7 @@ import {
   headline,
   ledgerOverlap,
   resultToCSV,
+  shareSummary,
   trust,
   VERDICT_LABEL,
   type LedgerRow,
@@ -81,7 +82,9 @@ function IconCalendar({ size = 12 }: { size?: number }) {
   )
 }
 /** Signed number with a real minus sign. */
-const signed = (v: number, d = 2) => (v < 0 ? `−${Math.abs(v).toFixed(d)}` : v.toFixed(d))
+// null/NaN can come back from the backend for degenerate fits; show a dash instead of crashing
+const signed = (v: number | null | undefined, d = 2) =>
+  typeof v !== "number" || !Number.isFinite(v) ? "—" : v < 0 ? `−${Math.abs(v).toFixed(d)}` : v.toFixed(d)
 
 const VERDICT_UI: Record<Verdict, { cls: string; Icon: (p: { size?: number }) => ReactNode }> = {
   calendar: { cls: "badge verdict-calendar", Icon: IconCalendar },
@@ -128,7 +131,7 @@ function Ledger({ rows, modeled }: { rows: LedgerRow[]; modeled: number }) {
     <div style={{ ...card, padding: 0 }}>
       <SectionHeader
         title="What each driver contributed"
-        caption="Modeled applications over the whole window, assigned to each driver by the model. These are model allocations, not measured causes. Each verdict comes from the model's own diagnostics: sign, overlap with other channels, and how many weeks had activity."
+        caption="Modeled applications over the whole window, assigned to each driver by the model. These are model allocations, not measured causes. Each verdict comes from the model's own checks: whether marketing beat the calendar alone on unseen weeks, the sign, overlap with other channels, and how many weeks had activity."
       />
       <div className="tbl-wrap">
         <table className="tbl ledger">
@@ -785,6 +788,17 @@ export function ResultsView({
   const live = mode === "live"
   const pct = (v: number) => `${Math.round(v * 100)}%`
 
+  const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle")
+  async function copySummary() {
+    try {
+      await navigator.clipboard.writeText(shareSummary(result, live))
+      setCopied("done")
+    } catch {
+      setCopied("failed")
+    }
+    window.setTimeout(() => setCopied("idle"), 2500)
+  }
+
   function exportCSV() {
     const stamp = new Date(ranAt).toISOString().slice(0, 10)
     downloadText(`${live ? "augie-analysis-live" : "SYNTHETIC-augie-analysis-sample"}-${stamp}.csv`, resultToCSV(result, live ? "live" : "synthetic"))
@@ -805,7 +819,7 @@ export function ResultsView({
         eyebrow={live ? "Results · Live Augustana data" : "Results · Synthetic sample"}
         title={
           <>
-            What's driving <em>applications</em>
+            What this run <em>found</em>
           </>
         }
         info={
@@ -830,6 +844,10 @@ export function ResultsView({
         }
         actions={
           <>
+            <button type="button" className="btn btn-outline btn-sm" onClick={copySummary} aria-live="polite">
+              <IconCheck size={14} />{" "}
+              {copied === "done" ? "Copied" : copied === "failed" ? "Couldn't copy" : "Copy summary"}
+            </button>
             <button type="button" className="btn btn-outline btn-sm" onClick={exportCSV}>
               <IconDownload size={14} /> CSV
             </button>
@@ -863,7 +881,7 @@ export function ResultsView({
           sub={
             result.marketing_lift && !result.marketing_lift.identified ? (
               <>
-                Calendar alone: <span className="num">{signed(result.marketing_lift.baseline_mean_r2)}</span> · periods ranged{" "}
+                Calendar-only benchmark: <span className="num">{signed(result.marketing_lift.baseline_mean_r2)}</span> · periods ranged{" "}
                 <span className="num">{signed(t.foldMin)}</span> to <span className="num">{signed(t.foldMax)}</span>
               </>
             ) : (
@@ -878,7 +896,13 @@ export function ResultsView({
           label="Typical weekly miss"
           value={t.mae !== undefined ? fmtApps(t.mae) : "—"}
           unit="apps"
-          sub={t.maeShare !== undefined ? <>{pct(t.maeShare)} of an average week ({fmtApps(t.meanActual)})</> : undefined}
+          sub={
+            t.maeShare !== undefined ? (
+              <>
+                {pct(t.maeShare)} of an average week ({fmtApps(t.meanActual)}), on weeks the model learned from
+              </>
+            ) : undefined
+          }
         />
         <KpiCard
           label="Spend history on file"
@@ -916,7 +940,7 @@ export function ResultsView({
       <Ledger rows={ledger} modeled={result.weekly.reduce((acc, w) => acc + w.predicted, 0)} />
 
       {live ? (
-        <AiCard commentary={commentary} onAsk={onAsk} onReadout={onReadout} />
+        <AiCard key={ranAt /* a re-run starts a fresh follow-up thread */} commentary={commentary} onAsk={onAsk} onReadout={onReadout} />
       ) : (
         <div className="card ai-card ai-card-off">
           <SectionHeader

@@ -151,10 +151,19 @@ export async function runPipeline(token: string): Promise<PipelineResult> {
   return handle<PipelineResult>(resp, "The model run")
 }
 
-export async function getInsights(token: string, question?: string): Promise<InsightsResult> {
+export async function getInsights(
+  token: string,
+  question?: string,
+  /** The run already on screen; when given the backend answers about it instead of re-fitting. */
+  result?: PipelineResult | null,
+): Promise<InsightsResult> {
   const resp = await request(
     `${API_BASE}/api/insights`,
-    { method: "POST", headers: authed(token), body: JSON.stringify(question ? { question } : {}) },
+    {
+      method: "POST",
+      headers: authed(token),
+      body: JSON.stringify({ ...(question ? { question } : {}), ...(result ? { pipeline_result: result } : {}) }),
+    },
     120_000,
     "The AI readout",
   )

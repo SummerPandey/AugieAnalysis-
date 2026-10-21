@@ -73,20 +73,26 @@ export function ExplainerVideo({ onDemo }: { onDemo?: () => void } = {}) {
   const [leaving, setLeaving] = useState<SceneSlot | null>(null)
   const lastSlot = useRef<SceneSlot>({ key: "0-0", scene: 0 })
   const settleTimer = useRef<number | undefined>(undefined)
+  const playButtonRef = useRef<HTMLButtonElement>(null)
 
   const ended = elapsed >= TOTAL_MS
   const scene = Math.min(SCENE_COUNT - 1, Math.floor(elapsed / SCENE_MS))
   const sceneKey = `${run}-${scene}`
   const frozen = !playing && !settling
 
-  // Single timeline tick, only while playing. Cleaned up on pause and unmount.
+  // Single timeline tick, only while playing. Elapsed time comes from the
+  // clock, not a tick count, so throttled timers (background tabs, busy
+  // phones) can't stretch the 30 seconds. Restarts on play, seek and replay.
+  const elapsedRef = useRef(elapsed)
+  elapsedRef.current = elapsed
   useEffect(() => {
     if (!playing) return
+    const start = performance.now() - elapsedRef.current
     const id = window.setInterval(() => {
-      setElapsed((e) => Math.min(TOTAL_MS, e + TICK_MS))
+      setElapsed(Math.min(TOTAL_MS, performance.now() - start))
     }, TICK_MS)
     return () => window.clearInterval(id)
-  }, [playing])
+  }, [playing, run])
 
   // Stop at the end of the last scene.
   useEffect(() => {
@@ -132,6 +138,8 @@ export function ExplainerVideo({ onDemo }: { onDemo?: () => void } = {}) {
       setElapsed(0)
       setRun((r) => r + 1)
     }
+    // the big overlay button disappears once started; keep keyboard focus on the controls
+    if (!started) requestAnimationFrame(() => playButtonRef.current?.focus())
     setPlaying(true)
   }
 
@@ -210,7 +218,7 @@ export function ExplainerVideo({ onDemo }: { onDemo?: () => void } = {}) {
       </p>
 
       <div className="lp-video-controls">
-        <button type="button" className="btn btn-outline btn-sm lp-video-btn" onClick={togglePlay}>
+        <button ref={playButtonRef} type="button" className="btn btn-outline btn-sm lp-video-btn" onClick={togglePlay}>
           {playing ? "Pause" : ended ? "Play again" : "Play"}
         </button>
         <button

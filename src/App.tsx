@@ -78,7 +78,17 @@ function loadRun(): LiveRunState {
     const raw = ss.get(RUN_KEY)
     if (!raw) return EMPTY_RUN
     const v = JSON.parse(raw) as { result: PipelineResult; ranAt: number; commentary?: string }
-    if (!v?.result?.weekly) return EMPTY_RUN
+    // a run cached by an older version (or a partial one) must not crash the page
+    const r = v?.result
+    const ok =
+      r &&
+      Array.isArray(r.weekly) &&
+      Array.isArray(r.channel_contribution_weekly) &&
+      Array.isArray(r.cross_validation?.per_fold_r2) &&
+      typeof r.cross_validation?.mean_r2 === "number" &&
+      r.in_sample_metrics &&
+      r.coefficients
+    if (!ok) return EMPTY_RUN
     return {
       result: v.result,
       ranAt: v.ranAt,
@@ -470,9 +480,9 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
 /* ── landing ───────────────────────────────────────────────── */
 // Each point maps to something the results page really shows.
 const LANDING_POINTS = [
-  { title: "How each channel relates", body: "Each digital channel's estimated share of applications, with a plain verdict on how far to trust it." },
+  { title: "What each channel may be linked to", body: "Each digital channel's estimated link to applications, with a plain verdict on how far to trust it." },
   { title: "What the calendar explains", body: "Separates the admissions cycle from the part marketing may account for." },
-  { title: "How far to trust it", body: "Fit on weeks the model never saw, and the data gaps, stated plainly." },
+  { title: "How far to trust it", body: "How accurate the model is on weeks it never saw, and where the data has gaps." },
 ]
 
 function LandingPage({ onDemo, onLogin, onLearn }: { onDemo: () => void; onLogin: () => void; onLearn: () => void }) {
@@ -500,9 +510,13 @@ function LandingPage({ onDemo, onLogin, onLearn }: { onDemo: () => void; onLogin
               Sign in <span className="arrow"><IconArrowRight size={15} /></span>
             </button>
             <button type="button" onClick={onDemo} className="btn btn-outline-light btn-lg">
-              Explore the demo
+              Explore the demo (sample data)
             </button>
           </div>
+          <p className="landing-finding">
+            <strong>Latest finding:</strong> the admissions calendar still predicts weekly applications better than
+            adding marketing data, so no channel's effect is established yet. Fuller spend history is the next step.
+          </p>
           <p className="landing-learn">
             New to marketing mix models?{" "}
             <button type="button" className="link landing-learn-link" onClick={onLearn}>
@@ -510,9 +524,11 @@ function LandingPage({ onDemo, onLogin, onLearn }: { onDemo: () => void; onLogin
             </button>
           </p>
           <p className="landing-status">
-            {sources.live + sources.partial} data sources in use · {sources.reference} reference only ·{" "}
-            {sources.pending} pending · Status as of{" "}
-            <time dateTime={STATUS_AS_OF}>{formatStatusDate()}</time>
+            {sources.live + sources.partial} data sources feed the model · {sources.reference} for context only ·{" "}
+            {sources.pending} pending ·{" "}
+            <span className="nowrap">
+              Status as of <time dateTime={STATUS_AS_OF}>{formatStatusDate()}</time>
+            </span>
           </p>
         </div>
         <div className="landing-art">
@@ -924,19 +940,26 @@ function Overview({
 
 /* ── root ──────────────────────────────────────────────────── */
 /** Steer the AI readout with the page's own verdicts so the two can't disagree. */
-function readoutBrief(r: PipelineResult): string {
+/** Keeps the AI consistent with the verdicts on screen (used for the readout and every follow-up). */
+function verdictSteer(r: PipelineResult): string {
   const rows = driverLedger(r).filter((x) => x.key !== "baseline")
   const verdicts = rows.map((x) => `${x.label}: ${VERDICT_LABEL[x.verdict].toLowerCase()}`).join("; ")
-  const cant = rows.filter((x) => x.verdict === "cant-tell").map((x) => x.label)
+  const unidentified = r.marketing_lift && !r.marketing_lift.identified
+  const negative = rows.filter((x) => x.verdict === "cant-tell" && x.total < 0).map((x) => x.label)
   return [
-    "Write the standard readout for this run.",
     `Keep it consistent with the reliability verdicts shown on the results page: ${verdicts}.`,
-    cant.length
-      ? `${cant.join(" and ")} came out negative because of overlap or coarse data. Don't recommend cutting them; say the model can't tell yet.`
-      : "",
+    unidentified
+      ? "Marketing did not beat the calendar-only model on unseen weeks, so no channel's estimate is supported: don't name any channel as working or worth more budget, and don't recommend cutting one."
+      : negative.length
+        ? `${negative.join(" and ")} came out negative because of overlap or coarse data. Don't recommend cutting them; say the model can't tell yet.`
+        : "",
   ]
     .filter(Boolean)
     .join(" ")
+}
+
+function readoutBrief(r: PipelineResult): string {
+  return `Write the standard readout for this run. ${verdictSteer(r)}`
 }
 
 export default function App() {
@@ -945,6 +968,9 @@ export default function App() {
   const [page, setPage] = useState<Page>(() => guard(pageFromHash(location.hash), !!ss.get("mmm_auth_token")))
   const [intro, setIntro] = useState(() => !ss.get("augie_intro_seen"))
   const [live, setLive] = useState<LiveRunState>(() => (ss.get("mmm_auth_token") ? loadRun() : EMPTY_RUN))
+  // latest live run for callbacks that shouldn't re-create on every update
+  const liveRef = useRef(live)
+  liveRef.current = live
   const [loginNotice, setLoginNotice] = useState<string | null>(null)
   // latest demo (synthetic) run, so the chat can discuss it too
   const [demoRun, setDemoRun] = useState<{ result: PipelineResult; ranAt: number } | null>(null)
@@ -1061,8 +1087,10 @@ export default function App() {
     async (q: string) => {
       const tk = ss.get("mmm_auth_token")
       if (!tk) throw new AuthError()
+      const r = liveRef.current.result
       try {
-        return (await getInsights(tk, q)).commentary
+        // answer about the run on screen, with the same verdict steer as the readout
+        return (await getInsights(tk, r ? `${q}\n\n(${verdictSteer(r)})` : q, r)).commentary
       } catch (err) {
         if (err instanceof AuthError) signOut(err.message)
         throw err
