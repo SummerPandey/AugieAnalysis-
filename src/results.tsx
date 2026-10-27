@@ -56,7 +56,9 @@ import {
   StepHeader,
 } from "./ui"
 import { Dot, IconArrowRight, IconCheck, IconDownload, IconFlask, IconInfo, IconPrint, IconRefresh, IconWarning } from "./icons"
+import EasyView from "./easyView"
 import "./results.css"
+import "./easyView.css"
 
 export type CommentaryState =
   | { status: "idle" }
@@ -802,6 +804,40 @@ function Diagnostics({ r }: { r: PipelineResult }) {
   )
 }
 
+/* ── reading level ─────────────────────────────────────────── */
+type ResultsLevel = "regular" | "easy" | "technical"
+const LEVEL_KEY = "augie.resultsLevel"
+function readLevel(): ResultsLevel {
+  try {
+    const v = localStorage.getItem(LEVEL_KEY)
+    return v === "easy" ? "easy" : "regular"
+  } catch {
+    return "regular"
+  }
+}
+
+function ViewSwitch({ view, onPick }: { view: ResultsLevel; onPick: (v: ResultsLevel) => void }) {
+  return (
+    <div className="view-switch no-print">
+      <span className="view-switch-label">Show results as</span>
+      <div className="seg" role="group" aria-label="How much detail to show">
+        <button type="button" aria-pressed={view === "easy"} onClick={() => onPick("easy")}>
+          Easy
+        </button>
+        <button type="button" aria-pressed={view === "regular"} onClick={() => onPick("regular")}>
+          Regular
+        </button>
+        <button type="button" disabled title="Coming soon">
+          Technical <span className="view-soon">soon</span>
+        </button>
+      </div>
+      <span className="view-switch-hint">
+        {view === "easy" ? "Plain words, no statistics." : "The full readout with every caveat."}
+      </span>
+    </div>
+  )
+}
+
 const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /* ── the view ──────────────────────────────────────────────── */
@@ -840,6 +876,15 @@ export function ResultsView({
   const hatchId = `hatch-${useId().replace(/:/g, "")}`
   const live = mode === "live"
   const pct = (v: number) => `${Math.round(v * 100)}%`
+  const [view, setView] = useState<ResultsLevel>(readLevel)
+  function pickView(v: ResultsLevel) {
+    setView(v)
+    try {
+      localStorage.setItem(LEVEL_KEY, v)
+    } catch {
+      /* private window: the choice just isn't remembered */
+    }
+  }
 
   const [copied, setCopied] = useState<"idle" | "done" | "failed">("idle")
   async function copySummary() {
@@ -922,8 +967,14 @@ export function ResultsView({
         </Alert>
       )}
 
+      <ViewSwitch view={view} onPick={pickView} />
+
       {status}
 
+      {view === "easy" ? (
+        <EasyView result={result} live={live} />
+      ) : (
+      <>
       <Finding ledger={ledger} stale={t.weeksStale} dataEnd={t.dataEnd} />
 
       <div className="card kpi-strip" role="group" aria-label="How far to trust this run">
@@ -1012,6 +1063,8 @@ export function ResultsView({
       <Contributions r={result} ledger={ledger} />
       <Coefficients r={result} />
       <Diagnostics r={result} />
+      </>
+      )}
 
       <StepFooter onBack={onBack} backLabel={backLabel} onNext={onRerun} nextLabel={rerunLabel} />
     </div>
