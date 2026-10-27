@@ -120,7 +120,7 @@
 @media (prefers-reduced-motion: reduce) {
   .lp-process-card,
   .lp-process-num {
-    transition: box-shadow 0.2s ease, border-top-color 0.2s ease;
+    transition: box-shadow var(--dur-base) var(--ease), border-top-color var(--dur-base) var(--ease);
   }
 
   .lp-process-card:hover,

@@ -49,6 +49,7 @@
 
 .cov-body {
   padding: 16px 20px 18px;
+  animation: cov-fade var(--dur-base) var(--ease);
 }
 
 /* year axis — sits over the track column */
@@ -149,7 +150,7 @@
   border-radius: 2px;
   background: var(--color-navy);
   transform-origin: left center;
-  animation: cov-grow 0.7s cubic-bezier(0.2, 0.7, 0.2, 1) both;
+  animation: cov-grow 0.5s cubic-bezier(0.2, 0.7, 0.2, 1) both;
 }
 /* year boundaries: a light notch that reads over both hatching and bars */
 .cov-tick {
@@ -175,6 +176,11 @@
   font-weight: 600;
   line-height: 1.4;
   color: var(--color-ink-2);
+}
+@keyframes cov-fade {
+  from {
+    opacity: 0;
+  }
 }
 @keyframes cov-grow {
   from {
@@ -243,6 +249,13 @@
 /* table view */
 .cov-table-wrap {
   overflow-x: auto;
+  animation: cov-fade var(--dur-base) var(--ease);
+}
+.cov-table tbody tr {
+  transition: background-color var(--dur-base) var(--ease);
+}
+.cov-table tbody tr:hover {
+  background: var(--color-paper);
 }
 .cov-table-wrap:focus-visible {
   outline-offset: -3px;
@@ -296,8 +309,13 @@
 
 /* motion: bars don't grow in for people who asked for less of it */
 @media (prefers-reduced-motion: reduce) {
-  .cov-seg {
+  .cov-seg,
+  .cov-table-wrap,
+  .cov-body {
     animation: none;
+  }
+  .cov-table tbody tr {
+    transition: none;
   }
 }
 

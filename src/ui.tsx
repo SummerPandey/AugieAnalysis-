@@ -96,7 +96,7 @@ export function InfoTooltip({ tip }: { tip: string }) {
     <span style={{ position: "relative", display: "inline-flex" }}>
       <button
         type="button"
-        className="hit-44"
+        className="hit-44 info-btn"
         aria-label={`Info: ${tip}`}
         aria-expanded={show}
         onPointerDown={(e) => (pointer.current = e.pointerType)}
@@ -134,6 +134,7 @@ export function InfoTooltip({ tip }: { tip: string }) {
       {show && (
         <span
           role="tooltip"
+          className="tip-pop"
           style={{
             position: "absolute",
             bottom: "calc(100% + 6px)",
@@ -149,6 +150,7 @@ export function InfoTooltip({ tip }: { tip: string }) {
             padding: "8px 11px",
             borderRadius: 4,
             width: 240,
+            maxWidth: "calc(100vw - 32px)",
             zIndex: 100,
             pointerEvents: "none",
             boxShadow: "0 4px 12px rgba(0,0,0,0.2)",
@@ -165,14 +167,16 @@ export function InfoTooltip({ tip }: { tip: string }) {
 export function PageInfoButton({ title, children }: { title: string; children: ReactNode }) {
   const [open, setOpen] = useState(false)
   return (
-    <span style={{ position: "relative", display: "inline-flex", marginLeft: 8 }}>
+    <span
+      style={{ position: "relative", display: "inline-flex", marginLeft: 8 }}
+      onKeyDown={(e) => e.key === "Escape" && open && setOpen(false)}
+    >
       <button
         type="button"
-        className="hit-44"
+        className="hit-44 info-btn"
         aria-label={`Why this step: ${title}`}
         aria-expanded={open}
         onClick={() => setOpen((o) => !o)}
-        onKeyDown={(e) => e.key === "Escape" && setOpen(false)}
         style={{
           width: 26,
           height: 26,
@@ -198,6 +202,7 @@ export function PageInfoButton({ title, children }: { title: string; children: R
           <div
             role="dialog"
             aria-label={title}
+            className="pop-card"
             style={{
               position: "absolute",
               top: "calc(100% + 8px)",
@@ -217,12 +222,7 @@ export function PageInfoButton({ title, children }: { title: string; children: R
           >
             <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 8 }}>
               <p style={{ fontFamily: "var(--font-sans)", fontSize: 13, fontWeight: 700, color: T.tp }}>{title}</p>
-              <button
-                type="button"
-                aria-label="Close"
-                onClick={() => setOpen(false)}
-                style={{ background: "none", border: "none", color: T.ts, fontSize: 16, lineHeight: 1, cursor: "pointer", padding: 2 }}
-              >
+              <button type="button" aria-label="Close" className="pop-close" onClick={() => setOpen(false)}>
                 ×
               </button>
             </div>
@@ -332,7 +332,7 @@ export function StepFooter({
           children
         )}
       </div>
-      <div style={{ display: "flex", gap: 8, marginLeft: "auto" }}>
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8, marginLeft: "auto" }}>
         {onBack && (
           <button type="button" className="btn btn-ghost" onClick={onBack}>
             <IconArrowLeft size={14} /> {backLabel}

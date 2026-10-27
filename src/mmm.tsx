@@ -13,7 +13,6 @@
  */
 import { useEffect, useMemo, useRef, useState, type ReactNode } from "react"
 import type { PipelineResult } from "./api"
-import { T } from "./theme"
 import { SiteHeader, SiteFooter, AugieMark } from "./chrome"
 import { DATA_SOURCES } from "./projectStatus"
 import { SourceStatusBadge } from "./sourceStatus"
@@ -420,7 +419,7 @@ function SettingsStep({
 
         <div className="setting card">
           <div className="setting-head">
-            <span className="field-label" id="harm-l">
+            <span className="field-label">
               Annual cycle harmonics
             </span>
             <InfoTooltip tip="Smooth sine and cosine waves that trace the shape of the admissions year. More waves follow the shape more closely, and eventually start chasing noise." />
@@ -469,25 +468,25 @@ function SettingsStep({
 
         <div className="setting card setting-wide">
           <fieldset className="flag-set">
-          <legend className="field-label">Admissions calendar</legend>
-          <p className="setting-help" style={{ marginTop: 0 }}>
-            Flags for the periods the college already knows are busy. Turn one off to see how much of the year it explains.
-          </p>
-          <div className="flag-grid">
-            {FLAG_INFO.map((f) => (
-              <label key={f.key} className={`flag${f.key === "peak_deadline" ? " flag-peak" : ""}`}>
-                <input
-                  type="checkbox"
-                  checked={settings.seasonFlags[f.key]}
-                  onChange={(e) => onChange({ ...settings, seasonFlags: { ...settings.seasonFlags, [f.key]: e.target.checked } })}
-                />
-                <span>
-                  <strong>{f.label}</strong>
-                  <small>{f.weeks}</small>
-                </span>
-              </label>
-            ))}
-          </div>
+            <legend className="field-label">Admissions calendar</legend>
+            <p className="setting-help" style={{ marginTop: 0 }}>
+              Flags for the periods the college already knows are busy. Turn one off to see how much of the year it explains.
+            </p>
+            <div className="flag-grid">
+              {FLAG_INFO.map((f) => (
+                <label key={f.key} className={`flag${f.key === "peak_deadline" ? " flag-peak" : ""}`}>
+                  <input
+                    type="checkbox"
+                    checked={settings.seasonFlags[f.key]}
+                    onChange={(e) => onChange({ ...settings, seasonFlags: { ...settings.seasonFlags, [f.key]: e.target.checked } })}
+                  />
+                  <span>
+                    <strong>{f.label}</strong>
+                    <small>{f.weeks}</small>
+                  </span>
+                </label>
+              ))}
+            </div>
           </fieldset>
         </div>
       </div>
@@ -583,7 +582,7 @@ function SampleRunStep({
         </div>
       </div>
       {(running || stage > 0) && (
-        <div className="card" role="status" aria-live="polite" style={{ padding: 20 }}>
+        <div className="card run-card" role="status" aria-live="polite">
           <RunStage steps={SAMPLE_STAGES} done={stage} running={running} />
         </div>
       )}
@@ -636,17 +635,19 @@ function LiveRunStep({
           the AI readout follows once the numbers are in.
         </p>
       </div>
-      {running && (
-        <div role="status" aria-live="polite" className="live-run-status">
-          <Spinner size={14} />
-          <span>
-            Fetching data and fitting the model…{" "}
-            <span className="num" aria-hidden="true">
-              {elapsed}s
+      <div role="status" aria-live="polite" className="live-run-slot">
+        {running && (
+          <div className="live-run-status">
+            <Spinner size={14} />
+            <span>
+              Fetching data and fitting the model…{" "}
+              <span className="num" aria-hidden="true">
+                {elapsed}s
+              </span>
             </span>
-          </span>
-        </div>
-      )}
+          </div>
+        )}
+      </div>
       {error && (
         <div style={{ width: "100%", textAlign: "left" }}>
           <Alert variant="error" title="The run didn't finish">
@@ -654,11 +655,10 @@ function LiveRunStep({
           </Alert>
         </div>
       )}
-      {!running && (
-        <button type="button" onClick={onRun} className="btn btn-primary btn-lg btn-block">
-          {error ? "Try again" : "Run the model"} <span className="arrow"><IconArrowRight size={14} /></span>
-        </button>
-      )}
+      <button type="button" onClick={onRun} disabled={running} className="btn btn-primary btn-lg btn-block">
+        {running ? "Running…" : error ? "Try again" : "Run the model"}{" "}
+        <span className="arrow"><IconArrowRight size={14} /></span>
+      </button>
       <button type="button" onClick={onBack} className="btn btn-ghost btn-sm">
         <IconArrowLeft size={14} /> Back to overview
       </button>
@@ -865,5 +865,3 @@ export default function MMMWorkflow({
     </div>
   )
 }
-
-export { T }

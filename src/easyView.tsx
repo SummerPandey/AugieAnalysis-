@@ -206,6 +206,7 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
             <i className="easy-key-dash" style={{ color: T.modeled }} /> The forecast
           </span>
         </div>
+        <div className="easy-chart-box">
         <ResponsiveContainer width="100%" height={240}>
           <LineChart data={result.weekly} margin={{ top: 10, right: 10, bottom: 0, left: 0 }}>
             <CartesianGrid stroke={T.grid} vertical={false} />
@@ -216,6 +217,7 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
             <Line type="monotone" dataKey="predicted" name="The forecast" stroke={T.modeled} strokeWidth={2} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
           </LineChart>
         </ResponsiveContainer>
+        </div>
         <p className="easy-body easy-chart-note">Each tall spike is the application deadline in the fall.</p>
         {peaks.length > 0 && (
           <ul className="easy-peaks">

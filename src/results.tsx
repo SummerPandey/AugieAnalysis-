@@ -83,6 +83,9 @@ function IconCalendar({ size = 12 }: { size?: number }) {
     </svg>
   )
 }
+/** A card whose children (header, body) carry their own padding. */
+const flushCard = { ...card, padding: 0 }
+
 /** Signed number with a real minus sign. */
 // null/NaN can come back from the backend for degenerate fits; show a dash instead of crashing
 const signed = (v: number | null | undefined, d = 2) =>
@@ -130,7 +133,7 @@ function Ledger({ rows, modeled }: { rows: LedgerRow[]; modeled: number }) {
   // scale bars to the channels; the baseline would flatten every one of them
   const max = Math.max(...rows.filter((r) => r.key !== "baseline").map((r) => Math.abs(r.share)), 0.0001)
   return (
-    <div style={{ ...card, padding: 0 }}>
+    <div style={flushCard}>
       <SectionHeader
         title="What each driver contributed"
         caption="Modeled applications over the whole window, assigned to each driver by the model. These are model allocations, not measured causes. Each verdict comes from the model's own checks: whether marketing beat the calendar alone on unseen weeks, the sign, overlap with other channels, and how many weeks had activity."
@@ -393,7 +396,7 @@ function ActualVsModeled({ r, hatchId, live }: { r: PipelineResult; hatchId: str
   const ticks = useMemo(() => quarterTicks(r.weekly.map((w) => w.date)), [r])
   const peaks = useMemo(() => yearlyPeaks(r.weekly), [r])
   return (
-    <div style={{ ...card, padding: 0 }}>
+    <div style={flushCard}>
       <SectionHeader
         title="Actual vs. modeled applications"
         caption={
@@ -404,7 +407,7 @@ function ActualVsModeled({ r, hatchId, live }: { r: PipelineResult; hatchId: str
           </>
         }
       />
-      <div className="section-body">
+      <div className="section-body chart-box">
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={r.weekly} margin={{ top: 22, right: 12, bottom: 0, left: 0 }}>
             <defs>
@@ -475,7 +478,7 @@ function DeadlineReplay({ r, live }: { r: PipelineResult; live: boolean }) {
   const yTicks = Array.from({ length: top / step + 1 }, (_, i) => i * step)
   const lastYear = seasons[seasons.length - 1].year
   return (
-    <div style={{ ...card, padding: 0 }}>
+    <div style={flushCard}>
       <SectionHeader
         title="The deadline season, year by year"
         caption="Weeks 36–52 of each year, on one scale. The gap at the peak is what the model can't explain. That's worth knowing, not proof of marketing lift."
@@ -501,6 +504,7 @@ function DeadlineReplay({ r, live }: { r: PipelineResult; live: boolean }) {
                     </span>
                   )}
                 </figcaption>
+                <div className="chart-box-sm">
                 <ResponsiveContainer width="100%" height={150}>
                   <LineChart data={s.points} margin={{ top: 10, right: 6, bottom: 0, left: 0 }}>
                     <CartesianGrid stroke={T.grid} vertical={false} />
@@ -513,6 +517,7 @@ function DeadlineReplay({ r, live }: { r: PipelineResult; live: boolean }) {
                     {s.peak && <ReferenceDot x={s.peak.week} y={s.peak.actual} r={4} fill={T.actual} stroke="#fff" strokeWidth={2} />}
                   </LineChart>
                 </ResponsiveContainer>
+                </div>
               </figure>
             )
           })}
@@ -559,7 +564,7 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
   const keys = orderSeries(view === "ads" && hasAds ? shown.filter((k) => k !== "baseline") : shown)
   const ticks = useMemo(() => quarterTicks(r.channel_contribution_weekly.map((w) => w.date)), [r])
   return (
-    <div style={{ ...card, padding: 0 }}>
+    <div style={flushCard}>
       <SectionHeader
         title="Where modeled applications came from, week by week"
         caption={
@@ -581,6 +586,7 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
         }
       />
       <div className="section-body">
+        <div className="chart-box">
         <ResponsiveContainer width="100%" height={300}>
           <ComposedChart data={r.channel_contribution_weekly} margin={{ top: 8, right: 12, bottom: 0, left: 0 }}>
             <CartesianGrid stroke={T.grid} vertical={false} />
@@ -604,6 +610,7 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
             ))}
           </ComposedChart>
         </ResponsiveContainer>
+        </div>
         <div className="series-legend" aria-label="Legend">
           {keys.map((k) => (
             <span key={k}>
@@ -827,7 +834,7 @@ function ViewSwitch({ view, onPick }: { view: ResultsLevel; onPick: (v: ResultsL
         <button type="button" aria-pressed={view === "regular"} onClick={() => onPick("regular")}>
           Regular
         </button>
-        <button type="button" disabled title="Coming soon">
+        <button type="button" disabled aria-label="Technical view, coming soon" title="Coming soon">
           Technical <span className="view-soon">soon</span>
         </button>
       </div>
@@ -971,6 +978,7 @@ export function ResultsView({
 
       {status}
 
+      <div key={view} className="results-pane">
       {view === "easy" ? (
         <EasyView result={result} live={live} />
       ) : (
@@ -1065,6 +1073,7 @@ export function ResultsView({
       <Diagnostics r={result} />
       </>
       )}
+      </div>
 
       <StepFooter onBack={onBack} backLabel={backLabel} onNext={onRerun} nextLabel={rerunLabel} />
     </div>

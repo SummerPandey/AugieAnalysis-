@@ -138,7 +138,7 @@ export function IconClock(p: IconProps) {
 
 export function IconChevron({ open, ...p }: IconProps & { open?: boolean }) {
   return (
-    <Svg {...p} style={{ transition: "transform 0.18s ease", transform: open ? "rotate(90deg)" : "none", ...p.style }}>
+    <Svg {...p} style={{ transition: "transform var(--dur-base) var(--ease)", transform: open ? "rotate(90deg)" : "none", ...p.style }}>
       <path d="M8 5l5 5-5 5" />
     </Svg>
   )

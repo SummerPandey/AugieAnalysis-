@@ -1,5 +1,28 @@
 /* ── results view ─────────────────────────────────────────── */
 
+/* the Easy / Regular body: a short fade so switching views doesn't flash.
+   The pane is a flex column like .wf-stack, so spacing is unchanged. */
+.results-pane {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-7);
+  animation: results-pane-in var(--dur-base) var(--ease) both;
+}
+@keyframes results-pane-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (max-width: 640px) {
+  .results .seg button {
+    min-height: 40px;
+  }
+}
+
 /* the one-sentence finding: editorial serif, one gold marker */
 .finding {
   padding: 4px 0 2px;
@@ -70,8 +93,6 @@
   letter-spacing: normal;
   text-transform: none;
   color: inherit;
-  border-bottom-width: 1px;
-  border-bottom-color: var(--color-line);
   white-space: normal;
   background: #fff;
   border-bottom: 1px solid var(--color-line);
@@ -85,9 +106,7 @@
   vertical-align: top;
   padding-top: 15px;
 }
-.ledger td:last-child {
-  text-align: left;
-}
+.ledger td:last-child,
 .ledger th:last-child {
   text-align: left;
 }
@@ -303,9 +322,24 @@
 }
 .ai-ask-row .field {
   flex: 1;
+  min-width: 0;
+}
+@media (max-width: 480px) {
+  .ai-ask-row {
+    flex-direction: column;
+  }
+  .ai-q {
+    max-width: 100%;
+  }
 }
 
-/* charts */
+/* charts: the card keeps the chart's height while recharts measures its width */
+.chart-box {
+  min-height: 300px;
+}
+.chart-box-sm {
+  min-height: 150px;
+}
 .series-legend {
   display: flex;
   flex-wrap: wrap;
@@ -421,6 +455,7 @@
   font-weight: 700;
   color: var(--color-navy);
   background: #fff;
+  transition: background-color var(--dur-fast) var(--ease);
 }
 .disclosure-summary::-webkit-details-marker {
   display: none;
@@ -544,6 +579,9 @@
   }
   .results details:not([open]) > :not(summary) {
     display: block;
+  }
+  .results-pane {
+    animation: none;
   }
   .ai-card-off {
     display: none;

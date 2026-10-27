@@ -109,6 +109,7 @@ function displayName(email: string | null): string {
 }
 
 const errText = (err: unknown) => (err instanceof Error ? err.message : String(err))
+const prefersReducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)").matches
 
 /* ── AI chat widget ────────────────────────────────────────── */
 /** The model sometimes answers with **bold** markdown; show it as bold, not asterisks. */
@@ -169,18 +170,17 @@ function ChatWidget({
   const boxRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "end" })
+    bottomRef.current?.scrollIntoView({ behavior: prefersReducedMotion() ? "auto" : "smooth", block: "end" })
   }, [msgs, typing])
   useEffect(() => {
-    if (open) setTimeout(() => inputRef.current?.focus(), 60)
+    if (!open) return
+    const t = setTimeout(() => inputRef.current?.focus(), 60)
+    return () => clearTimeout(t)
   }, [open])
   // closing the panel or changing page ends pointer mode
   useEffect(() => {
-    if (!open) setPointing(false)
-  }, [open])
-  useEffect(() => {
     setPointing(false)
-  }, [page])
+  }, [open, page])
 
   // pointer mode: hover outlines the part under the pointer, a click on it
   // is captured so the page's own buttons and links don't fire
@@ -461,10 +461,15 @@ function ChatWidget({
 
 /* ── intro (once per session) ──────────────────────────────── */
 function IntroScreen({ onDone }: { onDone: () => void }) {
+  // a ref, so a re-render of the parent can't restart the timer
+  const doneRef = useRef(onDone)
   useEffect(() => {
-    const t = setTimeout(onDone, 1100)
+    doneRef.current = onDone
+  })
+  useEffect(() => {
+    const t = setTimeout(() => doneRef.current(), prefersReducedMotion() ? 400 : 1100)
     return () => clearTimeout(t)
-  }, [onDone])
+  }, [])
   return (
     <div className="hero intro" role="status" aria-label="Loading Augie Analysis">
       <div className="intro-inner animate-fade-in">
@@ -585,15 +590,13 @@ function LoginPage({
         <button type="button" className="login-back" onClick={onBack}>
           ← Back
         </button>
-        <div style={{ textAlign: "center", marginBottom: 28 }}>
-          <div style={{ display: "flex", justifyContent: "center" }}>
+        <div className="login-head">
+          <div className="login-mark">
             <AugieMark size={48} />
           </div>
-          <p className="eyebrow eyebrow-rule" style={{ justifyContent: "center", color: "rgba(255,255,255,0.6)", marginTop: 20 }}>
-            Augustana College
-          </p>
-          <h1 className="display t-h3" style={{ color: "#fff", marginTop: 8 }} tabIndex={-1} data-page-title>
-            Sign in to <em style={{ color: T.gold }}>Augie Analysis</em>
+          <p className="eyebrow eyebrow-rule login-eyebrow">Augustana College</p>
+          <h1 className="display t-h3 login-title" tabIndex={-1} data-page-title>
+            Sign in to <em>Augie Analysis</em>
           </h1>
         </div>
         {notice && (
@@ -601,7 +604,7 @@ function LoginPage({
             <IconWarning size={15} /> {notice}
           </p>
         )}
-        <form onSubmit={submit} style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+        <form onSubmit={submit} className="login-form" aria-busy={loading || undefined}>
           <div>
             <label htmlFor="email" className="field-label login-label">
               Email
@@ -654,15 +657,15 @@ function LoginPage({
 function DataStatusSection() {
   return (
     <section aria-labelledby="data-status-title" className="data-status">
-      <div style={{ marginBottom: 22 }}>
+      <div className="data-status-head">
         <p className="eyebrow eyebrow-rule">Data &amp; next steps</p>
-        <h2 id="data-status-title" className="display t-h3" style={{ marginTop: 8 }}>
+        <h2 id="data-status-title" className="display t-h3">
           Where the data <em>stands</em>
         </h2>
         <p className="step-lead">What the model has to learn from today, and what's still needed to firm up its estimates.</p>
       </div>
       <DataCoveragePanel />
-      <div style={{ marginTop: 20 }}>
+      <div className="data-status-list">
         <ProjectChecklist variant="compact" headingLevel={3} collapsible />
       </div>
     </section>
@@ -939,7 +942,6 @@ function Overview({
 }
 
 /* ── root ──────────────────────────────────────────────────── */
-/** Steer the AI readout with the page's own verdicts so the two can't disagree. */
 /** Keeps the AI consistent with the verdicts on screen (used for the readout and every follow-up). */
 function verdictSteer(r: PipelineResult): string {
   const rows = driverLedger(r).filter((x) => x.key !== "baseline")
@@ -1004,14 +1006,24 @@ export default function App() {
     else location.hash = ROUTES[p]
   }, [])
 
-  // on every page change after the first: top of page, focus the page title
+  // on every page change after the first: jump to the top (not a long smooth
+  // scroll back) and focus the page title. Lazy pages mount a moment later, so
+  // keep looking for the title for about half a second.
   useEffect(() => {
     if (firstRender.current) {
       firstRender.current = false
       return
     }
-    window.scrollTo(0, 0)
-    requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-page-title], [data-step-title]")?.focus({ preventScroll: true }))
+    window.scrollTo({ top: 0, left: 0, behavior: "instant" })
+    let frames = 0
+    let raf = 0
+    const focusTitle = () => {
+      const el = document.querySelector<HTMLElement>("[data-page-title], [data-step-title]")
+      if (el) el.focus({ preventScroll: true })
+      else if (++frames < 30) raf = requestAnimationFrame(focusTitle)
+    }
+    raf = requestAnimationFrame(focusTitle)
+    return () => cancelAnimationFrame(raf)
   }, [page])
 
   // keep the latest live run for this tab, so a refresh doesn't re-run it

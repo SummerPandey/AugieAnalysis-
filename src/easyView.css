@@ -15,14 +15,25 @@
   color: var(--color-ink-3);
 }
 .view-switch .seg button {
-  min-height: 34px;
+  min-height: 36px;
   padding-inline: 16px;
   font-size: 13.5px;
+}
+.view-switch-hint {
+  min-height: 1.4em; /* the two hints differ in length: keep the row from reflowing */
+}
+@media (max-width: 640px) {
+  .view-switch .seg button {
+    min-height: 40px;
+  }
 }
 .view-switch .seg button:disabled {
   cursor: not-allowed;
   color: var(--color-ink-3);
   background: transparent;
+}
+.view-switch .seg button:focus-visible {
+  position: relative; /* keep the focus ring above the neighbouring segment */
 }
 .view-soon {
   margin-left: 4px;
@@ -230,6 +241,9 @@
 .easy-ch-what {
   font-size: 13.5px;
   color: var(--color-ink-3);
+}
+.easy-chart-box {
+  min-height: 240px;
 }
 .easy-foot > div {
   display: grid;

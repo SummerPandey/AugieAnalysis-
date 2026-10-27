@@ -10,8 +10,8 @@ import { SceneDemo } from "./scenes/Scene6Demo"
 
 /**
  * 30-second animated explainer for the "How it works" page. Seven scenes
- * sharing 30 seconds (about 4.3 s each), driven by one interval tick. Visuals are plain SVG
- * shapes animated with CSS; captions and controls are HTML so they stay
+ * sharing 30 seconds (about 4.3 s each), driven by one interval tick. Visuals are plain
+ * SVG shapes animated with CSS; captions and controls are HTML so they stay
  * readable and screen-reader friendly at every width.
  */
 
@@ -106,6 +106,11 @@ export function ExplainerVideo({ onDemo }: { onDemo?: () => void } = {}) {
     return () => window.clearTimeout(timer.current)
   }, [])
 
+  // The big overlay button disappears once started; keep keyboard focus on the controls.
+  useEffect(() => {
+    if (started && document.activeElement === document.body) playButtonRef.current?.focus()
+  }, [started])
+
   // When the scene changes, keep the old one mounted so it can fade out.
   useEffect(() => {
     const last = lastSlot.current
@@ -138,8 +143,6 @@ export function ExplainerVideo({ onDemo }: { onDemo?: () => void } = {}) {
       setElapsed(0)
       setRun((r) => r + 1)
     }
-    // the big overlay button disappears once started; keep keyboard focus on the controls
-    if (!started) requestAnimationFrame(() => playButtonRef.current?.focus())
     setPlaying(true)
   }
 
@@ -218,7 +221,12 @@ export function ExplainerVideo({ onDemo }: { onDemo?: () => void } = {}) {
       </p>
 
       <div className="lp-video-controls">
-        <button ref={playButtonRef} type="button" className="btn btn-outline btn-sm lp-video-btn" onClick={togglePlay}>
+        <button
+          ref={playButtonRef}
+          type="button"
+          className="btn btn-outline btn-sm lp-video-btn lp-video-play"
+          onClick={togglePlay}
+        >
           {playing ? "Pause" : ended ? "Play again" : "Play"}
         </button>
         <button

@@ -284,7 +284,7 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsib
 
       <div id={`${uid}-body`} className="cl-dropdown-body" hidden={!open}>
         {/* ── progress ── */}
-      <div className="cl-summary">
+        <div className="cl-summary">
         <p className="cl-count" aria-live="polite" aria-atomic="true">
           <strong>
             {doneCount} of {total}
@@ -302,10 +302,10 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsib
         >
           <span style={{ width: `${percent}%` }} />
         </div>
-      </div>
+        </div>
 
-      {/* ── owner filter (full only) ── */}
-      {!compact && (
+        {/* ── owner filter (full only) ── */}
+        {!compact && (
         <>
           <div className="cl-filter no-print" role="group" aria-label="Filter by owner">
             {[null, ...OWNERS].map((owner) => {
@@ -333,10 +333,10 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsib
             {ownerFilter ? `Showing ${shownCount} items owned by ${ownerFilter}` : ""}
           </p>
         </>
-      )}
+        )}
 
-      {/* ── groups ── */}
-      <div className="cl-groups">
+        {/* ── groups ── */}
+        <div className="cl-groups">
         {phases.map((p) => {
           const items = CHECKLIST.filter((i) => i.phase === p.id)
           const visible = items.filter(matchesOwner)
@@ -387,10 +387,10 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsib
             </section>
           )
         })}
-      </div>
+        </div>
 
-      {/* ── footer: where the ticks live + reset ── */}
-      <div className="cl-foot">
+        {/* ── footer: where the ticks live + reset ── */}
+        <div className="cl-foot">
         <p className="cl-note">
           {!persisted && <IconWarning size={14} />}
           <span>
@@ -414,7 +414,7 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsib
             {justReset && !hasOverrides ? "Checklist reset to defaults" : ""}
           </p>
         </div>
-      </div>
+        </div>
       </div>
     </section>
   )

@@ -309,7 +309,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .lp-reading-step {
-    transition: box-shadow 0.2s ease, border-color 0.2s ease;
+    transition: box-shadow var(--dur-base) var(--ease), border-color var(--dur-base) var(--ease);
   }
 
   .lp-reading-step:hover,

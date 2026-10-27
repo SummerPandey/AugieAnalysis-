@@ -1,5 +1,59 @@
 /* ── MMM workflow: sources, settings, run ─────────────────── */
 
+/* short ease-out entrances shared by steps, popovers and disclosures
+ * (index.css already zeroes animation under prefers-reduced-motion) */
+@keyframes wf-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+@keyframes wf-pop {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.wf-stack {
+  animation: wf-in var(--dur-base) var(--ease);
+}
+.tip-pop {
+  animation: wf-pop var(--dur-fast) var(--ease);
+}
+.pop-card {
+  animation: wf-pop var(--dur-base) var(--ease);
+}
+.disclosure[open] > .disclosure-body {
+  animation: wf-in var(--dur-base) var(--ease);
+}
+.info-btn {
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    border-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.pop-close {
+  display: grid;
+  place-items: center;
+  min-width: 32px;
+  min-height: 32px;
+  margin: -6px -8px -6px 0;
+  background: none;
+  border: none;
+  border-radius: 3px;
+  color: var(--color-ink-2);
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  transition:
+    background-color var(--dur-fast) var(--ease),
+    color var(--dur-fast) var(--ease);
+}
+.pop-close:hover {
+  background: var(--color-blue-50);
+  color: var(--color-navy);
+}
+
 .step-footer {
   display: flex;
   align-items: center;
@@ -40,6 +94,10 @@
 .src-grid-quiet .src-facts {
   padding-left: 0;
 }
+.run-card {
+  padding: 20px;
+  min-height: 190px;
+}
 .src-tile {
   display: flex;
   flex-direction: column;
@@ -50,8 +108,9 @@
   border-radius: 4px;
   box-shadow: var(--shadow-sm);
   transition:
-    border-color 0.2s ease,
-    box-shadow 0.2s ease;
+    border-color var(--dur-base) var(--ease),
+    box-shadow var(--dur-base) var(--ease),
+    background-color var(--dur-base) var(--ease);
 }
 .src-tile.src-on {
   border-color: var(--color-line-strong);
@@ -177,7 +236,13 @@
   flex-shrink: 0;
   border-radius: 999px;
   background: var(--color-line-strong);
-  transition: background-color 0.18s ease;
+  transition: background-color var(--dur-base) var(--ease);
+}
+.switch:hover .switch-track {
+  background: var(--color-ink-3);
+}
+.switch:hover input:checked + .switch-track {
+  background: var(--color-navy-950);
 }
 .switch-thumb {
   position: absolute;
@@ -188,7 +253,7 @@
   border-radius: 50%;
   background: #fff;
   box-shadow: 0 1px 2px rgba(0, 15, 55, 0.25);
-  transition: transform 0.18s ease;
+  transition: transform var(--dur-base) var(--ease);
 }
 .switch input:checked + .switch-track {
   background: var(--color-navy);
@@ -341,8 +406,15 @@
   background: #fff;
   cursor: pointer;
   transition:
-    border-color 0.15s ease,
-    background-color 0.15s ease;
+    border-color var(--dur-fast) var(--ease),
+    background-color var(--dur-fast) var(--ease);
+}
+.flag:has(input:focus-visible) {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+}
+.flag input:focus-visible {
+  outline: none;
 }
 .flag:hover {
   border-color: var(--color-navy);
@@ -443,6 +515,13 @@
   border: 1.5px solid var(--color-line-strong);
   background: #fff;
   color: var(--color-navy);
+  transition:
+    background-color var(--dur-base) var(--ease),
+    border-color var(--dur-base) var(--ease),
+    color var(--dur-base) var(--ease);
+}
+.run-stages li {
+  transition: color var(--dur-base) var(--ease);
 }
 .is-done .run-node {
   background: var(--color-navy);
@@ -465,6 +544,12 @@
   text-align: center;
   border-top: 3px solid var(--color-gold);
 }
+.live-run-slot {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  min-height: 22px;
+}
 .live-run-lead {
   font-size: 15px;
   line-height: 1.65;
@@ -472,6 +557,7 @@
 }
 .live-run-status {
   display: inline-flex;
+  min-height: 22px;
   align-items: center;
   gap: 10px;
   font-size: 14px;

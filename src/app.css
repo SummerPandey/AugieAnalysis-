@@ -187,10 +187,36 @@
   max-width: 400px;
   padding-top: 8px;
 }
+.login-head {
+  margin-bottom: 28px;
+  text-align: center;
+}
+.login-mark {
+  display: flex;
+  justify-content: center;
+}
+.login-eyebrow {
+  justify-content: center;
+  margin-top: 20px;
+  color: rgba(255, 255, 255, 0.6);
+}
+.login-title {
+  margin-top: 8px;
+  color: #fff;
+}
+.login-title em {
+  color: var(--color-gold);
+}
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
 .login-back {
   position: absolute;
-  top: -40px;
+  top: -44px;
   left: 0;
+  min-height: 40px;
   padding: 8px 0;
   background: none;
   border: 0;
@@ -199,6 +225,7 @@
   font-weight: 600;
   color: rgba(255, 255, 255, 0.72);
   cursor: pointer;
+  transition: color var(--dur-base) var(--ease);
 }
 .login-back:hover {
   color: var(--color-gold);
@@ -350,7 +377,7 @@
   transform: translateX(3px);
 }
 .option-cta svg {
-  transition: transform 0.18s ease;
+  transition: transform var(--dur-base) var(--ease);
 }
 .option-soon {
   width: 100%;
@@ -387,6 +414,15 @@
   margin-top: 64px;
   padding-top: 44px;
   border-top: 1px solid var(--color-line);
+}
+.data-status-head {
+  margin-bottom: 22px;
+}
+.data-status-head .display {
+  margin-top: 8px;
+}
+.data-status-list {
+  margin-top: 20px;
 }
 
 /* overview (signed in) */
@@ -533,6 +569,7 @@
 .chat-panel {
   width: min(370px, calc(100vw - 32px));
   height: min(500px, calc(100vh - 110px));
+  height: min(500px, calc(100dvh - 110px));
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -555,21 +592,25 @@
   color: #fff;
 }
 .chat-close {
-  width: 32px;
-  height: 32px;
+  width: 40px;
+  height: 40px;
+  margin: -4px -8px -4px 0;
   border: 0;
   background: none;
   color: rgba(255, 255, 255, 0.7);
   font-size: 20px;
   line-height: 1;
   cursor: pointer;
+  transition: color var(--dur-base) var(--ease);
 }
 .chat-close:hover {
   color: var(--color-gold);
 }
 .chat-log {
   flex: 1;
+  min-height: 0;
   overflow-y: auto;
+  overscroll-behavior: contain;
   display: flex;
   flex-direction: column;
   gap: 8px;
@@ -640,6 +681,12 @@
   background: var(--color-navy);
   color: var(--color-gold);
   cursor: pointer;
+  transition:
+    background-color var(--dur-base) var(--ease),
+    color var(--dur-base) var(--ease);
+}
+.chat-send:hover:not([aria-disabled='true']) {
+  background: var(--color-navy-900);
 }
 .chat-send[aria-disabled='true'] {
   background: var(--color-sand);
@@ -664,11 +711,14 @@
   box-shadow: 0 6px 20px rgba(0, 15, 55, 0.35);
   cursor: pointer;
   transition:
-    transform 0.15s ease,
-    box-shadow 0.15s ease;
+    transform var(--dur-base) var(--ease),
+    box-shadow var(--dur-base) var(--ease);
 }
 .chat-toggle:hover {
   transform: translateY(-1px);
+}
+.chat-toggle:active {
+  transform: none;
 }
 .chat-toggle.on-navy {
   background: var(--color-gold);
@@ -686,7 +736,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  height: 30px;
+  height: 32px;
   padding: 0 9px;
   border: 1px solid rgba(255, 255, 255, 0.3);
   border-radius: 3px;
@@ -695,6 +745,10 @@
   font-size: 12.5px;
   white-space: nowrap;
   cursor: pointer;
+  transition:
+    border-color var(--dur-base) var(--ease),
+    color var(--dur-base) var(--ease),
+    background-color var(--dur-base) var(--ease);
 }
 .chat-point:hover {
   border-color: var(--color-gold);
@@ -728,6 +782,7 @@
   font-size: 13px;
 }
 .explain-cancel {
+  min-height: 32px;
   padding: 5px 12px;
   border: 1px solid var(--color-gold);
   border-radius: 3px;
@@ -736,6 +791,9 @@
   font: inherit;
   font-size: 13px;
   cursor: pointer;
+  transition:
+    background-color var(--dur-base) var(--ease),
+    color var(--dur-base) var(--ease);
 }
 .explain-cancel:hover {
   background: var(--color-gold);
@@ -750,18 +808,23 @@
   border-radius: 2px;
   background: rgba(255, 221, 0, 0.14);
   transition:
-    top 0.12s ease,
-    left 0.12s ease,
-    width 0.12s ease,
-    height 0.12s ease;
+    top 0.12s ease-out,
+    left 0.12s ease-out,
+    width 0.12s ease-out,
+    height 0.12s ease-out;
 }
 body.explain-picking,
 body.explain-picking * {
   cursor: crosshair !important;
 }
-@media (prefers-reduced-motion: reduce) {
-  .explain-box {
-    transition: none;
+
+@media (max-width: 520px) {
+  .chat {
+    right: 16px;
+    bottom: max(16px, env(safe-area-inset-bottom));
+  }
+  .chat-point {
+    height: 36px;
   }
 }
 
