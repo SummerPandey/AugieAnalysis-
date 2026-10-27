@@ -342,6 +342,7 @@ export function StepFooter({
           <button
             type="button"
             className="btn btn-primary"
+            data-guide="step-next"
             onClick={() => !nextDisabled && onNext()}
             aria-disabled={nextDisabled || undefined}
           >

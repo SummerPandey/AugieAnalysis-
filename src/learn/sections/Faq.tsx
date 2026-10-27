@@ -1,51 +1,53 @@
+import type { ReactNode } from "react"
 import { IconArrowRight, IconChevron, IconInfo } from "../../icons"
+import { GlossaryList, Term } from "../../glossary"
 import "./faq.css"
 
 type FaqItem = {
   heading: string
-  body: string
+  body: ReactNode
   visual: "pair" | "bars" | "tag" | "steps" | "checklist" | "toggle" | "none"
 }
 
 const FAQS: FaqItem[] = [
   {
     heading: "Why not just use clicks?",
-    body: "Clicks only count people who click. Carnegie's reporting says most tracked conversions this year were view-through: people who saw an ad and applied without clicking. Those applications don't appear in Slate, so we can't check them there. A marketing mix model can potentially pick up effects that don't involve clicks, but it needs enough variation and history to separate them from seasonality and other influences.",
+    body: "Clicks only count people who clicked. Many applicants may have seen an ad and applied later without clicking. See \u201cWhat this tool is\u201d above for how the model tries to account for that.",
     visual: "pair",
   },
   {
-    heading: "Why is the fit on unseen weeks lower?",
-    body: "The 0.70 score measures fit on weeks the model learned from, where the calendar pattern does most of the work. The 0.60 score comes from walk-forward testing: the model trains on at least a year of earlier weeks and predicts later weeks it never saw. It is the more honest of the two numbers, though still a little flattering (see Cross-validation below), and it can fall below zero. The calendar-only model is the benchmark. It scores 0.78 on the same test, so marketing doesn't add measurable signal yet. Channel spend covers only about 38% of weeks, from October 2024 to January 2026, so more history is the main fix.",
+    heading: "Why are there two scores, 0.70 and 0.60?",
+    body: "0.70 grades the model on weeks it already studied, like marking a student on practice questions they memorized. 0.60 grades it on weeks it did not see, which is the fairer number. The calendar alone scores 0.78 on the same test, so marketing data has not helped yet. More spend history is the main fix.",
     visual: "bars",
   },
   {
     heading: "Why are some channels negative?",
-    body: "A negative estimate can mean channels ran in the same weeks and the data cannot separate them, or that weekly data is too coarse. It does not prove a channel hurt applications. These results are labeled Can't tell yet, and they are never a reason to cut a channel.",
+    body: "Sometimes the model's guess for a channel is below zero. That does not mean the channel hurt applications. It usually means channels ran in the same weeks, or there was not enough data to tell. We label these Can't tell yet, and they are never a reason to cut a channel.",
     visual: "tag",
   },
   {
     heading: "Does this prove a channel works?",
-    body: "No. The model learns from history, not from a controlled test, so it shows association, not proven cause. The best use is a small, time-boxed spend shift, followed by a re-run to see what changed.",
+    body: "No. It looks at past patterns. It is not causal, and it cannot show that spending caused applications. The best way to find out is a small planned change in spending, then a re-run.",
     visual: "steps",
   },
   {
     heading: "What would make it better?",
-    body: "- Longer channel spend history\n- Email sends and direct mail, which are not in the model yet\n- Recruitment events, school visits and their dates\n- Small, designed spend tests across regions or time periods\n- Enrollment and deposit data, so applications can be weighed by yield\n- Data after May 2026, so the current fall cycle is visible",
+    body: "- Longer channel spend history (ask Irene)\n- Email sends (Anthony) and direct mail (Lucas), which are not in the model yet\n- Billboard flight dates (Lucas)\n- Recruitment events, school visits and their dates\n- Small, planned spend tests across regions or time periods\n- Enrollment and deposit data, so applications can be weighed by how many students enroll\n- Data after May 2026, so the current fall cycle is visible",
     visual: "checklist",
   },
   {
     heading: "Demo or live?",
-    body: "The demo runs the same method on a synthetic sample shaped like Augustana's data, so every number is generated. Signing in runs the same method on the real data.",
+    body: "The demo uses made-up numbers shaped like our data, so you can practice reading results safely. Signing in (staff only) runs the same method on our real data.",
     visual: "toggle",
   },
 ]
 
 const GLOSSARY_BODY =
-  "- MMM (marketing mix model): estimates how much each channel may add to weekly applications beyond the admissions calendar.\n- Adstock: carryover. Part of a week's effect lingers into later weeks. The model uses a decay of 0.5 for every channel, so half carries forward. Real carryover may differ by channel.\n- Seasonality: the yearly admissions rhythm, such as the early-November spike in weeks 44 and 45.\n- Baseline: applications assigned to the admissions calendar and trend. In the current decomposition that is about 80 to 90% of modeled applications. This is a model-based allocation, not a causal measurement.\n- R-squared: how closely the model tracks weekly ups and downs. 1 is a perfect fit and 0 is no better than the average week. On unseen weeks it can fall below zero.\n- Cross-validation: five walk-forward tests, each trained on earlier weeks and scored on later ones. Scaling is fit on each training window only. The tuning strength (alpha) is picked on these same folds, which flatters the scores. A stricter check that picks it inside each training window scores both models lower, and the calendar alone still wins.\n- Multicollinearity (VIF): channels that rise and fall together, so their separate effects are hard to tell apart.\n- Directional: positive but shaky. Read it as a direction, not a size."
+  "- Can't tell yet: no conclusion either way. The data cannot separate this channel's effect. It does not mean the channel hurts.\n- Positive association: a hint worth testing. The channel moved up with applications. Not proof it caused them.\n- Directional: a weaker hint. Read the direction, not the size, because channels moved together.\n- Too little signal: the channel ran in too few weeks to tell. Collect more data.\n- calendar-only: a forecast that uses only the time of year. It is the benchmark marketing has to beat.\n- model-based allocation: how the model divides up its own predictions. It is not causal and not a count of where applicants came from.\n- Baseline: applications assigned to the calendar and trend. About 80 to 90% of modeled applications.\n- R-squared: a score for how well the model's guesses match reality. 1 is perfect, 0 is no better than guessing an average week, and below 0 is worse.\n- Cross-validation: a practice test on weeks the model has not seen. It is how we get the 0.60 score.\n- Multicollinearity (VIF): channels that rise and fall together, so the model cannot separate their effects. VIF is the number that flags it.\n- Adstock: carryover. An ad's effect can last into later weeks. We assume half carries over each week, for every channel.\n- Seasonality: the yearly admissions rhythm, such as the early-November spike in weeks 44 and 45."
 
-const GLOSSARY_HEADING = "Glossary"
+const GLOSSARY_HEADING = "Key words"
 
-const isList = (body: string) => body.startsWith("- ")
+const isList = (body: ReactNode): body is string => typeof body === "string" && body.startsWith("- ")
 const listItems = (body: string) =>
   body
     .split("\n")
@@ -156,8 +158,7 @@ export function FaqSection() {
           Questions and <em>glossary</em>
         </h2>
         <p className="lp-intro">
-          Quick answers to the questions new staff ask most, then the terms you will see on the
-          results page.
+          Quick answers to common questions, then the words you will see on the results page.
         </p>
       </div>
 
@@ -196,6 +197,17 @@ export function FaqSection() {
             </div>
           ))}
         </dl>
+        <details className="lp-faq-item">
+          <summary>
+            <h3 className="lp-faq-q">Words we use (full list)</h3>
+            <span className="lp-faq-chev" aria-hidden="true">
+              <IconChevron size={18} open={false} />
+            </span>
+          </summary>
+          <div className="lp-faq-body">
+            <GlossaryList />
+          </div>
+        </details>
       </div>
     </section>
   )

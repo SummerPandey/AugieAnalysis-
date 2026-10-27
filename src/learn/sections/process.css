@@ -128,3 +128,15 @@
     transform: none;
   }
 }
+
+.lp-process-list {
+  margin: 0;
+  padding-left: 1.1rem;
+  display: grid;
+  gap: 0.5rem;
+}
+.lp-process-caption {
+  margin: 0.5rem 0 0;
+  font-size: 0.85em;
+  opacity: 0.8;
+}

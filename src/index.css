@@ -674,6 +674,11 @@ select.field {
   letter-spacing: 0.03em;
   white-space: nowrap;
 }
+@media (max-width: 639px) {
+  .brand-sub-extra {
+    display: none;
+  }
+}
 .brand-crumb {
   display: flex;
   align-items: center;

@@ -21,8 +21,8 @@ export const CHANNEL_ORDER = [
 
 const LABELS: Record<string, string> = {
   baseline: "Baseline & seasonality",
-  meta_spend: "Meta (IG/FB)",
-  google_ppc_spend: "Google PPC",
+  meta_spend: "Meta (Instagram, Facebook)",
+  google_ppc_spend: "Google PPC (search ads)",
   snapchat_spend: "Snapchat",
   youtube_spend: "YouTube",
   display_spend: "Display Retargeting",
@@ -32,6 +32,16 @@ const LABELS: Record<string, string> = {
   mobile_footprinting_spend: "Mobile Footprinting",
   email_sends: "Email sends",
   direct_mail_spend: "Direct Mail",
+}
+
+/** One plain sentence per label, for tooltips and legends that have room. */
+export const CHANNEL_HINTS: Record<string, string> = {
+  baseline: "The normal pattern for the time of year.",
+  google_ppc_spend: "Pay-per-click search ads.",
+  display_spend: "Ads shown to people who already visited our site.",
+  google_ip_spend: "Ads aimed at chosen locations.",
+  mobile_footprinting_spend: "Ads shown to phones that were at chosen places.",
+  impressions: "Times an ad was shown.",
 }
 
 /** Display names (as used by the demo generator) → canonical keys. */
@@ -88,10 +98,10 @@ export type FeatureGroup = "Seasonality & trend" | "Advertising signals"
 
 const FEATURE_LABELS: Record<string, string> = {
   week_num: "Long-term trend",
-  peak_deadline: "Peak deadline (weeks 44–46)",
-  winter_surge: "Winter surge (weeks 1–8)",
-  yield_period: "Yield period (weeks 9–18)",
-  summer_ramp: "Summer ramp (weeks 32–40)",
+  peak_deadline: "Peak deadline (weeks 44–46, early to mid Nov)",
+  winter_surge: "Winter surge (weeks 1–8, Jan–Feb)",
+  yield_period: "Yield period (weeks 9–18, Mar–early May, when admitted students decide)",
+  summer_ramp: "Summer ramp (weeks 32–40, Aug–early Oct)",
   impressions: "Ad impressions",
   campaign_active: "Campaign running",
   impressions_lag1: "Ad impressions, prior week",
@@ -103,7 +113,7 @@ export function featureLabel(key: string): string {
   if (FEATURE_LABELS[key]) return FEATURE_LABELS[key]
   const harmonic = key.match(/^(sin|cos)_(\d)$/)
   if (harmonic) return `Yearly wave ${harmonic[2]} · ${harmonic[1] === "sin" ? "sine" : "cosine"} part`
-  if (key.endsWith("_adstock")) return `${channelLabel(key.replace(/_adstock$/, ""))} · adstocked spend`
+  if (key.endsWith("_adstock")) return `${channelLabel(key.replace(/_adstock$/, ""))} · spend, including lingering effect`
   return channelLabel(key)
 }
 

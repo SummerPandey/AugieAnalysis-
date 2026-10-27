@@ -18,6 +18,8 @@ import {
   type ChatTurn,
   type PipelineResult,
 } from "./api"
+import Guide from "./guide"
+import { Term } from "./glossary"
 import "./app.css"
 
 // The workflow pulls in Recharts; load it only when someone opens an analysis.
@@ -119,10 +121,12 @@ function withBold(text: string) {
 type ChatMsg = { role: "user" | "ai"; text: string; failed?: boolean }
 const spendPct = DATA_SOURCES.find((s) => s.id === "spend")?.coverageLabel.match(/\d+%/)?.[0]
 const STARTERS = [
-  "Explain R² in plain English",
-  "What is adstock?",
-  spendPct ? `Why is spend coverage only ${spendPct}?` : "Why is some spend history missing?",
-  "What does “directional” mean for a channel?",
+  "What's the main finding, in one sentence?",
+  "Can I trust this?",
+  "Should we change our ad spending?",
+  "What does “Can't tell yet” mean?",
+  spendPct ? `What data is missing? (spend is on file for only ${spendPct} of weeks)` : "What data is missing?",
+  "What is a Marketing Mix Model?",
 ]
 
 /** Readable names for each page, sent to the chat so it knows what the visitor is looking at. */
@@ -157,7 +161,7 @@ function ChatWidget({
 }) {
   const [open, setOpen] = useState(false)
   const [msgs, setMsgs] = useState<ChatMsg[]>([
-    { role: "ai", text: "Hi, I'm Augie AI. Ask me about the model, the data behind it, or how to read a result." },
+    { role: "ai", text: "Hi, I'm Augie AI. I can explain anything on this page in plain words. Try a question below, or click Point at something and then click any part of the page." },
   ])
   const [input, setInput] = useState("")
   const [typing, setTyping] = useState(false)
@@ -409,7 +413,7 @@ function ChatWidget({
             <input
               ref={inputRef}
               aria-label="Chat message"
-              placeholder={typing ? "Waiting for the reply…" : "Ask about the model or the data…"}
+              placeholder={typing ? "Waiting for the reply…" : "Ask in your own words…"}
               value={input}
               onChange={(e) => setInput(e.target.value)}
               className="field"
@@ -435,6 +439,7 @@ function ChatWidget({
         onClick={() => (open ? close() : setOpen(true))}
         aria-label={open ? "Close AI chat" : "Open AI chat"}
         aria-expanded={open}
+        data-guide="chat-button"
         className={`chat-toggle${onDark ? " on-navy" : ""}`}
       >
         {open ? (
@@ -485,9 +490,9 @@ function IntroScreen({ onDone }: { onDone: () => void }) {
 /* ── landing ───────────────────────────────────────────────── */
 // Each point maps to something the results page really shows.
 const LANDING_POINTS = [
-  { title: "What each channel may be linked to", body: "Each digital channel's estimated link to applications, with a plain verdict on how far to trust it." },
-  { title: "What the calendar explains", body: "Separates the admissions cycle from the part marketing may account for." },
-  { title: "How far to trust it", body: "How accurate the model is on weeks it never saw, and where the data has gaps." },
+  { title: "What each ad channel shows so far", body: "Each channel gets a plain label, such as Can't tell yet or Positive association, and a note on how far to trust it. Right now the data can't separate any channel's effect." },
+  { title: "How much is just the time of year", body: "Shows how much of weekly applications the admissions calendar already accounts for, so you can see what is left for marketing." },
+  { title: "How much to trust it", body: "We hide recent weeks, ask the tool to predict them, then compare with what really happened. We also show where the data has gaps." },
 ]
 
 function LandingPage({ onDemo, onLogin, onLearn }: { onDemo: () => void; onLogin: () => void; onLearn: () => void }) {
@@ -502,37 +507,40 @@ function LandingPage({ onDemo, onLogin, onLearn }: { onDemo: () => void; onLogin
               Augustana College<span className="hide-sm"> · Marketing &amp; Communications</span>
             </span>
           </p>
-          <h1 className="display t-hero landing-title" tabIndex={-1} data-page-title>
+          <h1 className="display t-hero landing-title" tabIndex={-1} data-page-title data-guide="home-title">
             Augie <em>Analysis</em>
           </h1>
           <p className="lead landing-lead">
-            A Marketing Mix Model for Augustana's admissions marketing: it separates the admissions calendar from what
-            Meta, Google and other digital channels may add to weekly applications, and says plainly how far each
-            estimate can be trusted.
+            Augie Analysis asks one question: do our digital ads add applications beyond what the admissions calendar
+            already brings in? It compares past weekly applications with past ad spending, using a{" "}
+            <Term id="mmm">marketing mix model</Term>, and tells you how far to trust each answer.
           </p>
-          <div className="landing-ctas">
+          <div className="landing-ctas" data-guide="home-ctas">
             <button type="button" onClick={onLogin} className="btn btn-gold btn-lg">
               Sign in <span className="arrow"><IconArrowRight size={15} /></span>
             </button>
             <button type="button" onClick={onDemo} className="btn btn-outline-light btn-lg">
-              Explore the demo (sample data)
+              Try the demo (made-up data, about 2 minutes)
             </button>
           </div>
-          <p className="landing-finding">
-            <strong>Latest finding:</strong> the admissions calendar still predicts weekly applications better than
-            adding marketing data, so no channel's effect is established yet. Fuller spend history is the next step.
+          <p className="landing-where">First time here? Start with the demo. Have an account? Sign in to see Augustana's real results.</p>
+          <p className="landing-finding" data-guide="home-finding">
+            <strong>Latest finding:</strong> the time of year predicts weekly applications better than ad data does, so
+            no channel's effect is established yet. That doesn't show ads don't help. The data so far just can't tell.
+            Please don't cut or increase any channel based on this tool alone. The yardstick is the admissions{" "}
+            <Term id="calendar-only">calendar-only</Term> forecast, and fuller spend history is the next step.
           </p>
           <p className="landing-learn">
-            New to marketing mix models?{" "}
+            New here?{" "}
             <button type="button" className="link landing-learn-link" onClick={onLearn}>
-              See how it works in 30 seconds
+              Get a 30-second explanation
             </button>
           </p>
           <p className="landing-status">
-            {sources.live + sources.partial} data sources feed the model · {sources.reference} for context only ·{" "}
-            {sources.pending} pending ·{" "}
+            Data we have: {sources.live + sources.partial} sources in use · {sources.reference} kept for background ·{" "}
+            {sources.pending} still waiting to arrive ·{" "}
             <span className="nowrap">
-              Status as of <time dateTime={STATUS_AS_OF}>{formatStatusDate()}</time>
+              Last checked <time dateTime={STATUS_AS_OF}>{formatStatusDate()}</time>
             </span>
           </p>
         </div>
@@ -643,7 +651,7 @@ function LoginPage({
             {loading ? "Signing in…" : "Sign in"}
           </button>
           <button type="button" onClick={onDemo} className="btn btn-ghost btn-block login-demo">
-            Continue with the demo (sample data)
+            Try the demo instead (made-up data)
           </button>
         </form>
       </main>
@@ -656,13 +664,13 @@ function LoginPage({
 // the backend is reachable.
 function DataStatusSection() {
   return (
-    <section aria-labelledby="data-status-title" className="data-status">
+    <section aria-labelledby="data-status-title" className="data-status" data-guide="data-status">
       <div className="data-status-head">
         <p className="eyebrow eyebrow-rule">Data &amp; next steps</p>
         <h2 id="data-status-title" className="display t-h3">
           Where the data <em>stands</em>
         </h2>
-        <p className="step-lead">What the model has to learn from today, and what's still needed to firm up its estimates.</p>
+        <p className="step-lead">What data the tool has today, and what is still needed before its answers can be firmer.</p>
       </div>
       <DataCoveragePanel />
       <div className="data-status-list">
@@ -711,13 +719,13 @@ function OptionsPage({
               What do you want to <em>understand</em>?
             </h1>
             <p className="lead">
-              The demo runs on a synthetic sample shaped like Augustana's data.{" "}
+              The demo uses made-up numbers shaped like Augustana's data, so nothing here is a real result.{" "}
               {onSignIn ? (
                 <>
                   <button type="button" className="link" onClick={onSignIn}>
                     Sign in
                   </button>{" "}
-                  to run the model on the real thing.
+                  to see the real results.
                 </>
               ) : (
                 <>
@@ -728,9 +736,9 @@ function OptionsPage({
                   .
                 </>
               )}{" "}
-              New to MMM?{" "}
+              New here?{" "}
               <button type="button" className="link" onClick={onLearn}>
-                See how it works
+                Read the short explanation
               </button>
               .
             </p>
@@ -738,7 +746,7 @@ function OptionsPage({
 
           <ul className="options-grid" role="list">
             <li>
-              <button type="button" className="card card-interactive option-main" onClick={onOpen}>
+              <button type="button" className="card card-interactive option-main" onClick={onOpen} data-guide="options-open">
                 <span className="option-icon" aria-hidden>
                   <svg width="22" height="22" viewBox="0 0 18 18" fill="none" stroke="currentColor" strokeWidth="1.3" strokeLinecap="round">
                     <circle cx="9" cy="9" r="7" />
@@ -749,8 +757,8 @@ function OptionsPage({
                 <span className="option-kicker">Available now</span>
                 <span className="option-title display">Marketing Mix Model</span>
                 <span className="option-desc">
-                  How each digital channel, from Meta to Google search, relates to weekly applications once the admissions
-                  calendar is accounted for, and how far each estimate can be trusted.
+                  Do digital ads (Instagram and Facebook, Google search and others) add applications beyond what the
+                  admissions calendar already explains? And how far can you trust the answer?
                 </span>
                 <span className="option-facts">
                   <span>
@@ -766,7 +774,7 @@ function OptionsPage({
                   )}
                 </span>
                 <span className="btn btn-primary btn-sm option-cta" aria-hidden>
-                  Open the MMM demo <IconArrowRight size={14} />
+                  Run the sample analysis <IconArrowRight size={14} />
                 </span>
               </button>
             </li>
@@ -1230,6 +1238,7 @@ export default function App() {
           </Suspense>
         </div>
       )}
+      <Guide onLanding={page === "landing"} />
       <ChatWidget
         onDark={onDark}
         token={token}

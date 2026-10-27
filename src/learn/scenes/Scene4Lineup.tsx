@@ -6,7 +6,7 @@ import "./scenes34.css"
 const FLAGS = [
   { x: 330, label: "Deadline" },
   { x: 650, label: "Winter" },
-  { x: 970, label: "Yield" },
+  { x: 970, label: "Yield (admits decide)" },
   { x: 1290, label: "Summer" },
 ]
 
@@ -21,7 +21,7 @@ export function SceneLineup() {
   return (
     <g>
       <text x={330} y={120} textAnchor="middle" className="lp-video-label">
-        Calendar flags
+        Time of year
       </text>
       {FLAGS.map((f, i) => (
         <g key={f.label} className="lp-s34-flag" style={{ "--d": `${i * 0.15}s` } as CSSProperties}>
@@ -65,7 +65,7 @@ export function SceneLineup() {
         )
       })}
       <text x={330} y={512} className="lp-video-label">
-        Carryover from past spend
+        Ads from earlier weeks may still linger
       </text>
     </g>
   )

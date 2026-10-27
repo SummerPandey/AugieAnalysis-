@@ -385,3 +385,29 @@
     animation: none !important;
   }
 }
+
+/* The short version box under the hero lead */
+.lp-short {
+  margin-top: 1.5rem;
+  max-width: 44rem;
+  padding: 1rem 1.25rem;
+  border: 1px solid var(--color-line-strong, rgba(0, 0, 0, 0.15));
+  border-left: 4px solid var(--color-gold);
+  border-radius: 6px;
+  background: var(--color-surface, transparent);
+}
+.lp-short-title {
+  margin: 0 0 0.5rem;
+  font-weight: 700;
+}
+.lp-short-list {
+  margin: 0;
+  padding-left: 1.25rem;
+  display: grid;
+  gap: 0.4rem;
+}
+.lp-short-skip {
+  margin: 0.75rem 0 0;
+  font-size: 0.9em;
+  opacity: 0.8;
+}

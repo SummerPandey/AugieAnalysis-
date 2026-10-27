@@ -55,6 +55,20 @@ export const VERDICT_LABEL: Record<Verdict, string> = {
   "cant-tell": "Can't tell yet",
 }
 
+/** What each label means and does not mean, for tooltips and a legend. None says a channel works or fails. */
+export const VERDICT_HELP: Record<Verdict, string> = {
+  calendar: "The normal level for the time of year, from the admissions calendar and long-term trend.",
+  helping:
+    "Positive association: moved up and down with applications in past data. It is not proof the channel caused them.",
+  directional:
+    "Directional: points one way, but the size is unreliable because this channel ran at the same times as others.",
+  thin: "Too little signal: not enough active weeks or spend to judge.",
+  "cant-tell": "Can't tell yet: this run can't separate this channel's effect from the calendar, so no number is given.",
+}
+
+/** How the fit words map to scores (higher is better). */
+export const FIT_SCALE = "Weak below 0.2, Modest 0.2 to 0.5, Fair 0.5 to 0.7, Strong 0.7 and up (higher is better)."
+
 /** Weeks with spend below which a channel's estimate isn't worth reading. */
 const MIN_WEEKS = 20
 /** Share of modeled applications below which a channel can't be told from zero. */
@@ -62,9 +76,9 @@ const MIN_SHARE = 0.005
 
 /** One sentence on why channel estimates aren't supported in this run. */
 export function notIdentifiedReason(l: NonNullable<PipelineResult["marketing_lift"]>): string {
-  return `Adding marketing didn't predict unseen weeks better than the calendar alone (${signedFixed(l.full_mean_r2)} vs ${signedFixed(
-    l.baseline_mean_r2,
-  )}), so this number isn't supported yet.`
+  return `Can't tell yet: adding ad data did not make the forecast more accurate than the calendar-only model (${signedFixed(
+    l.full_mean_r2,
+  )} vs ${signedFixed(l.baseline_mean_r2)}, higher is better), so we have no reliable estimate for this channel.`
 }
 
 export function driverLedger(r: PipelineResult): LedgerRow[] {
@@ -77,8 +91,8 @@ export function driverLedger(r: PipelineResult): LedgerRow[] {
   const t = trust(r)
   const runShaky = t.rating === "weak" || t.rating === "modest" || t.unstable || !!r.multicollinearity?.high_condition_number
   const shakyWhy = t.unstable
-    ? `the model's accuracy swung between validation periods (${signedFixed(t.foldMin)} to ${signedFixed(t.foldMax)})`
-    : `the model's fit on unseen weeks is ${FIT_WORDS[t.rating].toLowerCase()} (${signedFixed(t.cvMean)})`
+    ? `the forecast was accurate in some test stretches and poor in others (scores from ${signedFixed(t.foldMin)} to ${signedFixed(t.foldMax)}; higher is better)`
+    : `the forecast quality on weeks it hasn't seen is ${FIT_WORDS[t.rating].toLowerCase()} (score ${signedFixed(t.cvMean)})`
 
   const rows: LedgerRow[] = keys.map((key) => {
     let total = 0
@@ -114,40 +128,40 @@ export function driverLedger(r: PipelineResult): LedgerRow[] {
         verdict: "cant-tell" as const,
         reason:
           key === "billboard_spend"
-            ? "The estimate came out negative. Billboards are on file only as four budget totals spread evenly across weeks, so the model can't see when boards were actually up."
-            : "The estimate came out negative. That usually means this channel ran at the same time as others and the model can't pull them apart, not that it hurt applications.",
+            ? "The model gave this channel a below-zero allocation. Billboards are on file only as four budget totals spread evenly across weeks, so the model can't see when boards were actually up."
+            : "The model gave this channel a below-zero allocation. That usually happens when channels ran at the same time and the model can't separate them. It does not mean the ads reduced applications.",
       }
     if (weeksActive < MIN_WEEKS)
       return {
         ...base,
         verdict: "thin" as const,
-        reason: `Only ${weeksActive} week${weeksActive === 1 ? "" : "s"} with activity on file, too few to judge.`,
+        reason: `Only ${weeksActive} week${weeksActive === 1 ? "" : "s"} with activity on file. That is too few to judge.`,
       }
     if (base.share < MIN_SHARE)
       return {
         ...base,
         verdict: "thin" as const,
-        reason: "Its estimated contribution is too small to tell apart from zero.",
+        reason: "Its estimated share is too small to tell apart from zero.",
       }
     if (vif !== undefined)
       return {
         ...base,
         verdict: "directional" as const,
-        reason: "Positive, but it rose and fell with other channels, so its size is uncertain.",
+        reason: "Moved up with applications, but it ran at the same times as other channels, so we can't say how big its part is.",
       }
     if (runShaky)
       return {
         ...base,
         verdict: "directional" as const,
-        reason: `Positive, but ${shakyWhy}, so read it as a direction rather than a size.`,
+        reason: `Moved up with applications, but ${shakyWhy}. Read it as a direction, not a size.`,
       }
     return {
       ...base,
       verdict: "helping" as const,
       reason:
         key === "impressions"
-          ? "Advertising overall: impressions moved consistently with weekly applications. That's an association in past data, not proof it caused them."
-          : "Moved consistently with weekly applications. That's an association in past data, not proof this channel caused them.",
+          ? "All advertising together: the number of times ads were shown moved with weekly applications in past data. That is an association, not proof it caused them."
+          : "Moved with weekly applications in past data. That is an association, not proof this channel caused them.",
     }
   })
 
@@ -368,7 +382,7 @@ export function chatBrief(r: PipelineResult, ranAt: number, source: "live" | "sy
     ),
     overlap.labels.length
       ? overlap.kind === "unidentified"
-        ? `Channel credit the model can't separate from the calendar (${overlap.labels.join(", ")}) totals ${Math.round(overlap.total)} apps; it is unvalidated, not a measured effect, and not split by channel.`
+        ? `Allocation the model can't separate from the calendar (${overlap.labels.join(", ")}) totals ${Math.round(overlap.total)} apps; it is unvalidated, not a measured effect, and not split by channel.`
         : `Negative estimates (${overlap.labels.join(", ")}) total ${Math.round(overlap.total)} apps; treat as "can't tell yet", not as harm.`
       : "",
   ]
@@ -388,15 +402,16 @@ export function shareSummary(r: PipelineResult, live: boolean): string {
     "",
     `• ${h.lead} ${h.figure} ${h.rest}`,
     l
-      ? `• On weeks the model never saw, it scores ${signedFixed(l.full_mean_r2)} with marketing and ${signedFixed(l.baseline_mean_r2)} with the calendar alone. ${
+      ? `• On weeks the model never saw, a forecast using ad data scored ${signedFixed(l.full_mean_r2)} and one using only the calendar scored ${signedFixed(l.baseline_mean_r2)} (higher is better). ${
           l.identified
-            ? "Marketing adds measurable signal; read each channel with its verdict."
-            : "Marketing isn't separable from the calendar yet, so no channel's estimate is supported."
+            ? "Adding ad data improved the forecast. That is a pattern in past data, not proof; read each channel with its label."
+            : "So we can't tell yet what any ad channel did."
         }`
-      : `• On weeks the model never saw, it scores ${signedFixed(t.cvMean)}.`,
+      : `• On weeks the model never saw, the forecast scored ${signedFixed(t.cvMean)} (higher is better).`,
     t.mae !== undefined ? `• Typical weekly miss: about ${Math.round(t.mae)} applications.` : "",
     t.spendShare !== undefined ? `• Channel spend is on file for ${Math.round(t.spendShare * 100)}% of the weeks.` : "",
     "• What would firm it up: the full Carnegie spend history, billboard flight dates, and email send history.",
+    "• Recommendation: do not raise or cut any channel based on this alone.",
   ]
   return lines.filter((x, i) => x !== "" || i === 1).join("\n")
 }

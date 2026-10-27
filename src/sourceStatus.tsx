@@ -5,7 +5,7 @@
  */
 import type { ComponentType } from "react"
 import { IconCheck, IconClock, IconInfo, IconWarning } from "./icons"
-import { STATUS_LABEL, type SourceStatus } from "./projectStatus"
+import { STATUS_GLOSS, STATUS_LABEL, type SourceStatus } from "./projectStatus"
 
 const STATUS_UI: Record<SourceStatus, { badge: string; Icon: ComponentType<{ size?: number }> }> = {
   live: { badge: "badge badge-success", Icon: IconCheck },
@@ -17,7 +17,7 @@ const STATUS_UI: Record<SourceStatus, { badge: string; Icon: ComponentType<{ siz
 export function SourceStatusBadge({ status }: { status: SourceStatus }) {
   const { badge, Icon } = STATUS_UI[status]
   return (
-    <span className={badge}>
+    <span className={badge} title={STATUS_GLOSS[status]}>
       <Icon size={12} />
       {STATUS_LABEL[status]}
     </span>

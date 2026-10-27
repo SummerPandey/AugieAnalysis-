@@ -104,10 +104,10 @@ function Lane({ source, order }: { source: DataSource; order: number }) {
 
   const spansToSpeech = (spans: Span[]) => spans.map(([a, b]) => rangeLabel(a, b, " to ")).join(", ")
   const trackLabel = empty
-    ? `No data on file yet. Waiting on ${source.owner}.`
+    ? `No data on file yet. Waiting on ${source.owner} to send it.`
     : missing.length === 0
       ? `On file for the whole window, ${spansToSpeech(covered)}.`
-      : `On file: ${spansToSpeech(covered)}. Not on file: ${spansToSpeech(missing)}.`
+      : `On file: ${spansToSpeech(covered)}. Gaps with no data: ${spansToSpeech(missing)}.`
 
   return (
     <li className="cov-lane" data-status={source.status}>
@@ -168,16 +168,16 @@ function CoverageTable() {
     <div className="cov-table-wrap scroll-thin" role="region" aria-label="Data coverage as a table" tabIndex={0}>
       <table className="cov-table">
         <caption className="sr-only">
-          Months of data on file for each source, across the model window {rangeLabel(WIN_START, WIN_END)}
+          Months of data on file for each source, across {rangeLabel(WIN_START, WIN_END)}
         </caption>
         <thead>
           <tr>
             <th scope="col">Source</th>
             <th scope="col">Status</th>
-            <th scope="col">Coverage</th>
-            <th scope="col">Months on file</th>
-            <th scope="col">Not on file</th>
-            <th scope="col">Note</th>
+            <th scope="col">Share of weeks</th>
+            <th scope="col">Months with data</th>
+            <th scope="col">Gaps (no data)</th>
+            <th scope="col">What to know</th>
           </tr>
         </thead>
         <tbody>
@@ -207,7 +207,7 @@ function CoverageTable() {
                 </td>
                 <td>
                   {covered.length === 0 ? (
-                    <span className="cov-none">Whole window</span>
+                    <span className="cov-none">All months</span>
                   ) : missing.length === 0 ? (
                     <span className="cov-none">Nothing missing</span>
                   ) : (
@@ -264,7 +264,7 @@ export function DataCoveragePanel() {
             Data coverage
           </h3>
           <p className="section-caption">
-            Months each source has data for, across the model window ({rangeLabel(WIN_START, WIN_END)}).
+            Which months we have data for, from {monthLabel(WIN_START)} (first application week on file) to {monthLabel(WIN_END)} (last). Dark bars are months with data. A gap means unknown, not zero.
           </p>
         </div>
         <div className="seg" role="group" aria-label="Coverage view">
@@ -283,6 +283,11 @@ export function DataCoveragePanel() {
             {sum.onFile} of {sum.total} sources on file
           </strong>
           {tally && <span> · {tally}</span>}
+        </p>
+        <p className="cov-why">
+          Why this matters: the model can only learn from months with data. Channel spend is on file for only{" "}
+          {DATA_SOURCES.find((d) => d.id === "spend")?.coverageLabel ?? "part of the period"}, so the model has little
+          to learn from for ad channels.
         </p>
         <p className="cov-asof">
           Data as of <time dateTime={STATUS_AS_OF}>{formatStatusDate()}</time>
@@ -311,15 +316,15 @@ export function DataCoveragePanel() {
           <div className="legend cov-foot">
             <span className="legend-item">
               <span className="cov-swatch cov-swatch-on" aria-hidden />
-              Months with data
+              Data on file
             </span>
             <span className="legend-item">
               <span className="cov-swatch cov-swatch-off" aria-hidden />
-              Not on file
+              Gap: nothing on file for these months
             </span>
             <span className="legend-item">
               <span className="cov-swatch cov-swatch-none" aria-hidden />
-              Nothing on file yet
+              Nothing received yet
             </span>
           </div>
         </div>

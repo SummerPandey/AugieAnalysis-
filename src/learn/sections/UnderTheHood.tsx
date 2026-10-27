@@ -1,31 +1,79 @@
+import type { ReactNode } from "react"
+import { Term } from "../../glossary"
 import "./underthehood.css"
 
 const PREFIX = "lp-under-the-hood"
 
-const CARDS = [
+const CARDS: { num: string; heading: string; body: ReactNode }[] = [
   {
     num: "01",
     heading: "Ads keep working after they run",
     body:
-      "An ad's effect does not stop the week it runs. The model lets part of it carry forward, an idea called adstock. With the starting setting of 0.5, half of a week's effect carries into the next week, and half of what is left carries into the week after. The same setting is used for every channel, though channels may really carry over at different speeds. Think of a cup with a slow leak: each week, half spills out and the rest stays. A radio jingle you heard on Monday can still be in your head on Wednesday, and that is the same idea.",
+      (
+        <>
+          <Term id="adstock">Adstock</Term> is just carryover: an ad you see this week can still
+          nudge you next week. We assume half of the effect carries into the next week, and half of
+          what is left into the week after. Picture a YouTube video you watched on Monday that is
+          still on your mind on Wednesday. The same setting is used for every channel. It is a
+          starting setting, not a finding.
+        </>
+      ),
   },
   {
     num: "02",
     heading: "The admissions calendar comes first",
     body:
-      "Applications follow the school year whether or not ads run. The model labels the key stretches: the deadline peak (weeks 44 to 46, the early-November spike), the winter surge (weeks 1 to 8), the yield period (weeks 9 to 18), and the summer ramp (weeks 32 to 40). Summer weeks 20 to 30 stay low every year. The model also adds a smooth yearly wave and a long-term trend. In the current model's breakdown, about 80 to 90 percent of modeled applications are assigned to the admissions baseline (the calendar, trend and data-coverage terms). That is a model-based allocation, not a causal measurement, and it is not the same as the R-squared score. Channels are judged only on what the baseline cannot explain.",
+      (
+        <>
+          Applications follow the school year whether or not ads run. The model marks the key
+          stretches: the deadline peak (weeks 44 to 46, the early-November spike), the winter surge
+          (weeks 1 to 8), the <strong>yield period</strong> (weeks 9 to 18, when admitted students
+          decide whether to enroll), and the summer ramp (weeks 32 to 40). Summer weeks 20 to 30
+          stay low every year.
+          <br />
+          In the model, about 80 to 90 percent of modeled applications are assigned to the
+          admissions <Term id="baseline">baseline</Term>: the calendar, the long-term trend, and
+          notes about which data we have. That is a model-based allocation, not a causal
+          measurement. Anything channels get is only a share of what is left, and it is the least
+          certain part.
+        </>
+      ),
   },
   {
     num: "03",
     heading: "Ridge regression when channels overlap",
     body:
-      "Channels often run in the same weeks, so their effects can blur together, like two people talking at once. Ridge regression is a standard fitting method that shrinks overlapping estimates so they stay steady and modest. Its strength is tuned automatically. Ridge makes estimates steadier, but it does not make them causal: if Meta, Snapchat and Google always run together, the model may split credit between them without enough information to know which one did the work. Channels that moved together are flagged as directional, meaning a direction to read rather than a precise size.",
+      (
+        <>
+          Channels often run in the same weeks, so their effects tangle together, like two people
+          talking at once. <Term id="ridge">Ridge regression</Term> is a standard method that stops
+          the model from making wild guesses in that situation. It does not untangle them. So we
+          mark these channels <strong>Directional</strong>: read it as a direction (up or down),
+          not a size, and do not rely on the exact number. Steadier is not causal.
+        </>
+      ),
   },
   {
     num: "04",
     heading: "Testing on weeks the model never saw",
     body:
-      "The model learns from earlier weeks, predicts the next stretch, then moves forward and repeats this five times. It is like a practice test made only of questions the student has not studied. Inputs are scaled separately inside each training window, so the tested weeks never inform it. One caveat: the regularization strength is picked using these same five test folds, which flatters the scores. A stricter check that picks it inside each training window gives lower scores for both models, and the calendar alone still wins. The score on unseen weeks is the more honest of the two, despite that caveat: 0.60 R-squared today, where 1 is perfect, 0 means no better than predicting the average, and below 0 means worse. The 0.70 on learned weeks looks higher because it grades the model on history it has already seen. The calendar-only model runs the same test (0.78 today) and is the benchmark: marketing only gets credit when it beats that.",
+      (
+        <>
+          <strong>Result:</strong> the <Term id="calendar-only">calendar-only</Term> model scored
+          0.78 on weeks it had not seen. The model with marketing scored 0.60. So marketing has not
+          yet earned credit. That calendar-only score is the benchmark marketing has to beat.
+          <br />
+          <strong>How the test works:</strong> the model studies earlier weeks, predicts the next
+          stretch, then moves forward and repeats five times. It is like a practice test made of
+          questions the student has not studied. The score runs from 1 (perfect), through 0 (no
+          better than guessing the average week), to below 0 (worse). The 0.70 you may see
+          elsewhere grades the model on weeks it already studied, so it looks better than it is.
+          <br />
+          <em>For analysts:</em> inputs are scaled inside each training window. The regularization
+          setting is tuned on the same test folds, which makes scores look a bit better than they
+          are. A stricter check gives lower scores for both models, and the calendar alone still wins.
+        </>
+      ),
   },
 ]
 
@@ -92,7 +140,7 @@ function AdstockDiagram() {
         })}
       </svg>
       <figcaption className={`${PREFIX}-caption`}>
-        At the starting setting of 0.5, about half of the effect carries forward each week.
+        Illustration: at the starting setting of 0.5, about half of the effect carries forward each week. An assumption, not a measurement.
       </figcaption>
     </figure>
   )
@@ -107,8 +155,8 @@ export function UnderTheHoodSection() {
           Four ideas <em>under the hood</em>
         </h2>
         <p className="lp-intro">
-          Four ideas sit under every number on the results page. Each one is simple once you see it,
-          even if the name sounds technical.
+          Four ideas sit under every number on the results page. You do not need them to read the
+          verdicts, but they explain why we are cautious.
         </p>
       </div>
 
@@ -119,7 +167,7 @@ export function UnderTheHoodSection() {
               {card.num}
             </p>
             <h3 className={`${PREFIX}-heading`}>{card.heading}</h3>
-            <p className={`${PREFIX}-body`}>{card.body}</p>
+            <div className={`${PREFIX}-body`}>{card.body}</div>
             {card.num === "01" ? <AdstockDiagram /> : null}
           </article>
         ))}

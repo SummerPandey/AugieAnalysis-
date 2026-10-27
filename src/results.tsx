@@ -23,7 +23,7 @@ import {
 } from "recharts"
 import type { PipelineResult } from "./api"
 import { T } from "./theme"
-import { channelColor, channelLabel, featureGroup, featureLabel, humanizeFeatureNames, orderSeries } from "./channels"
+import { channelColor, channelLabel, featureGroup, featureLabel, orderSeries } from "./channels"
 import {
   deadlineSeasons,
   downloadText,
@@ -56,6 +56,7 @@ import {
   StepHeader,
 } from "./ui"
 import { Dot, IconArrowRight, IconCheck, IconDownload, IconFlask, IconInfo, IconPrint, IconRefresh, IconWarning } from "./icons"
+import { Term } from "./glossary"
 import EasyView from "./easyView"
 import "./results.css"
 import "./easyView.css"
@@ -109,18 +110,30 @@ export function VerdictChip({ verdict }: { verdict: Verdict }) {
 }
 
 /* ── the finding ───────────────────────────────────────────── */
-function Finding({ ledger, stale, dataEnd }: { ledger: LedgerRow[]; stale: number; dataEnd: string }) {
+function Finding({ ledger, stale, dataEnd, unidentified }: { ledger: LedgerRow[]; stale: number; dataEnd: string; unidentified: boolean }) {
   const h = headline(ledger)
   return (
-    <section className="finding" aria-label="Headline finding">
+    <section className="finding" aria-label="Headline finding" data-guide="results-finding">
       <p className="finding-lead">
-        {h.lead} <mark className="finding-mark">{h.figure}</mark> {h.rest}
+        {h.lead} the model puts about <mark className="finding-mark">{h.figure}</mark> of its predicted applications down to
+        the time of year and the long-term trend. That is a <Term id="decomposition">model-based allocation</Term>, not a
+        causal measurement: a way of dividing up the forecast, not a count of where applicants came from.
       </p>
-      <p className="finding-paid">{h.paid}</p>
+      <p className="finding-paid">
+        {unidentified ? (
+          <>
+            No individual channel has an estimate we can support yet. Adding ad data did not beat the{" "}
+            <Term id="calendar-only">calendar-only</Term> forecast, so don't raise or cut any channel's budget because of
+            this page.
+          </>
+        ) : (
+          <>{h.paid} This is a pattern in past data, not proof.</>
+        )}
+      </p>
       {stale >= 8 && (
         <p className="finding-stale">
           <IconWarning size={14} /> Data ends {fmtDay(dataEnd)}, {stale} weeks ago, so this run can't see the current
-          admissions cycle yet.
+          admissions cycle yet. Ask the analyst for a fresh Slate export before using it for fall planning.
         </p>
       )}
     </section>
@@ -135,21 +148,21 @@ function Ledger({ rows, modeled }: { rows: LedgerRow[]; modeled: number }) {
   return (
     <div style={flushCard}>
       <SectionHeader
-        title="What each driver contributed"
-        caption="Modeled applications over the whole window, assigned to each driver by the model. These are model allocations, not measured causes. Each verdict comes from the model's own checks: whether marketing beat the calendar alone on unseen weeks, the sign, overlap with other channels, and how many weeks had activity."
+        title="How the model divides up the forecast"
+        caption="The model splits its predicted applications among the calendar, impressions and each ad channel. This is a model-based allocation, not a causal measurement. The last column says how much to trust each line. It looks at whether marketing beat the calendar-only model, whether the estimate is positive, whether channels ran at the same time, and how many weeks had activity."
       />
       <div className="tbl-wrap">
         <table className="tbl ledger">
-          <caption className="sr-only">Modeled applications by driver, with a reliability verdict</caption>
+          <caption className="sr-only">Predicted applications by source, with how much to trust each</caption>
           <thead>
             <tr>
-              <th scope="col">Driver</th>
-              <th scope="col">Applications</th>
+              <th scope="col">Source</th>
+              <th scope="col">Applications assigned</th>
               <th scope="col" className="ledger-share-h">
-                Share
+                Share of total
               </th>
-              <th scope="col">Weeks</th>
-              <th scope="col">Verdict</th>
+              <th scope="col">Weeks active</th>
+              <th scope="col">How much to trust this</th>
             </tr>
           </thead>
           <tbody>
@@ -163,7 +176,7 @@ function Ledger({ rows, modeled }: { rows: LedgerRow[]; modeled: number }) {
                       {r.label}
                     </span>
                     <span className="ledger-mobile num" aria-hidden>
-                      {r.verdict === "cant-tell" ? "Not estimated" : `${fmtApps(r.total)} apps · ${(r.share * 100).toFixed(r.share < 0.1 ? 1 : 0)}%`} ·{" "}
+                      {r.verdict === "cant-tell" ? "No number (Can't tell yet)" : `${fmtApps(r.total)} apps · ${(r.share * 100).toFixed(r.share < 0.1 ? 1 : 0)}%`} ·{" "}
                       {r.weeksActive} wks
                     </span>
                     <span className="ledger-reason">{r.reason}</span>
@@ -171,7 +184,7 @@ function Ledger({ rows, modeled }: { rows: LedgerRow[]; modeled: number }) {
                   <td className="num">{r.verdict === "cant-tell" ? "—" : fmtApps(r.total)}</td>
                   <td className="ledger-share">
                     {r.verdict === "cant-tell" ? (
-                      <span className="ledger-na">not estimated</span>
+                      <span className="ledger-na">No number (Can't tell yet)</span>
                     ) : (
                       <span className="ledger-bar-wrap">
                         {r.key !== "baseline" && (
@@ -199,18 +212,18 @@ function Ledger({ rows, modeled }: { rows: LedgerRow[]; modeled: number }) {
                 <th scope="row">
                   {overlap.kind === "unidentified" ? (
                     <>
-                      <span className="ledger-name">Marketing the model can't separate yet</span>
+                      <span className="ledger-name">All advertising combined (not split by channel)</span>
                       <span className="ledger-reason">
-                        What this run assigned to advertising overall. It didn't beat the calendar alone on unseen weeks, so
-                        it's shown here as one unvalidated total, not split by channel.
+                        The model allocates this many applications to ads overall (a model-based allocation, not causal). It didn't beat the calendar-only model
+                        on weeks it hadn't seen, so treat the total as unproven.
                       </span>
                     </>
                   ) : (
                     <>
-                      <span className="ledger-name">Overlap the model couldn't assign</span>
+                      <span className="ledger-name">Share the model couldn't split by channel</span>
                       <span className="ledger-reason">
-                        The negative estimates for {overlap.labels.join(" and ")}. They're shown here, not as drivers, so
-                        the shares add up.
+                        {overlap.labels.join(" and ")} got below-zero estimates because they ran alongside other channels.
+                        They are shown as one line so the table adds up to 100%. This is not evidence for or against them.
                       </span>
                     </>
                   )}
@@ -225,7 +238,7 @@ function Ledger({ rows, modeled }: { rows: LedgerRow[]; modeled: number }) {
               </tr>
               <tr className="ledger-total">
                 <th scope="row">
-                  <span className="ledger-name">All modeled applications</span>
+                  <span className="ledger-name">All predicted applications</span>
                 </th>
                 <td className="num">{fmtApps(modeled)}</td>
                 <td className="num ledger-share">100%</td>
@@ -278,27 +291,27 @@ function AiCard({
       <SectionHeader
         title={
           <>
-            AI readout <span className="ai-tag">Generated</span>
+            AI summary in plain words <span className="ai-tag">Generated</span>
           </>
         }
-        caption="A plain-language reading of this run, written by an AI model from the numbers above. Check it against them before sharing."
+        caption="Written by an AI model from this run's numbers. It can make mistakes. If it sounds more sure than this page does, trust the page."
       />
       <div className="section-body">
         {commentary.status === "loading" && (
-          <div role="status" aria-label="Writing the AI readout" className="ai-loading">
+          <div role="status" aria-label="Writing the AI summary" className="ai-loading">
             <div className="skeleton" style={{ height: 13, width: "92%" }} />
             <div className="skeleton" style={{ height: 13, width: "84%" }} />
             <div className="skeleton" style={{ height: 13, width: "88%" }} />
-            <p>Writing a plain-language readout. This usually takes 15–30 seconds; the numbers above are already final.</p>
+            <p>Writing a plain-words summary. This usually takes 15–30 seconds; the numbers above are already final.</p>
           </div>
         )}
         {commentary.status === "error" && (
-          <Alert variant="warning" title="The AI readout isn't available right now">
+          <Alert variant="warning" title="The AI summary isn't available right now">
             {commentary.error} Everything else on this page comes straight from the model and is unaffected.
             {onReadout && (
               <span className="alert-extra">
                 <button type="button" className="btn btn-outline btn-sm" onClick={onReadout}>
-                  Try the readout again
+                  Try the summary again
                 </button>
               </span>
             )}
@@ -306,9 +319,9 @@ function AiCard({
         )}
         {commentary.status === "idle" && onReadout && (
           <div className="ai-idle">
-            <p>No readout for this run yet.</p>
+            <p>No summary for this run yet.</p>
             <button type="button" className="btn btn-outline btn-sm" onClick={onReadout}>
-              Write the readout
+              Write the summary
             </button>
           </div>
         )}
@@ -336,7 +349,7 @@ function AiCard({
                 <input
                   id={inputId}
                   className="field"
-                  placeholder="e.g. Why is Snapchat marked “can't tell yet”?"
+                  placeholder="e.g. Why is Snapchat marked “Can't tell yet”?"
                   value={q}
                   onChange={(e) => setQ(e.target.value)}
                   disabled={busy}
@@ -398,12 +411,13 @@ function ActualVsModeled({ r, hatchId, live }: { r: PipelineResult; hatchId: str
   return (
     <div style={flushCard}>
       <SectionHeader
-        title="Actual vs. modeled applications"
+        title="Real applications vs. the model's forecast"
         caption={
           <>
-            {live ? "Navy is what Slate recorded each week" : "Navy is the sample's weekly applications"}; dashed gold is what
-            the model expects from the calendar and marketing.
-            {spendFrom && spendFrom !== first && <> Hatched weeks have no channel spend on file.</>}
+            {live ? "Navy line: applications that Slate, our admissions system, recorded each week" : "Navy line: the sample's weekly applications"}.
+            Dashed gold line: the model's forecast for the same weeks. Where they are close, the model follows that stretch.
+            It tends to run below the biggest fall peaks.
+            {spendFrom && spendFrom !== first && <> Hatched weeks have no ad spend records, so ads are not accounted for there.</>}
           </>
         }
       />
@@ -455,7 +469,7 @@ function ActualVsModeled({ r, hatchId, live }: { r: PipelineResult; hatchId: str
             <Line
               type="monotone"
               dataKey="predicted"
-              name="Modeled"
+              name="Model forecast"
               stroke={T.modeled}
               strokeWidth={2}
               strokeDasharray="5 4"
@@ -481,7 +495,7 @@ function DeadlineReplay({ r, live }: { r: PipelineResult; live: boolean }) {
     <div style={flushCard}>
       <SectionHeader
         title="The deadline season, year by year"
-        caption="Weeks 36–52 of each year, on one scale. The gap at the peak is what the model can't explain. That's worth knowing, not proof of marketing lift."
+        caption="Each box covers early September to late December of one year. The gold band is the application deadline period (late Oct to mid Nov). At the peak, the real number is usually higher than the forecast. That gap could come from many things (events, school visits, deadlines, marketing), so it is not evidence that ads worked."
       />
       <div className="section-body">
         <div className="season-grid">
@@ -493,13 +507,13 @@ function DeadlineReplay({ r, live }: { r: PipelineResult; live: boolean }) {
                   <span className="season-year">{s.year}</span>
                   {s.peak && (
                     <span className="season-lines">
-                      <span>Peak · week {s.peak.week}</span>
+                      <span>Peak · week {s.peak.week}{s.peak.week === 44 ? " (about Nov 1)" : ""}</span>
                       <span className="num">
-                        <strong>{fmtApps(s.peak.actual)}</strong> actual · {fmtApps(s.peak.predicted)} modeled
+                        <strong>{fmtApps(s.peak.actual)}</strong> actual · {fmtApps(s.peak.predicted)} forecast
                       </span>
                       <span className="season-miss num">
                         {miss >= 0 ? "+" : "−"}
-                        {fmtApps(Math.abs(miss))} unexplained
+                        {fmtApps(Math.abs(miss))} {miss >= 0 ? "above" : "below"} the forecast
                       </span>
                     </span>
                   )}
@@ -513,7 +527,7 @@ function DeadlineReplay({ r, live }: { r: PipelineResult; live: boolean }) {
                     <ReferenceArea x1={44} x2={46} fill={T.goldTint} fillOpacity={0.9} ifOverflow="visible" />
                     <RTooltip content={<ChartTip formatter={fmtApps} labelFormatter={(l) => `Week ${l}, ${s.year}`} />} />
                     <Line type="monotone" dataKey="actual" name="Actual" stroke={T.actual} strokeWidth={2} dot={false} isAnimationActive={false} />
-                    <Line type="monotone" dataKey="predicted" name="Modeled" stroke={T.modeled} strokeWidth={2} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
+                    <Line type="monotone" dataKey="predicted" name="Model forecast" stroke={T.modeled} strokeWidth={2} strokeDasharray="5 4" dot={false} isAnimationActive={false} />
                     {s.peak && <ReferenceDot x={s.peak.week} y={s.peak.actual} r={4} fill={T.actual} stroke="#fff" strokeWidth={2} />}
                   </LineChart>
                 </ResponsiveContainer>
@@ -543,10 +557,10 @@ function DeadlineReplay({ r, live }: { r: PipelineResult; live: boolean }) {
             <span className="legend-key" style={{ background: T.actual }} /> {live ? "Actual (Slate)" : "Actual (sample)"}
           </span>
           <span className="legend-item">
-            <span className="legend-key" style={{ background: `repeating-linear-gradient(90deg, ${T.modeled} 0 5px, transparent 5px 8px)` }} /> Modeled
+            <span className="legend-key" style={{ background: `repeating-linear-gradient(90deg, ${T.modeled} 0 5px, transparent 5px 8px)` }} /> Model forecast
           </span>
           <span className="legend-item">
-            <span className="legend-key swatch" style={{ background: T.goldTint, boxShadow: `inset 0 0 0 1px ${T.borderStrong}` }} /> Weeks 44–46
+            <span className="legend-key swatch" style={{ background: T.goldTint, boxShadow: `inset 0 0 0 1px ${T.borderStrong}` }} /> Deadline weeks (44–46)
           </span>
         </div>
       </div>
@@ -566,17 +580,17 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
   return (
     <div style={flushCard}>
       <SectionHeader
-        title="Where modeled applications came from, week by week"
+        title="The model's weekly split of applications"
         caption={
           view === "all" || !hasAds
-            ? "Stacked by driver. Gray is baseline demand and the admissions calendar; colors are advertising. These are model allocations, not measured contributions."
-            : "Advertising only, on its own scale, so the channels are readable. The calendar is left out."
+            ? "Each week's forecast, split into slices. Gray: the normal level for that time of year (the baseline). Colors: the part the model assigned to advertising. This is a model-based allocation, not a causal measurement, so treat the colors as unproven."
+            : "Advertising slices only, on their own scale so they are readable. The calendar is left out. Still a model-based allocation, not causal."
         }
         action={
           hasAds && (
-          <div className="seg no-print" role="group" aria-label="Drivers shown">
+          <div className="seg no-print" role="group" aria-label="Slices shown">
             <button type="button" aria-pressed={view === "all"} onClick={() => setView("all")}>
-              All drivers
+              Everything
             </button>
             <button type="button" aria-pressed={view === "ads"} onClick={() => setView("ads")}>
               Advertising only
@@ -599,7 +613,7 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
                 key={key}
                 type="monotone"
                 dataKey={key}
-                name={key === "baseline" ? "Baseline & seasonality" : channelLabel(key)}
+                name={key === "baseline" ? "Baseline (normal for the time of year)" : channelLabel(key)}
                 stackId="contrib"
                 stroke="#fff"
                 strokeWidth={1}
@@ -615,7 +629,7 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
           {keys.map((k) => (
             <span key={k}>
               <i style={{ background: channelColor(k) }} aria-hidden />
-              {k === "baseline" ? "Baseline & seasonality" : channelLabel(k)}
+              {k === "baseline" ? "Baseline (normal for the time of year)" : channelLabel(k)}
             </span>
           ))}
         </div>
@@ -623,8 +637,8 @@ function Contributions({ r, ledger }: { r: PipelineResult; ledger: LedgerRow[] }
           <p className="chart-note">
             <IconInfo size={14} /> Not drawn: {hidden.map((h) => h.label).join(", ")}.{" "}
             {unidentified
-              ? "Marketing didn't beat the calendar alone on unseen weeks in this run, so no channel's share is drawn as a driver."
-              : "Their estimates came out negative, which usually reflects overlap with other channels rather than a measured effect, so the stack runs a little above the modeled total."}
+              ? "Marketing didn't beat the calendar-only model on weeks it hadn't seen, so this is Can't tell yet, not evidence they did nothing."
+              : "The model gave them below-zero estimates, usually because they ran at the same time as other channels. That is Can't tell yet, not evidence they caused harm."}
           </p>
         )}
       </div>
@@ -710,28 +724,29 @@ function Coefficients({ r }: { r: PipelineResult }) {
     .filter(([k]) => isHarmonic(k))
     .sort(([a], [b]) => a.slice(4).localeCompare(b.slice(4)) || b.localeCompare(a))
   const flagFor = (k: string, v: number) =>
-    k in high ? `unstable · VIF ${high[k].toFixed(0)}` : k.endsWith("_adstock") && v < 0 ? "can't tell yet" : undefined
+    k in high ? `overlaps with others (VIF ${high[k].toFixed(0)}; above 10 is high)` : k.endsWith("_adstock") && v < 0 ? "can't tell yet" : undefined
   return (
-    <Disclosure summary="Model coefficients (standardized)">
+    <Disclosure summary="For analysts: how the model weighs each factor">
       <p className="disclosure-lead">
-        How strongly each factor moved with weekly applications, holding the others constant. These are associations
-        from historical data, not proof of cause. Faded bars are unstable estimates.
+        You can skip this; the conclusions are above. Each bar shows how closely a factor moved with weekly applications
+        in past data, after accounting for the others. Longer bar means a stronger link. These are associations, not proof
+        of cause. Faded bars overlap with other channels, so they are <Term id="directional">Directional</Term> at best.
       </p>
       <div className="coef-legend" style={{ margin: "14px 0 18px" }}>
         <span>
           <span aria-hidden style={{ width: 14, height: 10, borderRadius: 2, background: T.pos }} />
-          Moved with more applications
+          Moved up with applications
         </span>
         <span>
           <span aria-hidden style={{ width: 14, height: 10, borderRadius: 2, background: T.neg }} />
-          Moved with fewer applications
+          Moved down with applications (does not mean it hurts)
         </span>
       </div>
       {[
         {
           title: "Advertising signals",
           rows: ads,
-          note: "Marketing inputs. Bars marked unstable overlap heavily with other channels, so their size, and even their direction, can flip as more data comes in.",
+          note: "Marketing inputs. Faded bars overlap heavily with other channels, so their size, and even their direction, can flip as more data comes in.",
         },
         {
           title: "The admissions calendar & trend",
@@ -742,7 +757,7 @@ function Coefficients({ r }: { r: PipelineResult }) {
           title: `Annual cycle terms · ${harmonics.length}`,
           rows: harmonics,
           neutral: true,
-          note: "Smooth waves that, added together, draw the shape of the admissions year: quiet summer, fall ramp, deadline spike. Each wave has a sine and a cosine part, and their signs only set which week the wave peaks, not whether it helps or hurts, so they're drawn in gray. Read them as one curve, not row by row. Wave 1 does most of the work.",
+          note: "Smooth curves the model uses to draw the normal shape of the admissions year: quiet summer, fall ramp, deadline spike. They are calendar machinery, not marketing, and are drawn in gray. Nothing to act on here.",
         },
       ]
         .filter((g) => g.rows.length)
@@ -773,10 +788,10 @@ function Diagnostics({ r }: { r: PipelineResult }) {
   const d = r.multicollinearity
   const m = r.in_sample_metrics
   const rows: [string, ReactNode][] = [
-    ["Fit on the weeks it learned from (in-sample R²)", <>{m["R²"]?.toFixed(3) ?? "—"}. Always flatters; read the unseen-weeks figure instead.</>],
-    ["Adjusted R²", m["Adj R²"]?.toFixed(3) ?? "—"],
+    ["Score on weeks it already saw (in-sample R²)", <>{m["R²"]?.toFixed(3) ?? "—"}. Always flatters; read the unseen-weeks score instead.</>],
+    ["Adjusted R² (the score, corrected for how many factors were used)", m["Adj R²"]?.toFixed(3) ?? "—"],
     [
-      `Walk-forward folds (${t.folds})`,
+      `Five test stretches, each predicting later weeks than it learned from (${t.folds})`,
       <span className="fold-list">
         {r.cross_validation.per_fold_r2.map((v, i) => (
           <span key={i} className={v < 0 ? "fold fold-neg" : "fold"}>
@@ -785,20 +800,25 @@ function Diagnostics({ r }: { r: PipelineResult }) {
         ))}
       </span>,
     ],
-    ["Durbin-Watson", <>{m["Durbin-Watson"]?.toFixed(2) ?? "—"} (≈2 means no leftover week-to-week pattern)</>],
-    ["Regularization (ridge α, auto-tuned)", r.selected_ridge_alpha.toFixed(2)],
+    ["Durbin-Watson (leftover week-to-week pattern)", <>{m["Durbin-Watson"]?.toFixed(2) ?? "—"} (about 2 means none)</>],
+    ["Regularization (ridge α): keeps the model from over-reacting to noise", r.selected_ridge_alpha.toFixed(2)],
   ]
   if (d?.condition_number !== undefined)
-    rows.push(["Condition number", <>{Math.round(d.condition_number).toLocaleString("en-US")}{d.high_condition_number ? " (high: inputs overlap heavily)" : ""}</>])
+    rows.push(["Condition number (high means channels moved together too much to separate)", <>{Math.round(d.condition_number).toLocaleString("en-US")}{d.high_condition_number ? " (high: inputs overlap heavily)" : ""}</>])
   if (d?.high_vif_features && Object.keys(d.high_vif_features).length)
     rows.push([
-      "High-VIF features",
+      "Channels that overlap heavily (VIF), so Directional at best",
       Object.entries(d.high_vif_features)
         .map(([k, v]) => `${featureLabel(k)} (${v.toFixed(1)})`)
         .join(", "),
     ])
   return (
-    <Disclosure summary="Validation & diagnostics">
+    <Disclosure summary="Technical checks (for analysts)">
+      <p className="disclosure-lead">
+        Plain-English takeaway: the model follows the busy and quiet seasons fairly well, but it is not reliable for
+        splitting applications among ad channels.
+      </p>
+      {d?.warning && <p className="disclosure-lead">Model note: {d.warning}</p>}
       <dl className="diag">
         {rows.map(([k, v]) => (
           <div key={k}>
@@ -825,27 +845,22 @@ function readLevel(): ResultsLevel {
 
 function ViewSwitch({ view, onPick }: { view: ResultsLevel; onPick: (v: ResultsLevel) => void }) {
   return (
-    <div className="view-switch no-print">
-      <span className="view-switch-label">Show results as</span>
-      <div className="seg" role="group" aria-label="How much detail to show">
-        <button type="button" aria-pressed={view === "easy"} onClick={() => onPick("easy")}>
-          Easy
+    <div className="view-switch no-print" data-guide="results-view-switch">
+      <span className="view-switch-label">Reading level</span>
+      <div className="seg" role="group" aria-label="Reading level">
+        <button type="button" aria-pressed={view === "easy"} onClick={() => onPick("easy")} data-guide="view-easy">
+          Plain English
         </button>
         <button type="button" aria-pressed={view === "regular"} onClick={() => onPick("regular")}>
-          Regular
-        </button>
-        <button type="button" disabled aria-label="Technical view, coming soon" title="Coming soon">
-          Technical <span className="view-soon">soon</span>
+          Full detail
         </button>
       </div>
       <span className="view-switch-hint">
-        {view === "easy" ? "Plain words, no statistics." : "The full readout with every caveat."}
+        {view === "easy" ? "Short answers, no statistics. Same results either way." : "Charts, numbers and every caveat."}
       </span>
     </div>
   )
 }
-
-const sentenceCase = (s: string) => s.charAt(0).toUpperCase() + s.slice(1)
 
 /* ── the view ──────────────────────────────────────────────── */
 export function ResultsView({
@@ -855,7 +870,7 @@ export function ResultsView({
   commentary = { status: "idle" },
   onAsk,
   onRerun,
-  rerunLabel = "Re-run",
+  rerunLabel = "Refresh results",
   onBack,
   backLabel,
   notice,
@@ -912,7 +927,7 @@ export function ResultsView({
   return (
     <div className="wf-stack wf-stack-results results">
       <div className="print-only print-head">
-        <strong>Augie Analysis · Marketing Mix Model results</strong>
+        <strong>Augie Analysis · Marketing mix model results</strong>
         <span>
           {live ? "Live Augustana data" : "Synthetic sample, not real data"} · generated {fmtStamp(ranAt)} · data{" "}
           {fmtDay(t.dataStart)} to {fmtDay(t.dataEnd)}
@@ -944,7 +959,7 @@ export function ResultsView({
             <span className="num" style={{ whiteSpace: "nowrap" }}>
               {fmtDay(t.dataStart)} – {fmtDay(t.dataEnd)}
             </span>{" "}
-            · run {fmtStamp(ranAt)}
+            · last updated {fmtStamp(ranAt)}
           </>
         }
         actions={
@@ -954,7 +969,7 @@ export function ResultsView({
               {copied === "done" ? "Copied" : copied === "failed" ? "Couldn't copy" : "Copy summary"}
             </button>
             <button type="button" className="btn btn-outline btn-sm" onClick={exportCSV}>
-              <IconDownload size={14} /> CSV
+              <IconDownload size={14} /> Spreadsheet (CSV)
             </button>
             <button type="button" className="btn btn-outline btn-sm" onClick={() => window.print()}>
               <IconPrint size={14} /> Print
@@ -983,44 +998,59 @@ export function ResultsView({
         <EasyView result={result} live={live} />
       ) : (
       <>
-      <Finding ledger={ledger} stale={t.weeksStale} dataEnd={t.dataEnd} />
+      <Finding ledger={ledger} stale={t.weeksStale} dataEnd={t.dataEnd} unidentified={!!result.marketing_lift && !result.marketing_lift.identified} />
+
+      <section className="next-steps" aria-label="What to do next">
+        <p className="next-steps-title">What to do next</p>
+        <ol>
+          <li>Use the calendar to plan: it is the part of the forecast we can lean on.</li>
+          <li>Don't change channel budgets based on this run.</li>
+          <li>Plan a short, time-boxed spend test in one channel.</li>
+          <li>Send the analyst the full Carnegie history and event data.</li>
+        </ol>
+        <p className="next-steps-term">
+          The <Term id="mmm">marketing mix model</Term> compares weekly applications with weekly ad activity.
+        </p>
+      </section>
 
       <div className="card kpi-strip" role="group" aria-label="How far to trust this run">
         <KpiCard
-          label="Fit on unseen weeks"
+          label="How well it predicts weeks it hasn't seen"
           value={signed(t.cvMean)}
           tone={t.unstable ? "caution" : undefined}
           sub={
             result.marketing_lift && !result.marketing_lift.identified ? (
               <>
-                Calendar-only benchmark: <span className="num">{signed(result.marketing_lift.baseline_mean_r2)}</span> · periods ranged{" "}
-                <span className="num">{signed(t.foldMin)}</span> to <span className="num">{signed(t.foldMax)}</span>
+                Score from 0 to 1; higher is better, below 0 is worse than guessing the average. <Term id="calendar-only">Calendar-only</Term>{" "}
+                benchmark: <span className="num">{signed(result.marketing_lift.baseline_mean_r2)}</span> (a forecast using only the time of year).
+                Across five test stretches, scores ranged from <span className="num">{signed(t.foldMin)}</span> to{" "}
+                <span className="num">{signed(t.foldMax)}</span>.
               </>
             ) : (
               <>
-                {FIT_WORDS[t.rating]} · periods ranged <span className="num">{signed(t.foldMin)}</span> to{" "}
-                <span className="num">{signed(t.foldMax)}</span>
+                {FIT_WORDS[t.rating]}. Score from 0 to 1; higher is better, below 0 is worse than guessing the average. Across five test
+                stretches, scores ranged from <span className="num">{signed(t.foldMin)}</span> to <span className="num">{signed(t.foldMax)}</span>.
               </>
             )
           }
         />
         <KpiCard
-          label="Typical weekly miss"
+          label="Typical weekly error"
           value={t.mae !== undefined ? fmtApps(t.mae) : "—"}
           unit="apps"
           sub={
             t.maeShare !== undefined ? (
               <>
-                {pct(t.maeShare)} of an average week ({fmtApps(t.meanActual)}), on weeks the model learned from
+                {pct(t.maeShare)} of an average week ({fmtApps(t.meanActual)}), measured on weeks the model already saw, so on new weeks it will usually miss by more
               </>
             ) : undefined
           }
         />
         <KpiCard
-          label="Spend history on file"
+          label="Ad spending records on file"
           value={t.spendShare !== undefined ? pct(t.spendShare) : "—"}
           tone={t.spendShare !== undefined && t.spendShare < 0.5 ? "caution" : undefined}
-          sub={t.spendWeeks !== undefined ? <>{t.spendWeeks} of {t.totalWeeks} weeks</> : "No channel spend in this run"}
+          sub={t.spendWeeks !== undefined ? <>{t.spendWeeks} of {t.totalWeeks} weeks{t.spendShare !== undefined && t.spendShare < 0.5 ? ". With under half the weeks recorded, the model can say little about ads" : ""}</> : "No channel spend in this run"}
         />
         <KpiCard
           label="Data through"
@@ -1035,17 +1065,23 @@ export function ResultsView({
       </div>
 
       {result.marketing_lift && !result.marketing_lift.identified && (
-        <Alert variant="warning" title="Marketing isn't separable from the calendar in this run">
-          On weeks it never saw, the model with marketing scored {result.marketing_lift.full_mean_r2.toFixed(2)} and the
-          calendar alone scored {result.marketing_lift.baseline_mean_r2.toFixed(2)} (marketing did better on{" "}
-          {result.marketing_lift.folds_won} of {result.marketing_lift.folds} test periods). So no channel's number is
-          supported yet. What would change that: fuller Carnegie spend history, real flight dates, or a deliberate,
-          time-boxed spend test.
+        <Alert variant="warning" title="Adding marketing data didn't make the forecast better">
+          Adding marketing data did not make the forecast more accurate than using the calendar alone, so it is{" "}
+          Can't tell yet what each channel did. On weeks the model had not seen, the version
+          with marketing scored {result.marketing_lift.full_mean_r2.toFixed(2)} and the{" "}
+          <Term id="calendar-only">calendar-only</Term> version scored {result.marketing_lift.baseline_mean_r2.toFixed(2)}{" "}
+          (higher is better). Marketing did better in {result.marketing_lift.folds_won} of {result.marketing_lift.folds}{" "}
+          test stretches. What would change that: fuller Carnegie spend history, real dates for when ads and billboards
+          ran (flight dates), or a short planned spend test. Until then, don't cut or increase any channel based on this
+          page.
         </Alert>
       )}
       {result.marketing_lift?.identified !== false && result.multicollinearity?.warning && (
-        <Alert variant="warning" title="Some channels moved together, so their estimates are directional">
-          {sentenceCase(humanizeFeatureNames(result.multicollinearity.warning.replace(/^High multicollinearity detected\s*[—:-]\s*/i, "")))}
+        <Alert variant="warning" title="Some channels moved together, so their estimates are Directional">
+          These channels were often switched on at the same time:{" "}
+          {Object.keys(result.multicollinearity.high_vif_features ?? {}).map(featureLabel).join(", ") || "several of them"}. When
+          that happens the model can't tell which one to give the allocation to, so treat their numbers as Directional: a rough
+          direction, not a size.
         </Alert>
       )}
 
@@ -1058,10 +1094,10 @@ export function ResultsView({
           <SectionHeader
             title={
               <>
-                AI readout <span className="ai-tag">Signed-in only</span>
+                AI summary in plain words <span className="ai-tag">Signed-in only</span>
               </>
             }
-            caption="When you're signed in, an AI model writes a plain-language reading of the live run here, and you can ask it follow-up questions. It isn't generated for synthetic samples."
+            caption="When you're signed in, an AI model writes a short plain-words summary of the live run here, and you can ask it follow-up questions. It isn't generated for synthetic samples."
           />
         </div>
       )}

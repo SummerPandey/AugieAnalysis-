@@ -9,7 +9,7 @@
  */
 import { T } from "./theme"
 import { IconArrowLeft, IconFlask } from "./icons"
-import { DATA_SOURCES, MODEL_WINDOW, STATUS_AS_OF, STATUS_LABEL, formatStatusDate } from "./projectStatus"
+import { DATA_SOURCES, MODEL_WINDOW, STATUS_AS_OF, STATUS_GLOSS, STATUS_LABEL, formatStatusDate } from "./projectStatus"
 
 export function AugieMark({ size = 28, boxed = true }: { size?: number; boxed?: boolean }) {
   const shield = (
@@ -84,7 +84,7 @@ export function SiteHeader({
               <p className="brand-title">
                 Augie <em>Analysis</em>
               </p>
-              <p className="brand-sub">Marketing Mix Model</p>
+              <p className="brand-sub">Marketing Mix Model<span className="brand-sub-extra"> · how ads relate to applications</span></p>
             </div>
             {crumb && (
               <span className="brand-crumb" aria-current="page">
@@ -96,7 +96,7 @@ export function SiteHeader({
             {variant === "demo" && (
               <span className="badge badge-demo hide-md">
                 <IconFlask size={12} />
-                Demo · synthetic sample
+                Demo · made-up sample data
               </span>
             )}
             {variant === "signedIn" && name && (
@@ -150,9 +150,9 @@ export function SiteFooter() {
             </span>
           </div>
           <p style={{ fontSize: 12.5, lineHeight: 1.7, maxWidth: 320, color: "rgba(255,255,255,0.7)" }}>
-            An internal Marketing Mix Model for Augustana College admissions marketing. It tests how
-            Carnegie spend and impressions relate to weekly Slate applications, and says plainly
-            where the evidence is still too thin.
+            An internal tool for admissions marketing. It checks whether ad spending and ad views (from
+            Carnegie, our digital ad agency) line up with weekly applications (from Slate, our
+            admissions system), and says plainly where the evidence is still too thin.
           </p>
         </div>
         <div>
@@ -160,9 +160,9 @@ export function SiteFooter() {
           <ul>
             <li style={listItem}>Sponsor: Irene, Marketing &amp; Communications</li>
             <li style={listItem}>Analyst: Summer Pandey, CS &amp; Data Science</li>
-            <li style={listItem}>Statistical model, tested on weeks it never saw</li>
+            <li style={listItem}>Checked on weeks it hadn't seen before</li>
             <li style={listItem}>
-              Model window: {formatMonth(MODEL_WINDOW.start)} – {formatMonth(MODEL_WINDOW.end)}
+              Data window: {formatMonth(MODEL_WINDOW.start)} – {formatMonth(MODEL_WINDOW.end)}
             </li>
           </ul>
         </div>
@@ -180,7 +180,7 @@ export function SiteFooter() {
                   gap: "0 12px",
                 }}
               >
-                <span>{s.label}</span>
+                <span title={STATUS_GLOSS[s.status]}>{s.label}</span>
                 <span style={{ ...dim, fontSize: 12 }}>
                   <span className="sr-only">Status: </span>
                   {STATUS_LABEL[s.status]}

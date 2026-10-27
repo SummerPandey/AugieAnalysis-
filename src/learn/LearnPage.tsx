@@ -8,15 +8,16 @@ import { UnderTheHoodSection } from "./sections/UnderTheHood"
 import { WhatItShowsSection } from "./sections/WhatItShows"
 import { ReadingSection } from "./sections/Reading"
 import { FaqSection } from "./sections/Faq"
+import { Term } from "../glossary"
 import "./learn.css"
 
 const TOC = [
-  { id: "what-is", label: "What an MMM is" },
-  { id: "process", label: "How we build it" },
-  { id: "under-the-hood", label: "Under the hood" },
-  { id: "what-it-shows", label: "What it shows" },
-  { id: "reading", label: "Reading the results" },
-  { id: "faq", label: "Questions & glossary" },
+  { id: "what-is", label: "What this tool is" },
+  { id: "process", label: "How it is built" },
+  { id: "under-the-hood", label: "The ideas behind it" },
+  { id: "what-it-shows", label: "What the results page shows" },
+  { id: "reading", label: "How to read and use it" },
+  { id: "faq", label: "Questions and glossary" },
 ] as const
 
 type SectionId = (typeof TOC)[number]["id"]
@@ -177,14 +178,34 @@ export default function LearnPage({
               How Augie Analysis <em>works</em>
             </h1>
             <p className="lp-lead">
-              A plain-language tour of how we turn marketing spend and application
-              data into a model you can read, from the first spreadsheet to the
-              final chart.
+              A plain-language tour, no statistics needed. It covers what the tool
+              does, what it found, and how much to trust it.
             </p>
+            <div className="lp-short" role="note">
+              <p className="lp-short-title">The short version</p>
+              <ol className="lp-short-list">
+                <li>
+                  This tool checks whether marketing data helps predict weekly applications,
+                  beyond what the admissions <Term id="calendar-only">calendar-only</Term> forecast
+                  already predicts.
+                </li>
+                <li>
+                  So far it does not. We cannot say what any channel does, so every channel reads{" "}
+                  <strong>Can't tell yet</strong>.
+                </li>
+                <li>
+                  You can use the calendar pattern for planning now. The next step is a small,
+                  planned spend test.
+                </li>
+              </ol>
+              <p className="lp-short-skip">
+                Only need the takeaway? Skip sections 02 and 03 and go to 04 and 05.
+              </p>
+            </div>
           </div>
         </header>
 
-        <div className="lp-video-wrap">
+        <div className="lp-video-wrap" data-guide="learn-explainer">
           <ExplainerVideo onDemo={onDemo} />
         </div>
 
@@ -233,11 +254,12 @@ export default function LearnPage({
               See it on a sample run
             </h2>
             <p className="lp-cta-text">
-              The demo runs this whole method on a synthetic sample shaped like
-              Augustana's data, with the same charts and verdict labels the live results use.
+              Try it with made-up numbers. The demo shows the same charts and labels as the real
+              results, using practice data shaped like ours, so nothing you see is a real finding.
+              Pick the sample data, press run, then read the results with what you just learned.
             </p>
             <button type="button" className="btn btn-gold btn-lg" onClick={onDemo}>
-              Explore the demo
+              Try the demo
               <IconArrowRight size={16} />
             </button>
           </div>

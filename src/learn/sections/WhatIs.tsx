@@ -1,4 +1,5 @@
 import { IconArrowRight, IconWarning } from "../../icons"
+import { Term } from "../../glossary"
 import "./whatis.css"
 
 /** Harbor illustration: boats lifted above a rising admissions-calendar tide. */
@@ -60,9 +61,10 @@ export function WhatIsSection() {
           What a Marketing Mix Model <em>is</em>
         </h2>
         <p className="lp-intro">
-          Applications climb every fall toward the early-November deadline, partly because it is
-          admissions season. A Marketing Mix Model, or MMM, tries to separate that calendar effect
-          from what each marketing channel may add on top.
+          Applications climb every fall toward the early-November deadline, simply because it is
+          admissions season. A <Term id="mmm">Marketing Mix Model</Term> (MMM) asks: how many
+          applications arrive because of the time of year, and how many might line up with our
+          marketing on top of that?
         </p>
       </div>
 
@@ -72,15 +74,23 @@ export function WhatIsSection() {
           <div className="lp-what-is-text">
             <h3 className="display">The question it answers</h3>
             <p>
-              For each week, how many extra applications might each channel have brought beyond what
-              the calendar would have brought anyway? Think of the calendar as a rising tide that lifts
-              every boat in the harbor. The model estimates how far each channel may lift applications
-              above that tide, using past data. It is an estimate, not a proof. Today the calendar alone
-              predicts unseen weeks better, so channel numbers are not yet reliable.
+              For each week: how many applications would we expect from the calendar alone, and is
+              anything left over that lines up with a channel? Think of the calendar as a rising
+              tide that lifts every boat. Lining up is not the same as causing. This is an estimate
+              from past patterns, not a proof, and it is not causal.
+            </p>
+            <p className="lp-what-is-note">
+              <strong>What it found so far:</strong> guessing weekly applications from the calendar
+              alone works better than adding the marketing data. So the tool shows{" "}
+              <strong>Can't tell yet</strong> for every channel.
             </p>
           </div>
           <div className="lp-what-is-visual">
             <HarborVisual />
+            <p className="lp-what-is-note">
+              The dashed arrows are the question, not a finding. We have not shown that any channel
+              adds lift.
+            </p>
           </div>
         </div>
 
@@ -98,14 +108,19 @@ export function WhatIsSection() {
           </div>
           <ul role="list" className="lp-what-is-list">
             <li>
-              Weekly submitted applications from Slate, Augustana's admissions system, January 2023
-              to May 2026
+              Weekly submitted applications from Slate, our admissions system, January 2023 to May
+              2026
             </li>
             <li>
-              Spend and impressions from Carnegie, the digital agency, for Meta, Snapchat, YouTube,
-              Google search and IP targeting, and display retargeting
+              Spend and <Term id="impressions">impressions</Term> (times an ad was shown) from
+              Carnegie, our digital ad agency. Channels: Meta, Snapchat, YouTube, Google search
+              ads, ads aimed at certain addresses (IP targeting), and ads that follow people who
+              visited our site (display retargeting)
             </li>
-            <li>Billboard spend for QC Airport and Lamar, shown for context but not modeled, since it is on file only as yearly totals</li>
+            <li>
+              Billboard spend for QC Airport and Lamar, shown for context only. We have yearly
+              totals, not the dates each billboard ran, so it cannot be tested
+            </li>
           </ul>
           <p className="lp-what-is-note">Email sends and direct mail are not included yet.</p>
         </div>
@@ -114,11 +129,12 @@ export function WhatIsSection() {
         <div className="lp-what-is-block">
           <h3 className="display">Why not just read click reports</h3>
           <p>
-            Carnegie reported that most tracked conversions were view-through: people saw an ad,
-            never clicked, and applied later. Click reports do not count those people. A mix model
-            can potentially pick up effects that do not involve clicks, by comparing spend and
-            impressions with weekly applications. It still needs enough variation and history to
-            separate those effects from seasonality and other influences.
+            Carnegie reported that most tracked conversions were{" "}
+            <Term id="view-through">view-through</Term>: the person saw an ad, did not click, and
+            applied later. A conversion is an application the ad system links to an ad. Click
+            reports miss view-through people. In principle a mix model can pick up this kind of
+            effect, but only if spend goes up and down enough, over enough years, to tell it apart
+            from the normal yearly pattern. We do not have that yet.
           </p>
           <div className="lp-what-is-compare">
             <div className="lp-what-is-compare-card">

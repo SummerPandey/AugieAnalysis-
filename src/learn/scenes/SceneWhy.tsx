@@ -9,7 +9,7 @@ import "./sceneWhy.css"
 const CARDS = [
   { x: 200, top: "Plan around", bottom: "the calendar", icon: "calendar", delay: "0.35s" },
   { x: 620, top: "Test before", bottom: "shifting budget", icon: "flask", delay: "0.6s" },
-  { x: 1040, top: "Count views,", bottom: "not just clicks", icon: "eye", delay: "0.85s" },
+  { x: 1040, top: "Look at views too,", bottom: "not just clicks", icon: "eye", delay: "0.85s" },
 ] as const
 
 function Icon({ kind, cx }: { kind: (typeof CARDS)[number]["icon"]; cx: number }) {
@@ -45,7 +45,7 @@ export function SceneWhy() {
   return (
     <g>
       <text x={800} y={180} textAnchor="middle" className="lp-video-display lp-video-title lp-s56-title">
-        Why this data helps
+        Why this data may help
       </text>
       {CARDS.map((c) => (
         <g key={c.icon} className="lp-s56-pop" style={{ animationDelay: c.delay }}>

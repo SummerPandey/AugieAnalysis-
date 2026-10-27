@@ -4,10 +4,10 @@ import "./scenes12.css"
 /* ---------- Scene 2: four ad channels feeding one weekly bar ---------- */
 
 const CHANNELS = [
-  { x: 350, label: "Social" },
+  { x: 350, label: "Facebook / IG" },
   { x: 650, label: "Video" },
-  { x: 950, label: "Search" },
-  { x: 1250, label: "Display" },
+  { x: 950, label: "Google search" },
+  { x: 1250, label: "Banner ads" },
 ]
 
 // Icons pop in one by one; each dot leaves after its icon has settled.
@@ -93,7 +93,7 @@ export function SceneChannels() {
         />
       </g>
       <text x={800} y={712} textAnchor="middle" className="lp-video-label">
-        One week of ads
+        One week of ad activity
       </text>
     </g>
   )

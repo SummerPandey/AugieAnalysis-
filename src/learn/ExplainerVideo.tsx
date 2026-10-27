@@ -26,12 +26,12 @@ const SETTLE_MS = 2600
 
 const CAPTIONS = [
   "Applications spike every year around the early November deadline.",
-  "Marketing also runs ads during the same weeks: Meta, Snapchat, YouTube and search.",
+  "Marketing also runs ads in those same weeks: Facebook and Instagram (Meta), Snapchat, YouTube and Google search.",
   "The question: how much came from ads, and how much from the calendar?",
-  "The model lines up each week's ads, the calendar, and carryover from past spend.",
-  "In the model, most applications are assigned to the calendar. The ads' share is still being measured.",
-  "Why it matters: knowing the baseline helps you plan, test and judge spend fairly.",
-  "Try the demo to explore the same method on sample data.",
+  "The model lines up each week's ads, the time of year (deadline, winter, yield, summer) and ads from earlier weeks that may still linger. Yield is when admitted students decide.",
+  "In the model, most applications are assigned to the calendar. The ads' share is unclear for now: the data can't tell it apart from the calendar yet.",
+  "Why it may help: knowing the normal level for each time of year helps you plan, test and judge spend fairly.",
+  "Try the demo, or read the plain-language steps below. The demo uses made-up practice data.",
 ]
 
 type SceneSlot = { key: string; scene: number }
@@ -215,6 +215,8 @@ export function ExplainerVideo({ onDemo }: { onDemo?: () => void } = {}) {
         )}
       </div>
 
+      <p className="lp-video-hint">Pause, or click a bar below, to take your time.</p>
+
       <p className="lp-video-caption" aria-live="polite">
         <span className="lp-video-caption-step">Scene {scene + 1} of {SCENE_COUNT}</span>
         <span key={scene} className="lp-video-caption-text">{CAPTIONS[scene]}</span>
@@ -259,6 +261,14 @@ export function ExplainerVideo({ onDemo }: { onDemo?: () => void } = {}) {
           {formatTime(elapsed)} / {formatTime(TOTAL_MS)}
         </span>
       </div>
+      <details className="lp-video-transcript">
+        <summary>Read all {SCENE_COUNT} steps as text</summary>
+        <ol>
+          {CAPTIONS.map((caption, i) => (
+            <li key={i}>{caption}</li>
+          ))}
+        </ol>
+      </details>
     </div>
   )
 }

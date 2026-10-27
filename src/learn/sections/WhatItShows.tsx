@@ -1,20 +1,21 @@
 import type { ReactNode } from "react"
 import { IconCheck, IconWarning } from "../../icons"
+import { Term } from "../../glossary"
 import "./whatitshows.css"
 
 const INTRO =
-  "The results page answers one question: how much does each channel move weekly applications, and how much is simply the admissions calendar? Read it from top to bottom."
+  "The results page asks: how much of weekly applications lines up with each marketing channel, and how much is just the admissions calendar? Today it can answer only the second part. Read it from top to bottom."
 
 const STAT_TILES = [
   {
     label: "Fit on unseen weeks",
     value: "0.60",
-    text: "How well the model predicts weeks it never saw in training. Zero means no better than guessing the average week. Below zero means worse than that.",
+    text: "Out of 1, higher is better. The calendar alone scores 0.78, so the model with marketing does worse on weeks it has not seen. Zero would mean no better than guessing an average week.",
   },
   {
     label: "Typical weekly miss",
     value: "52",
-    text: "The average gap between the model's estimate and the actual count for a week.",
+    text: "Applications. On average the model is off by about 52 applications in a week.",
   },
   {
     label: "Spend history on file",
@@ -29,9 +30,9 @@ const STAT_TILES = [
 ]
 
 const CHECKS = [
-  { label: "Channels ran in the same weeks", status: "Flagged", ok: false },
-  { label: "Marketing beats the calendar alone", status: "Not yet", ok: false },
-  { label: "Spend history covers the period", status: "Flagged", ok: false },
+  { label: "Channels ran in the same weeks", status: "Flagged: be careful", ok: false },
+  { label: "Marketing beats the calendar alone", status: "Not yet: marketing has not beaten the calendar alone", ok: false },
+  { label: "Spend history covers the period", status: "Flagged: not enough weeks of spend data", ok: false },
 ]
 
 // Rows as the current real-data run shows them (marketing isn't identified,
@@ -84,7 +85,7 @@ function StackBars() {
       className="lp-what-it-shows-chart"
       viewBox="0 0 160 96"
       role="img"
-      aria-label="Stacked bars: modeled applications by driver for each week"
+      aria-label="Stacked bars: the model's split of applications by factor for each week"
     >
       <line className="lp-what-it-shows-axis" x1="4" y1="90" x2="156" y2="90" />
       {CHART_STACK.map((parts, i) => {
@@ -128,12 +129,17 @@ export function WhatItShowsSection() {
                 In this run, <strong>84%</strong> of modeled applications are assigned to the admissions calendar and
                 long-term trend. No individual channel has an estimate the model can support yet.
               </p>
+              <p className="lp-what-it-shows-note">
+                This is a model-based allocation, not a causal measurement. It is how the model
+                divides up its own predictions, not a count of why students applied. Use it to plan
+                around the calendar.
+              </p>
             </div>
           }
         >
           <p className="lp-what-it-shows-body">
-            The headline is a plain-language summary of the latest run. Read it first, then use
-            the rest of the page to check whether the details support it.
+            The headline sums up the latest run in plain words. Read it first, then check whether
+            the details support it.
           </p>
         </Step>
 
@@ -151,16 +157,16 @@ export function WhatItShowsSection() {
 
         <Step
           n={3}
-          title="The driver table"
+          title="The table of factors"
           visual={
             <div className="lp-what-it-shows-table-wrap">
               <table className="lp-what-it-shows-table">
                 <thead>
                   <tr>
-                    <th scope="col">Driver</th>
-                    <th scope="col">Modeled applications</th>
+                    <th scope="col">Factor</th>
+                    <th scope="col">Applications the model predicts</th>
                     <th scope="col">Share of total</th>
-                    <th scope="col">Weeks active</th>
+                    <th scope="col">Weeks with data</th>
                     <th scope="col">Verdict</th>
                   </tr>
                 </thead>
@@ -178,16 +184,16 @@ export function WhatItShowsSection() {
                   ))}
                 </tbody>
               </table>
-              <p className="lp-what-it-shows-note">Example rows from the current run.</p>
+              <p className="lp-what-it-shows-note">Example rows from the current run. Dashes mean the tool declines to give a number, because it cannot yet tell the channel's effect from the calendar.</p>
             </div>
           }
         >
           <p className="lp-what-it-shows-body">
-            Each row is one driver, such as Meta, Google PPC or the calendar. It shows modeled
-            applications, its share of the total, how many weeks it was active, and a verdict. In the
-            current model decomposition, about 80 to 90% of modeled applications are assigned to the
-            admissions baseline (the calendar row). This is a model-based allocation, not a causal
-            measurement.
+            Each row is one factor, such as Meta, Google search ads or the calendar. It shows the
+            applications the model predicts for it, its share of the total, how many weeks it has
+            data, and a verdict. About 80 to 90% of modeled applications are assigned to the
+            admissions baseline (the calendar row). This is a model-based allocation, not a
+            causal measurement.
           </p>
         </Step>
 
@@ -199,8 +205,8 @@ export function WhatItShowsSection() {
           <p className="lp-what-it-shows-body">
             The first compares actual and modeled applications week by week. The second lines up
             each admissions year, so you can check whether the early November spike (weeks 44 and
-            45) repeats. The third stacks modeled applications by driver, showing where each
-            week's volume came from.
+            45) repeats. The third stacks the model's split of each week's applications by factor.
+            It shows how the model divides them up, not where they definitely came from.
           </p>
           <div className="lp-what-it-shows-charts">
             <figure className="lp-what-it-shows-figure">
@@ -248,7 +254,7 @@ export function WhatItShowsSection() {
             </figure>
             <figure className="lp-what-it-shows-figure">
               <StackBars />
-              <figcaption>Stacked by driver</figcaption>
+              <figcaption>Stacked by factor</figcaption>
             </figure>
           </div>
           <p className="lp-what-it-shows-note">Illustrations of each chart type, not real data.</p>
@@ -276,9 +282,9 @@ export function WhatItShowsSection() {
           }
         >
           <p className="lp-what-it-shows-body">
-            The diagnostics section checks whether the numbers can be trusted. A flag means channels
-            ran in the same weeks and moved together, so the model cannot cleanly separate their
-            effects. Read flagged channels as a direction, not an exact size.
+            This panel is a set of warning lights. A warning means channels ran in the same weeks
+            (<Term id="collinearity">moved together</Term>) or data is thin, so treat the related
+            numbers as a direction only and do not change budgets because of them.
           </p>
         </Step>
 
@@ -287,7 +293,7 @@ export function WhatItShowsSection() {
             <div className="lp-what-it-shows-card">
               <p className="lp-what-it-shows-card-label">Readout</p>
               <p className="lp-what-it-shows-card-text">
-                When you sign in, an AI readout summarizes the run in plain language, with caveats.
+                When you sign in, an AI readout summarizes the run in plain words, with caveats.
               </p>
             </div>
             <div className="lp-what-it-shows-card">
@@ -298,8 +304,9 @@ export function WhatItShowsSection() {
             </div>
           </div>
           <p className="lp-what-it-shows-body lp-what-it-shows-note">
-            Both explain the results, but neither can prove cause, because this is a regression on
-            history rather than a controlled test.
+            Both explain the results, but neither can prove that a channel causes applications. The
+            model only looks at past patterns; it is not a test where we changed spending on
+            purpose. AI answers can be wrong, so check important points against the numbers.
           </p>
         </Step>
 

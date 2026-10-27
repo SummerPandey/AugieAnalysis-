@@ -587,3 +587,26 @@
     display: none;
   }
 }
+
+/* "What to do next" card on the full-detail view */
+.next-steps {
+  background: var(--color-surface, #fff);
+  border: 1px solid var(--color-border, #d8d8d8);
+  border-radius: 10px;
+  padding: 16px 18px;
+}
+.next-steps-title {
+  margin: 0 0 8px;
+  font-weight: 700;
+}
+.next-steps ol {
+  margin: 0;
+  padding-left: 20px;
+  display: grid;
+  gap: 4px;
+}
+.next-steps-term {
+  margin: 10px 0 0;
+  font-size: 0.875rem;
+  color: var(--color-ink-3, #666);
+}

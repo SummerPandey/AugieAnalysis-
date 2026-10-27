@@ -18,12 +18,13 @@ import { DATA_SOURCES } from "./projectStatus"
 import { SourceStatusBadge } from "./sourceStatus"
 import { ResultsView, type CommentaryState } from "./results"
 import { DEFAULT_SETTINGS, LIMITS, sampleResult, type SampleSettings } from "./sampleResult"
+import { Term } from "./glossary"
 import { Alert, card, InfoTooltip, PageInfoButton, SectionHeader, StepFooter, StepHeader } from "./ui"
 import { IconArrowLeft, IconArrowRight, IconCheck, IconRefresh, Spinner } from "./icons"
 import "./workflow.css"
 
 /* ── stepper ───────────────────────────────────────────────── */
-const DEMO_STEPS = ["Sources", "Model settings", "Run", "Results"] as const
+const DEMO_STEPS = ["Data", "Settings (optional)", "Run", "What it found"] as const
 type DemoStep = 1 | 2 | 3 | 4
 
 function Stepper({
@@ -39,7 +40,7 @@ function Stepper({
   locked?: boolean
 }) {
   return (
-    <nav aria-label="Workflow steps">
+    <nav aria-label="Workflow steps" data-guide="wf-stepper">
       <ol className="stepper" style={{ ["--steps" as string]: DEMO_STEPS.length }}>
         {DEMO_STEPS.map((s, i) => {
           const n = (i + 1) as DemoStep
@@ -99,7 +100,7 @@ const SOURCES: SourceCard[] = [
     id: "applications",
     sourceId: "applications",
     label: "Applications",
-    description: "Weekly submitted applications from Slate: the outcome the model explains.",
+    description: "Number of applications submitted each week, from Slate (the admissions system). This is what the model tries to predict.",
     role: "outcome",
     columns: ["week", "applications"],
     icon: ic(<path d="M2 13.5V9M6 13.5V5.5M10 13.5V7M14 13.5V2.5" />),
@@ -108,7 +109,7 @@ const SOURCES: SourceCard[] = [
     id: "spend",
     sourceId: "spend",
     label: "Channel spend",
-    description: "Monthly media plan by channel from Carnegie: Meta, Snapchat, YouTube, Google PPC and IP targeting, display.",
+    description: "Planned monthly spend on each ad channel, from Carnegie (the ad agency): Meta (Facebook and Instagram), Snapchat, YouTube, Google search ads (pay-per-click), Google ads aimed at specific addresses (IP targeting), and ads that follow past site visitors (display retargeting).",
     role: "toggle",
     toggle: "spend",
     columns: ["Strategy", "Month", "Budget"],
@@ -123,7 +124,7 @@ const SOURCES: SourceCard[] = [
     id: "impressions",
     sourceId: "impressions",
     label: "Impressions",
-    description: "Daily ad impressions from Carnegie: a proxy for advertising where channel spend is missing.",
+    description: "How many times ads were shown each day, from Carnegie. Used as a stand-in for advertising in weeks where spend isn't on file.",
     role: "toggle",
     toggle: "impressions",
     columns: ["day", "Impressions"],
@@ -138,7 +139,7 @@ const SOURCES: SourceCard[] = [
     id: "billboards",
     sourceId: "billboards",
     label: "Billboards",
-    description: "QC Airport and Admissions Surge billboard budgets by period, from Lucas. Kept for context, not a model input, until real flight dates exist.",
+    description: "QC Airport and Admissions Surge billboard budgets by period, from Lucas. Kept for background, not used by the model, until real flight dates (the dates each ad ran) exist.",
     role: "reference",
     columns: ["start_date", "end_date", "total_spend"],
     icon: ic(
@@ -152,7 +153,7 @@ const SOURCES: SourceCard[] = [
     id: "conversions",
     sourceId: "conversions",
     label: "Tracked conversions",
-    description: "Ad-platform conversions from Carnegie. Kept for reference, not a model input.",
+    description: "Sign-ups and actions that ad platforms report, from Carnegie. Kept for background, not used by the model.",
     role: "reference",
     columns: ["day", "Total Conversions"],
     icon: ic(
@@ -166,7 +167,7 @@ const SOURCES: SourceCard[] = [
     id: "email",
     sourceId: "email",
     label: "Email sends",
-    description: "Send volume and engagement by campaign.",
+    description: "How many emails were sent, opened and clicked, by campaign.",
     role: "pending",
     columns: ["send_date", "campaign_name", "sends", "opens", "clicks"],
     icon: ic(
@@ -180,7 +181,7 @@ const SOURCES: SourceCard[] = [
     id: "direct_mail",
     sourceId: "direct_mail",
     label: "Direct mail",
-    description: "Flight dates and spend per mail drop.",
+    description: "Dates and spend for each mailing.",
     role: "pending",
     columns: ["flight_start", "flight_end", "spend", "description"],
     icon: ic(
@@ -220,12 +221,12 @@ function SourceTile({
       {facts && (
         <div className="src-facts">
           <p className="src-coverage">
-            {pending ? `${facts.coverageLabel} · waiting on ${facts.owner}` : facts.coverageLabel}
+            {pending ? `${facts.coverageLabel} · waiting on ${facts.owner} to send it` : facts.coverageLabel}
           </p>
           <p className="src-note">{facts.note}</p>
           {pending && (
             <p className="src-cols">
-              Expected columns: <code>{src.columns.join(", ")}</code>
+              What we need: <code>{src.columns.join(", ")}</code>
             </p>
           )}
         </div>
@@ -236,7 +237,7 @@ function SourceTile({
         <div className="src-foot">
           {src.role === "outcome" && (
             <span className="src-fixed">
-              <IconCheck size={14} /> Always included: it's what the model explains
+              <IconCheck size={14} /> Always included: this is what the model tries to predict
             </span>
           )}
           {src.role === "toggle" && onToggle && (
@@ -275,13 +276,13 @@ function SourcesStep({
             The data behind the <em>model</em>
           </>
         }
-        lead="These are Augustana's real sources and what's on file for each. In this demo you choose which ones feed a synthetic sample run; signed in, the model reads the live data."
+        lead="This is the information the tool learns from: weekly applications, plus what we know about ads. Switch sources on or off, then run the sample to see how the answer changes. The sample uses made-up numbers; the descriptions below are about Augustana's real data."
         info={
           <PageInfoButton title="Why these sources">
-            A marketing mix model lines up two kinds of weekly history: the outcome (applications) and everything that
-            might move it (spend, impressions and the admissions calendar). Augustana's history lives in separate places:
-            Slate for applications and Carnegie for digital ads, with billboard budgets from Lucas kept for context.
-            Leaving a source out shows how much the model leans on it.
+            A <Term id="mmm">marketing mix model</Term> compares week-by-week applications with week-by-week advertising
+            and the admissions calendar, to see whether the ads add anything the calendar doesn't already show.
+            Applications come from Slate and digital ads from Carnegie. Billboard budgets (from Lucas) are kept for
+            background. Leaving a source out shows how much the sample answer changes.
           </PageInfoButton>
         }
       />
@@ -289,12 +290,16 @@ function SourcesStep({
       <section aria-labelledby="src-in-h">
         <div className="src-section-head">
           <h3 id="src-in-h" className="eyebrow">
-            Model inputs
+            Data the model uses
           </h3>
           <p className="num" aria-live="polite">
             {includedCount} of {inputs.length} included
           </p>
         </div>
+        <p className="setting-help" style={{ marginTop: 0, marginBottom: 12 }}>
+          Status key: Live = loaded and used. Partial = loaded but with gaps. Reference only = background, not used by
+          the model. Pending = waiting for someone to send it.
+        </p>
         <ul role="list" className="src-grid">
           {inputs.map((s) => (
             <SourceTile
@@ -310,7 +315,7 @@ function SourcesStep({
       <section aria-labelledby="src-other-h">
         <div className="src-section-head">
           <h3 id="src-other-h" className="eyebrow">
-            On file for reference, or not here yet
+            Background data, and data we're still waiting for
           </h3>
         </div>
         <ul role="list" className="src-grid src-grid-quiet">
@@ -320,7 +325,7 @@ function SourcesStep({
         </ul>
       </section>
 
-      <StepFooter onNext={onNext} nextLabel="Model settings" />
+      <StepFooter onNext={onNext} nextLabel="Next: settings (optional)" />
     </div>
   )
 }
@@ -351,10 +356,10 @@ function Segmented<V extends number>({
 const range = (min: number, max: number) => Array.from({ length: max - min + 1 }, (_, i) => min + i)
 
 const FLAG_INFO: { key: keyof SampleSettings["seasonFlags"]; label: string; weeks: string }[] = [
-  { key: "winter_surge", label: "Winter surge", weeks: "Weeks 1–8" },
-  { key: "yield_period", label: "Yield period", weeks: "Weeks 9–18" },
-  { key: "summer_ramp", label: "Summer ramp", weeks: "Weeks 32–40" },
-  { key: "peak_deadline", label: "Peak deadline", weeks: "Weeks 44–46" },
+  { key: "winter_surge", label: "Winter surge", weeks: "Weeks 1–8 (roughly January to late February)" },
+  { key: "yield_period", label: "Yield period", weeks: "Weeks 9–18 (roughly March to early May), when admitted students decide whether to enroll" },
+  { key: "summer_ramp", label: "Summer ramp", weeks: "Weeks 32–40 (roughly August to early October)" },
+  { key: "peak_deadline", label: "Peak deadline", weeks: "Weeks 44–46 (roughly early to mid November)" },
 ]
 
 function SettingsStep({
@@ -380,7 +385,13 @@ function SettingsStep({
             How the model <em>reads</em> a week
           </>
         }
-        lead="These are the real model's settings, at Augustana's defaults. Change one and the sample run moves in the same direction the live model would."
+        lead={
+          <>
+            You don't need to change anything here. These are the choices the model makes about how to read each week.
+            Try changing one and run the sample again to see how the picture shifts. Nothing here changes Augustana's
+            real results. You can skip ahead to Run.
+          </>
+        }
         actions={
           changed ? (
             <button type="button" className="btn btn-outline btn-sm" onClick={() => onChange({ ...DEFAULT_SETTINGS, sources: settings.sources })}>
@@ -394,9 +405,9 @@ function SettingsStep({
         <div className="setting card">
           <div className="setting-head">
             <label htmlFor="decay" className="field-label">
-              Adstock decay
+              Carry-over of advertising (adstock decay)
             </label>
-            <InfoTooltip tip="Advertising keeps working after the week it runs. Decay is the share of this week's effect that carries into next week." />
+            <InfoTooltip tip="Ads may keep having an effect after the week they run. Decay is the share of one week's effect still felt the next week." />
             <span className="setting-value num">{settings.adstockDecay.toFixed(1)}</span>
           </div>
           <input
@@ -412,65 +423,68 @@ function SettingsStep({
             aria-describedby="decay-help"
           />
           <p id="decay-help" className="setting-help">
-            {decayPct}% of a week's ad effect carries into the next week. The model's default is 0.5 until each channel
-            has enough history to tune its own.
+            Half is the starting assumption; at this setting, {decayPct}% of one week's ad effect is still felt the next
+            week. It is an assumption, not something we measured. We will test it per channel once there is more spend
+            history. <Term id="adstock">Adstock</Term> is the fading carry-over of an ad.
           </p>
         </div>
 
         <div className="setting card">
           <div className="setting-head">
             <span className="field-label">
-              Annual cycle harmonics
+              Shape of the admissions year (annual cycle)
             </span>
-            <InfoTooltip tip="Smooth sine and cosine waves that trace the shape of the admissions year. More waves follow the shape more closely, and eventually start chasing noise." />
+            <InfoTooltip tip="The model draws a smooth curve that rises and falls with the year. More curves follow past weeks more closely, but start copying one-off blips." />
           </div>
           <Segmented
-            label="Annual cycle harmonics"
+            label="Number of year-shape curves"
             value={settings.harmonics}
             options={range(LIMITS.harmonics.min, LIMITS.harmonics.max)}
             onChange={(v) => onChange({ ...settings, harmonics: v })}
           />
           <p className="setting-help">
             {settings.harmonics < 3
-              ? "Fewer waves: the model misses some of the year's shape."
+              ? "Fewer curves: the model misses some of the year's shape."
               : settings.harmonics > 3
-                ? "More waves: a tighter fit on past weeks, usually a worse one on unseen weeks."
-                : "Three waves is the model's default."}
+                ? "More curves: looks better on past weeks, usually predicts new weeks worse."
+                : "Three curves is the default."}
           </p>
         </div>
 
         <div className="setting card">
           <div className="setting-head">
-            <span className="field-label">Validation folds</span>
-            <InfoTooltip tip="The model is tested on weeks it hasn't seen: it trains on the past, predicts the next stretch, and repeats. Each repetition is a fold." />
+            <span className="field-label">Number of practice tests (validation folds)</span>
+            <InfoTooltip tip="We hide some recent weeks, ask the model to predict them, then compare with what really happened. Each repeat is one test." />
           </div>
           <Segmented
-            label="Validation folds"
+            label="Number of practice tests"
             value={settings.folds}
             options={range(LIMITS.folds.min, LIMITS.folds.max)}
             onChange={(v) => onChange({ ...settings, folds: v })}
           />
           <p className="setting-help">
-            {settings.folds} walk-forward tests. Early folds train on little history, so they score lowest.
+            We hide some recent weeks, ask the model to predict them, then compare with what really happened ({" "}
+            <Term id="cross-validation">cross-validation</Term>). That is repeated {settings.folds} times, moving forward
+            in time. The earliest tests have the least history, so they usually do worst.
           </p>
         </div>
 
         <div className="setting card">
           <div className="setting-head">
-            <span className="field-label">Regularization</span>
-            <InfoTooltip tip="Ridge regression shrinks estimates so overlapping channels don't swing wildly. Its strength is chosen automatically." />
+            <span className="field-label">Keeping estimates steady (regularization)</span>
+            <InfoTooltip tip="When channels run at the same time, the model's guesses can swing wildly. This setting calms those swings." />
           </div>
-          <p className="setting-fixed">Auto-tuned</p>
+          <p className="setting-fixed">Chosen automatically</p>
           <p className="setting-help">
-            The strength (α) is picked by walk-forward validation on every run, so it adapts as history grows.
+            When several channels run at once, the model can't tell them apart well. This setting calms its guesses. It is picked again on every run, so you don't need to set it. Technical name: <Term id="ridge">ridge</Term> regression, strength α.
           </p>
         </div>
 
         <div className="setting card setting-wide">
           <fieldset className="flag-set">
-            <legend className="field-label">Admissions calendar</legend>
+            <legend className="field-label">Busy seasons the model already knows about</legend>
             <p className="setting-help" style={{ marginTop: 0 }}>
-              Flags for the periods the college already knows are busy. Turn one off to see how much of the year it explains.
+              Stretches of the recruiting calendar when applications normally rise or fall. Turn one off and run again to see how much the model's guesses rely on it.
             </p>
             <div className="flag-grid">
               {FLAG_INFO.map((f) => (
@@ -491,17 +505,17 @@ function SettingsStep({
         </div>
       </div>
 
-      <StepFooter onBack={onBack} onNext={onNext} nextLabel="Review & run" />
+      <StepFooter onBack={onBack} onNext={onNext} nextLabel="Next: review and run" />
     </div>
   )
 }
 
 /* ── step 3: run (sample) ──────────────────────────────────── */
 const SAMPLE_STAGES = [
-  "Building weekly features: adstock, calendar flags, annual harmonics",
-  "Fitting ridge regression and tuning its strength",
-  "Testing on weeks the model hasn't seen",
-  "Reading the result: drivers, verdicts, caveats",
+  "Lining up each week's data (ads, calendar, time of year)",
+  "Teaching the model from past weeks",
+  "Checking it on weeks it hasn't seen",
+  "Writing up what it found, and how much to trust it",
 ]
 
 function Summary({ settings }: { settings: SampleSettings }) {
@@ -513,11 +527,11 @@ function Summary({ settings }: { settings: SampleSettings }) {
   ].filter(Boolean) as string[]
   const rows: [string, string][] = [
     ["Sources", src.join(", ")],
-    ["Adstock decay", settings.adstockDecay.toFixed(1)],
-    ["Annual harmonics", String(settings.harmonics)],
-    ["Validation folds", String(settings.folds)],
-    ["Calendar flags", flagsOn.length ? flagsOn.join(", ") : "None"],
-    ["Regularization", "Auto-tuned"],
+    ["Ad carry-over", settings.adstockDecay.toFixed(1)],
+    ["Year-shape curves", String(settings.harmonics)],
+    ["Practice tests", String(settings.folds)],
+    ["Busy seasons included", flagsOn.length ? flagsOn.join(", ") : "None"],
+    ["Steadying", "Chosen automatically"],
   ]
   return (
     <dl className="summary-grid">
@@ -573,7 +587,7 @@ function SampleRunStep({
             Review and <em>run</em>
           </>
         }
-        lead="The sample run takes a couple of seconds. The live model on Augustana's data takes about ten."
+        lead="This is a sample run on made-up data, so the numbers are not Augustana's. Press Run to see what the results page looks like. It takes a couple of seconds."
       />
       <div style={{ ...card, padding: 0 }}>
         <SectionHeader title="This run" caption="Change any of these on the previous steps." />
@@ -631,8 +645,9 @@ function LiveRunStep({
           Run the model
         </h2>
         <p className="live-run-lead">
-          Fits the model to the application, spend and impression data currently on file. It takes about ten seconds;
-          the AI readout follows once the numbers are in.
+          Reads Augustana's current application, spend and impression data and checks what it can and cannot tell us.
+          It takes about ten seconds. A plain-language summary written by Augie AI follows; it is AI-written, so check
+          important points against the charts.
         </p>
       </div>
       <div role="status" aria-live="polite" className="live-run-slot">
@@ -640,7 +655,7 @@ function LiveRunStep({
           <div className="live-run-status">
             <Spinner size={14} />
             <span>
-              Fetching data and fitting the model…{" "}
+              Loading the latest data and checking what it can tell us…{" "}
               <span className="num" aria-hidden="true">
                 {elapsed}s
               </span>
@@ -651,7 +666,12 @@ function LiveRunStep({
       {error && (
         <div style={{ width: "100%", textAlign: "left" }}>
           <Alert variant="error" title="The run didn't finish">
-            {error}
+            Nothing was lost and your earlier results are unchanged. Try again in a minute; if it keeps failing, tell
+            Summer.
+            <details style={{ marginTop: 8 }}>
+              <summary>Details</summary>
+              {error}
+            </details>
           </Alert>
         </div>
       )}
@@ -756,9 +776,9 @@ export default function MMMWorkflow({
     const s = sample.settings
     const d = DEFAULT_SETTINGS
     const diffs: string[] = []
-    if (s.adstockDecay !== d.adstockDecay) diffs.push(`adstock decay ${s.adstockDecay.toFixed(1)}`)
-    if (s.harmonics !== d.harmonics) diffs.push(`${s.harmonics} harmonics`)
-    if (s.folds !== d.folds) diffs.push(`${s.folds} folds`)
+    if (s.adstockDecay !== d.adstockDecay) diffs.push(`ad carry-over ${s.adstockDecay.toFixed(1)}`)
+    if (s.harmonics !== d.harmonics) diffs.push(`${s.harmonics} year-shape curves`)
+    if (s.folds !== d.folds) diffs.push(`${s.folds} practice tests`)
     const offFlags = FLAG_INFO.filter((f) => !s.seasonFlags[f.key]).map((f) => f.label.toLowerCase())
     if (offFlags.length) diffs.push(`without ${offFlags.join(", ")}`)
     const offSrc = (Object.keys(s.sources) as (keyof SampleSettings["sources"])[]).filter((k) => !s.sources[k])
@@ -768,7 +788,7 @@ export default function MMMWorkflow({
       billboards: "billboards",
     }
     if (offSrc.length) diffs.push(`without ${offSrc.map((k) => srcName[k]).join(", ")}`)
-    return diffs.length ? <>This run: {diffs.join(" · ")}.</> : null
+    return diffs.length ? <>This sample run used: {diffs.join(" · ")}.</> : null
   }, [sample])
 
   return (
@@ -776,7 +796,7 @@ export default function MMMWorkflow({
       <SiteHeader
         variant={signedIn ? "signedIn" : "demo"}
         name={userName}
-        crumb="MMM analysis"
+        crumb="Marketing mix analysis"
         onBack={onBack}
         backLabel={signedIn ? "Overview" : "All analyses"}
         backAriaLabel={signedIn ? "Back to overview" : "Back to all analyses"}
@@ -835,15 +855,20 @@ export default function MMMWorkflow({
           <>
             {sampleStale && (
               <div style={{ marginBottom: 20 }}>
-                <Alert variant="info" title="Settings changed since this run">
-                  These results use the earlier settings.{" "}
+                <Alert variant="info" title="You changed a setting after this run">
+                  These results are from the older settings.{" "}
                   <button type="button" className="link" onClick={() => goTo(3)}>
-                    Run again with the new ones
+                    Run again to update them
                   </button>
                   .
                 </Alert>
               </div>
             )}
+            <div style={{ marginBottom: 20 }}>
+              <Alert variant="demo" title="Sample data">
+                These numbers are made up to show how results look. They are not Augustana's.
+              </Alert>
+            </div>
             <ResultsView
               result={sample.result}
               mode="sample"

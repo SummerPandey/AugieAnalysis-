@@ -13,10 +13,10 @@ export function SceneQuestion() {
       <rect x={700} y={240} width={200} height={120} rx={2} className="lp-video-dashed lp-s34-draw-top" fill="none" />
       <rect x={700} y={360} width={200} height={300} rx={2} className="lp-video-bar lp-s34-rise" />
       <text x={940} y={312} className="lp-video-label">
-        Ads?
+        Ads? (how much, if any)
       </text>
       <text x={940} y={522} className="lp-video-label">
-        Calendar?
+        The calendar?
       </text>
     </g>
   )

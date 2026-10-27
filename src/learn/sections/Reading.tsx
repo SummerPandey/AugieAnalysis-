@@ -1,4 +1,5 @@
 import { IconWarning } from "../../icons"
+import { Term } from "../../glossary"
 import "./reading.css"
 
 const VERDICTS = [
@@ -10,51 +11,55 @@ const VERDICTS = [
   {
     key: "helping",
     name: "Positive association",
-    text: "a positive estimate that held up across the test periods. It is evidence of an association, not proof of extra applications, so the next step is a small, time-boxed test.",
+    text: "a hint worth testing. The channel's estimate was positive and held up across the test periods. It is not proof of extra applications, so the next step is a small planned test.",
   },
   {
     key: "directional",
     name: "Directional",
-    text: "positive, but it moved with other channels or the run is shaky. Read the direction, not the size, and test before big changes.",
+    text: "a weaker hint. It looks positive, but it moved with other channels or the run is shaky. Read the direction, ignore the size, and test before big changes.",
   },
   {
     key: "signal",
     name: "Too little signal",
-    text: "too few active weeks to tell it apart from zero. Gather more weeks first.",
+    text: "the channel ran in too few weeks for the model to tell its effect apart from nothing. Collect more weeks first.",
   },
   {
     key: "unsure",
     name: "Can't tell yet",
-    text: "the estimate came out negative, or marketing as a whole didn't beat the calendar alone on unseen weeks. Either way the data can't separate the channel yet. It is not proof the channel hurts, so never cut one on this verdict alone.",
+    text: "no conclusion either way. The data cannot separate this channel's effect from everything else. This happens when the model's guess for the channel is below zero, or when adding marketing did not improve predictions over the calendar-only model. It does not mean the channel hurts applications. Do not cut or scale a channel because of this verdict. Today every channel reads Can't tell yet.",
   },
 ]
 
 const NUMBERS = [
   {
-    value: "0.70",
-    label: "fit on past weeks",
-    text: "how closely the model traces history. 1 is a perfect fit and 0 is no better than the average week. Seasonality does most of that work.",
+    value: "0.60",
+    label: "score on unseen weeks",
+    text: "out of 1, higher is better. The calendar-only model is the benchmark, and it scores 0.78 on the same weeks. Adding marketing made the guesses worse, so channel numbers show as Can't tell yet.",
   },
   {
-    value: "0.60",
-    label: "fit on unseen weeks",
-    text: "tested on weeks it never learned from, and it can fall below zero. The calendar-only model is the benchmark, and it scores 0.78 on the same weeks. So today marketing doesn't improve the forecast, and channel numbers show as Can't tell yet.",
+    value: "0.70",
+    label: "score on past weeks",
+    text: "looks better than it is. This score grades the model on weeks it already studied, so do not rely on it.",
   },
   {
     value: "About 52",
     label: "applications a week",
-    text: "the typical miss on any one week. Use the model to read direction, not to forecast a single week.",
+    text: "a typical week's prediction is off by about this much, so treat single-week forecasts as rough.",
   },
 ]
 
 const LIMITS = [
   {
     label: "Cause",
-    text: "it learns from history rather than a controlled experiment, so it shows association, not proven cause.",
+    text: "it learns from history, not from a planned experiment, so it shows an association and is not causal.",
   },
   {
     label: "Missing spend",
     text: "channel spend covers only about 38 percent of weeks (Oct 2024 to Jan 2026). This is the biggest limit.",
+  },
+  {
+    label: "Other recruiting activity",
+    text: "school visits, events and emails are not in the model, so a channel may get credit that belongs to them.",
   },
   {
     label: "The current cycle",
@@ -65,15 +70,15 @@ const LIMITS = [
 const STEPS = [
   {
     title: "Shift",
-    text: "Make small, time-boxed spend shifts instead of large cuts or launches.",
+    text: "Pick one channel and change its spend by a small amount for a set period, such as a few weeks, agreed in advance. Talk to Summer or Irene before changing a budget.",
   },
   {
     title: "Wait",
-    text: "Let the shift run long enough to show up in applications.",
+    text: "Give applications time to show it.",
   },
   {
     title: "Re-run",
-    text: "Re-run the model to see what changed, and treat each result as one input to your judgment.",
+    text: "Add the new data and run the model again. Compare with what the calendar-only forecast expected, and treat the result as one input to your judgment.",
   },
 ]
 
@@ -88,8 +93,9 @@ export function ReadingSection() {
           How to <em>read</em> and use it
         </h2>
         <p className="lp-intro">
-          Augie Analysis gives each channel a verdict. Read the verdict first, check the numbers
-          behind it, then act in small steps.
+          In short: this tool can tell you the calendar matters. It cannot yet tell you what any
+          single ad channel does. Read the verdict first, check the numbers behind it, then act in
+          small steps.
         </p>
       </div>
 
@@ -99,21 +105,21 @@ export function ReadingSection() {
           <h3 className="lp-reading-h3">Start with the calendar</h3>
           <p className="lp-reading-body">
             Weeks 44 and 45, the early-November deadline, spike every year, while summer weeks 20 to
-            30 stay quiet. In the current model decomposition, about 80 to 90 percent of modeled
-            applications are assigned to the admissions baseline. This is a model-based allocation,
-            not a causal measurement, so the channels share the rest and their share is the least
-            certain part.
+            30 stay quiet. In the current model, about 80 to 90 percent of modeled applications are
+            assigned to the admissions <Term id="baseline">baseline</Term>. This is a model-based
+            allocation, not a causal measurement. The rest is not credited to channels with
+            confidence: the model cannot yet say which channel, if any, is linked to marketing.
           </p>
           <figure className="lp-reading-figure">
             <div className="lp-reading-bar-labels" aria-hidden="true">
-              <span>The calendar</span>
+              <span>Illustration. Calendar and trend (about 84%) | everything else: marketing and unexplained, too uncertain to split</span>
             </div>
             <svg
               className="lp-reading-bar"
               viewBox="0 0 1000 44"
               preserveAspectRatio="none"
               role="img"
-              aria-label="Stacked bar: the admissions baseline is assigned most modeled applications, with thin slices for each channel"
+              aria-label="Illustration, stacked bar: the calendar and trend are assigned most modeled applications; the thin remainder is marketing and unexplained, too uncertain to split"
             >
               <rect x="0" y="0" width="860" height="44" fill="var(--color-navy)" />
               <rect x="860" y="0" width="40" height="44" fill="var(--color-gold)" />
@@ -140,6 +146,7 @@ export function ReadingSection() {
         {/* 3. The three numbers */}
         <div className="lp-reading-block">
           <h3 className="lp-reading-h3">The three numbers</h3>
+          <p className="lp-reading-body">Start with the first one. The score of a model is its <Term id="r2">R-squared</Term>.</p>
           <ul role="list" className="lp-reading-numbers">
             {NUMBERS.map((n) => (
               <li key={n.value} className="lp-reading-number">

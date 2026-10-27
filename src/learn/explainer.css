@@ -602,3 +602,27 @@
   outline: 3px solid var(--color-navy);
   outline-offset: 3px;
 }
+
+.lp-video-hint {
+  margin: 8px 0 0;
+  font-size: 0.85rem;
+  color: var(--ink-soft, inherit);
+  opacity: 0.8;
+}
+
+.lp-video-transcript {
+  margin-top: 12px;
+  font-size: 0.95rem;
+}
+
+.lp-video-transcript summary {
+  cursor: pointer;
+  font-weight: 600;
+}
+
+.lp-video-transcript ol {
+  margin: 8px 0 0;
+  padding-left: 1.4em;
+  display: grid;
+  gap: 6px;
+}

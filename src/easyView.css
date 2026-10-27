@@ -249,3 +249,11 @@
   display: grid;
   gap: 4px;
 }
+
+.easy-pill-gloss {
+  font-weight: 400;
+}
+.easy-pill {
+  border-radius: 14px;
+  text-align: left;
+}

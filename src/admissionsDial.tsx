@@ -18,7 +18,7 @@ const PERIODS = [
   { id: "ramp", label: "Summer ramp", from: 32, to: 40 },
   { id: "peak", label: "Deadline peak", from: 44, to: 46 },
 ] as const
-const MONTHS = ["J", "F", "M", "A", "M", "J", "J", "A", "S", "O", "N", "D"]
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 
 const C = 300 // viewBox centre
 const rad = (weekPos: number) => ((weekPos / WEEKS) * 360 - 90) * (Math.PI / 180)
@@ -36,13 +36,13 @@ function arc(from: number, to: number, r: number) {
 
 /** Where today sits relative to the deadline peak, in plain words. */
 export function seasonNote(week: number): string {
-  if (week >= 44 && week <= 46) return "Inside the deadline peak"
+  if (week >= 44 && week <= 46) return "Inside the November deadline peak"
   if (week < 44) {
     const n = 44 - week
-    return `${n} week${n === 1 ? "" : "s"} to the deadline peak`
+    return `${n} week${n === 1 ? "" : "s"} until the November deadline peak`
   }
   const n = WEEKS - week + 44
-  return `Peak passed · next in ${n} weeks`
+  return `Deadline peak passed · next in ${n} weeks`
 }
 
 export function AdmissionsDial({
@@ -76,8 +76,8 @@ export function AdmissionsDial({
   const peakT = pt(peakMid, 160)
   const [tx, ty] = pt(nowPos, 262)
   const [lx, ly] = pt(nowPos, 206)
-  const label = `The admissions year. Today is week ${week}: ${seasonNote(week).toLowerCase()}.${
-    endWeek ? ` The latest data on file ends at week ${endWeek}.` : ""
+  const label = `The admissions year as a circle. Coloured arcs are the busy and quiet seasons the model knows about; the dot is today. Today is week ${week} of 52: ${seasonNote(week).toLowerCase()}.${
+    endWeek ? ` The latest data on file ends at week ${endWeek}; the hatched stretch is time since our last data.` : ""
   }`
 
   return (
@@ -162,7 +162,7 @@ export function AdmissionsDial({
           Deadline peak
         </text>
         <text x={peakT[0]} y={peakT[1] + 20} textAnchor="middle" className="dial-callout-sub">
-          Weeks 44–46
+          Weeks 44–46 (early Nov)
         </text>
       </g>
 
@@ -191,7 +191,7 @@ export function AdmissionsDial({
           </text>
           {endWeek !== undefined && (
             <text x={C} y={C + 94} textAnchor="middle" className="dial-note dial-note-sm">
-              Latest data: week {endWeek}
+              Latest data on file: week {endWeek}
             </text>
           )}
         </g>

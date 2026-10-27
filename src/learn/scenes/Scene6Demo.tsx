@@ -18,7 +18,7 @@ export function SceneDemo() {
   return (
     <g>
       <text x={800} y={230} textAnchor="middle" className="lp-video-display lp-video-title lp-s56-title">
-        Explore the method
+        See it with practice data
       </text>
       <g className="lp-s56-fade" style={{ animationDelay: "0.4s" }}>
         <rect x={600} y={380} width={400} height={120} rx={3} className="lp-video-ring" />
@@ -48,7 +48,7 @@ export function SceneDemo() {
       <g className="lp-s56-tag" style={{ animationDelay: "0.7s" }}>
         <rect x={620} y={550} width={360} height={64} rx={3} className="lp-video-fill-navy" />
         <text x={800} y={594} textAnchor="middle" className="lp-video-flag-text">
-          Synthetic sample
+          Made-up data, not real results
         </text>
       </g>
     </g>

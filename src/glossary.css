@@ -1,0 +1,91 @@
+/* Plain-language glossary: <Term> inline popover and <GlossaryList>. */
+.gl-term-wrap {
+  position: relative;
+  display: inline;
+}
+.gl-term {
+  display: inline;
+  padding: 0;
+  margin: 0;
+  background: none;
+  border: 0;
+  border-bottom: 1px dotted var(--color-blue);
+  color: inherit;
+  font: inherit;
+  letter-spacing: inherit;
+  text-align: inherit;
+  cursor: help;
+}
+.gl-term:hover,
+.gl-term[aria-expanded="true"] {
+  background: var(--color-blue-50);
+}
+.gl-term:focus-visible {
+  outline: 2px solid var(--color-blue);
+  outline-offset: 2px;
+  border-radius: var(--radius-sm);
+}
+.gl-pop {
+  position: absolute;
+  top: calc(100% + 6px);
+  left: 0;
+  z-index: 100;
+  width: 280px;
+  max-width: calc(100vw - 32px);
+  padding: 10px 12px;
+  background: var(--color-ink);
+  color: #fff;
+  font-family: var(--font-sans);
+  font-size: 12.5px;
+  font-weight: 400;
+  line-height: 1.5;
+  letter-spacing: normal;
+  text-transform: none;
+  text-align: left;
+  white-space: normal;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+  pointer-events: none;
+  animation: gl-pop var(--dur-fast) var(--ease);
+}
+.gl-pop strong {
+  display: block;
+  margin-bottom: 2px;
+  font-weight: 700;
+}
+.gl-pop-why {
+  display: block;
+  margin-top: 6px;
+  color: var(--color-blue-100);
+}
+@keyframes gl-pop {
+  from {
+    opacity: 0;
+    transform: translateY(-3px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .gl-pop {
+    animation: none;
+  }
+}
+
+.gl-list {
+  margin: 0;
+  display: grid;
+  gap: var(--space-4);
+}
+.gl-list dt {
+  font-weight: 700;
+  color: var(--color-navy);
+}
+.gl-list dd {
+  margin: 2px 0 0;
+  color: var(--color-ink-2);
+  line-height: 1.55;
+}
+.gl-list .gl-why {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-ink-3);
+}

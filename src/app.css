@@ -76,6 +76,13 @@
   gap: 12px;
   margin-top: 34px;
 }
+.landing-where {
+  margin-top: 14px;
+  max-width: 56ch;
+  font-size: 14px;
+  line-height: 1.5;
+  color: rgba(255, 255, 255, 0.78);
+}
 .landing-finding {
   margin-top: 18px;
   max-width: 56ch;

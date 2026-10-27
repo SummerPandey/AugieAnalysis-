@@ -125,10 +125,18 @@ function setItemDone(item: ChecklistItem, done: boolean) {
 
 /* ── vocabulary ─────────────────────────────────────────────── */
 const PHASES: { id: ChecklistPhase; heading: string; caption: string }[] = [
-  { id: "now", heading: "Now · Phase 1", caption: "Immediate priorities" },
-  { id: "later", heading: "Later · Phase 2", caption: "Once the Phase 1 data is in" },
-  { id: "done", heading: "Done", caption: "Already in place" },
+  { id: "now", heading: "Do now (needed first)", caption: "These will make the biggest difference" },
+  { id: "later", heading: "Do next", caption: "After the first items are in" },
+  { id: "done", heading: "Already done", caption: "Already in place" },
 ]
+
+/** Who each owner is, shown as a hover hint on the filter chips. */
+const OWNER_ROLE: Record<string, string> = {
+  Irene: "Marketing & Communications, Carnegie contact",
+  Anthony: "Email",
+  Lucas: "Billboards and direct mail",
+  Summer: "Analyst",
+}
 
 const OWNER_ORDER = ["Irene", "Anthony", "Lucas", "Summer"]
 const rankOwner = (o: string) => {
@@ -242,7 +250,7 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsib
   return (
     <section
       className={`card cl${compact ? " cl-compact" : ""}${collapsible ? " cl-collapsible" : ""}`}
-      aria-label="Project checklist"
+      aria-label="What we still need to get better answers"
     >
       {/* ── header ── */}
       {collapsible ? (
@@ -257,27 +265,27 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsib
             <span className="cl-toggle-chevron">
               <IconChevron open={open} size={16} />
             </span>
-            <span className="cl-dropdown-title">Project checklist</span>
+            <span className="cl-dropdown-title">What we still need</span>
             <span className="cl-dropdown-meta">
               {doneCount} of {total} complete
-              {phase1Open > 0 ? ` · ${phase1Open} open for Phase 1` : " · Phase 1 complete"}
+              {phase1Open > 0 ? ` · ${phase1Open} still needed first` : " · first items all done"}
             </span>
           </button>
         </H>
       ) : compact ? (
         <>
-          <p className="eyebrow eyebrow-rule">Project checklist</p>
+          <p className="eyebrow eyebrow-rule">What we still need</p>
           <H className="cl-h">
-            {phase1Open > 0 ? `${phase1Open} open for Phase 1` : "Phase 1 complete"}
+            {phase1Open > 0 ? `${phase1Open} things still needed first` : "First items all done"}
           </H>
         </>
       ) : (
         <>
           <H className="display t-h3 cl-h" style={{ marginTop: 0 }}>
-            Project checklist
+            What we still need to get better answers
           </H>
           <p className="cl-lead">
-            Data requests and modeling work, grouped by phase, each with a named owner.
+            Data requests and tasks that would make the results more reliable. Each has one person responsible. Tick items as they are done.
           </p>
         </>
       )}
@@ -318,9 +326,10 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsib
                   className="cl-chip"
                   aria-pressed={pressed}
                   onClick={() => setOwnerFilter(owner)}
+                  title={owner ? OWNER_ROLE[owner] : undefined}
                 >
                   {pressed && <IconCheck size={12} />}
-                  {owner ?? "All"}
+                  {owner ?? "Everyone"}
                   <span className="cl-chip-n">
                     {open}
                     <span className="sr-only"> open</span>
@@ -395,7 +404,7 @@ export function ProjectChecklist({ variant = "full", headingLevel = 2, collapsib
           {!persisted && <IconWarning size={14} />}
           <span>
             {persisted
-              ? "Ticks are saved in this browser only."
+              ? "Your ticks are saved only on this computer, so others won't see them."
               : "Browser storage is unavailable, so ticks reset when you leave this page."}{" "}
             Status as of {formatStatusDate(STATUS_AS_OF)}.
           </span>

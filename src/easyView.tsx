@@ -18,6 +18,7 @@ import { T } from "./theme"
 import { canonicalKey } from "./channels"
 import { driverLedger, isoWeek, trust, type LedgerRow, type Verdict } from "./insights"
 import { AXIS_TICK, ChartTip, fmtApps, fmtWeekOf } from "./ui"
+import { Term } from "./glossary"
 import { IconCheck, IconInfo, IconWarning } from "./icons"
 
 type Answer = "yes" | "maybe" | "not-yet" | "untested"
@@ -30,12 +31,12 @@ function adsAnswer(r: PipelineResult, ledger: LedgerRow[]): Answer {
   return ledger.some((x) => x.verdict === "helping") ? "yes" : "maybe"
 }
 
-const CHANNEL_WORDS: Record<Verdict, { text: string; tone: "good" | "unsure" | "none" }> = {
+const CHANNEL_WORDS: Record<Verdict, { text: string; gloss?: string; tone: "good" | "unsure" | "none" }> = {
   calendar: { text: "", tone: "none" },
-  helping: { text: "Rises with applications", tone: "good" },
-  directional: { text: "May help, amount unclear", tone: "unsure" },
-  thin: { text: "Not enough data yet", tone: "none" },
-  "cant-tell": { text: "Not enough data yet", tone: "none" },
+  helping: { text: "Positive association", gloss: "moved up with applications, not proof", tone: "good" },
+  directional: { text: "Directional", gloss: "points one way, size unclear", tone: "unsure" },
+  thin: { text: "Too little signal", gloss: "too few weeks to judge", tone: "none" },
+  "cant-tell": { text: "Can't tell yet", gloss: "can't separate it from the calendar", tone: "none" },
 }
 
 /** One plain line on what each channel is, for readers who don't buy ads. */
@@ -110,11 +111,11 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
     "not-yet": {
       title: "Applications rise and fall with the school year. We don't know yet if the ads bring in more.",
       body: [
-        "We made two forecasts of past weeks. One used only the time of year. The other also used ad data.",
+        "We made two forecasts and tested each on weeks it had not seen, by comparing it with what really happened. The first is the calendar-only forecast, which uses only the time of year. The second also used ad data.",
         calendarWon
           ? "The one that used only the time of year was more accurate. So the ad data did not add anything we could measure."
           : "Both forecasts were about equally good. So the ad data did not add anything we could measure.",
-        "This does not mean the ads failed. We need more ad data before we can measure them.",
+        "This does not mean the ads failed. We can't tell yet: we have too little ad data, and several ads ran at the same time.",
       ],
     },
     maybe: {
@@ -128,7 +129,7 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
       title: "Applications rise and fall with the school year. Ads seem to add a few more on top.",
       body: [
         "Adding ad data made the forecast better.",
-        "This is a pattern in past data, not proof. A planned test would confirm it.",
+        "This is a pattern in past data, not proof the ads caused applications. A planned test could check it.",
       ],
     },
     untested: {
@@ -138,10 +139,10 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
   }
 
   return (
-    <div className="easy">
+    <div className="easy" data-guide="easy-view">
       <p className="easy-intro">
         This page answers one question: <strong>do our ads bring in more student applications?</strong> To find out, a
-        computer forecast studied every week of applications we have on file.
+        computer forecast studied every week of applications we have on file. (One "run" is one time the model is fed the latest data.)
       </p>
 
       {/* 1 — the answer */}
@@ -163,24 +164,24 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
       {/* 2 — three things to know */}
       <div className="easy-tiles">
         <Tile kicker="When students apply">
-          <p className="easy-big">Most apply in late October to mid November</p>
+          <p className="easy-big">In our data, most apply in late October to mid November</p>
           <p className="easy-body">
-            That's the application deadline. It's the busiest time every year.
+            That's around the application deadline, the busiest time of year.
             {season.ratio !== undefined && season.ratio >= 1.5 && (
               <> On average, a deadline week gets about <strong>{Math.round(season.ratio)} times</strong> as many applications as a summer week.</>
             )}
           </p>
         </Tile>
-        <Tile kicker="Do the ads help?" tone={answer === "yes" ? "good" : answer === "not-yet" ? "warn" : undefined}>
+        <Tile kicker="Did ad data improve the forecast?" tone={answer === "yes" ? "good" : answer === "not-yet" ? "warn" : undefined}>
           <p className="easy-big">
-            {answer === "yes" ? "Probably a little" : answer === "maybe" ? "Maybe a little" : answer === "not-yet" ? "We don't know yet" : "Not tested"}
+            {answer === "yes" ? "A small positive association (they moved together)" : answer === "maybe" ? "Maybe a small positive association (they moved together)" : answer === "not-yet" ? "We don't know yet" : "Not tested"}
           </p>
           <p className="easy-body">
             {answer === "not-yet"
-              ? "We need more ad data to measure them. For now, the time of year explains the ups and downs."
+              ? "Can't tell yet. For now, the time of year is the best guide to the ups and downs."
               : answer === "untested"
                 ? "There was no ad data in this run."
-                : "Adding ad data made the forecast a little better."}
+                : "Adding ad data made the forecast a little better. That is a pattern in past data, not proof the ads caused applications."}
           </p>
         </Tile>
         <Tile kicker="How close is the forecast?">
@@ -188,9 +189,9 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
             Usually off by about {t.mae !== undefined ? fmtApps(t.mae) : "—"} applications a week
           </p>
           <p className="easy-body">
-            That's the average miss. A typical week has about {fmtApps(t.meanActual)} applications
-            {missPct !== undefined && <>, so the forecast is usually within about {missPct}%</>}. Good for planning. Not
-            exact.
+            That's the average miss on past weeks. A typical week has about {fmtApps(t.meanActual)} applications
+            {missPct !== undefined && <>, so the miss is about {missPct}%</>}. Future weeks are usually harder, so expect
+            bigger misses. Use it to know when busy and quiet seasons come, not for exact weekly counts.
           </p>
         </Tile>
       </div>
@@ -238,7 +239,8 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
           <p className="easy-body">
             {answer === "not-yet"
               ? "No type of ad was tested and failed. We will judge each one once we have more ad data."
-              : "What we can say about each one so far."}
+              : "What we can say about each one so far."}{" "}
+            None of these labels says an ad type works or doesn't.
           </p>
           <ul className="easy-list">
             {channels.map((c) => {
@@ -252,6 +254,7 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
                   </span>
                   <span className={`easy-pill easy-pill-${w.tone}`}>
                     {w.tone === "good" ? <IconCheck size={12} /> : <IconInfo size={12} />} {w.text}
+                    {w.gloss && <span className="easy-pill-gloss"> – {w.gloss}</span>}
                   </span>
                 </li>
               )
@@ -269,15 +272,16 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
                 <li>Don't raise or cut ad spending because of this page. It can't tell us yet whether the ads pay off.</li>
                 <li>Use the school year to plan. It's the best guide to when students apply.</li>
                 <li>
-                  A good next step: work with the marketing team on a short test. Pause one type of ad for a few weeks,
-                  then compare.
+                  A good next step: ask the marketing team and the analyst to plan a short test together. Switch one type
+                  of ad off (or on) for a few weeks, in a quieter time of year, and compare applications with what the{" "}
+                  <Term id="calendar-only">calendar-only</Term> forecast expected. Decide after the test, not before.
                 </li>
               </>
             ) : (
               <>
                 <li>Treat this as a hint, not proof. Don't move large amounts of money because of it.</li>
                 <li>Use the school year to plan. It's still the biggest factor.</li>
-                <li>Confirm it with a short test: pause one type of ad for a few weeks, then compare.</li>
+                <li>Check it with a short test rather than assuming it is right.</li>
               </>
             )}
           </ul>
@@ -289,8 +293,10 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
                 More records of ad spending. We have them for {t.spendWeeks} of the {t.totalWeeks} weeks so far.
               </li>
             )}
+            <li>Full ad spending history from Carnegie, the agency that runs our digital ads, back to mid-2023.</li>
             <li>The dates emails and printed mail were sent.</li>
             <li>The dates billboards were up.</li>
+            <li>Records of admissions events and school visits, which also affect applications.</li>
           </ul>
         </Tile>
       </div>
@@ -309,10 +315,11 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
             )}
           </p>
           <p>
-            The forecast credits about {calendarShare}% of applications to the normal yearly rhythm. This is an estimate,
-            not proof.
+            The model assigns about {calendarShare}% of its forecast to the time of year. This is a{" "}
+            <Term id="decomposition">model-based allocation</Term>, not causal: it divides up the forecast. It does not count
+            where applicants came from.
           </p>
-          <p>For charts and exact numbers, choose Regular at the top of this page.</p>
+          <p>For charts and exact numbers, choose Full detail at the top of this page.</p>
         </div>
       </div>
     </div>
