@@ -12,7 +12,9 @@ import type { LiveRunState } from "./mmm"
 import {
   AuthError,
   getInsights,
+  googleSignInUrl,
   login as apiLogin,
+  readOAuthRedirect,
   runPipeline,
   sendChatMessage,
   type ChatTurn,
@@ -72,6 +74,13 @@ const ss = {
       // ignore
     }
   },
+}
+// Google sign-in comes back with the session (or a refusal) in the URL fragment.
+// Read it once at load, before the hash routing in App rewrites the address.
+const oauthAtLoad = readOAuthRedirect()
+if (oauthAtLoad && "token" in oauthAtLoad) {
+  ss.set("mmm_auth_token", oauthAtLoad.token)
+  if (oauthAtLoad.email) ss.set("mmm_auth_email", oauthAtLoad.email)
 }
 const RUN_KEY = "augie_live_run_v1"
 const EMPTY_RUN: LiveRunState = { result: null, ranAt: 0, running: false, error: null, commentary: { status: "idle" } }
@@ -566,16 +575,19 @@ function LoginPage({
   onDemo,
   onSignedIn,
   notice,
+  initialError,
 }: {
   onBack: () => void
   onDemo: () => void
   onSignedIn: (token: string, email: string | null) => void
   notice: string | null
+  initialError: string | null
 }) {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
-  const [error, setError] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(initialError)
   const [loading, setLoading] = useState(false)
+  const [googleBusy, setGoogleBusy] = useState(false)
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -589,6 +601,20 @@ function LoginPage({
       setError(errText(err))
     } finally {
       setLoading(false)
+    }
+  }
+
+  async function signInWithGoogle() {
+    if (googleBusy) return
+    setError(null)
+    setGoogleBusy(true)
+    try {
+      // back to this page's address; the sign-in hash is dropped on purpose
+      const url = await googleSignInUrl(window.location.origin + window.location.pathname)
+      window.location.assign(url)
+    } catch (err) {
+      setError(errText(err))
+      setGoogleBusy(false)
     }
   }
 
@@ -613,6 +639,18 @@ function LoginPage({
           </p>
         )}
         <form onSubmit={submit} className="login-form" aria-busy={loading || undefined}>
+          <button
+            type="button"
+            onClick={signInWithGoogle}
+            disabled={googleBusy}
+            className="btn btn-outline-light btn-lg btn-block"
+          >
+            Sign in with Google
+          </button>
+          <p className="login-hint">Use your @augustana.edu Google account.</p>
+          <div className="login-divider" aria-hidden="true">
+            <span>or</span>
+          </div>
           <div>
             <label htmlFor="email" className="field-label login-label">
               Email
@@ -975,20 +1013,29 @@ function readoutBrief(r: PipelineResult): string {
 export default function App() {
   const [token, setToken] = useState<string | null>(() => ss.get("mmm_auth_token"))
   const [email, setEmail] = useState<string | null>(() => ss.get("mmm_auth_email"))
-  const [page, setPage] = useState<Page>(() => guard(pageFromHash(location.hash), !!ss.get("mmm_auth_token")))
+  const [page, setPage] = useState<Page>(() =>
+    oauthAtLoad && "error" in oauthAtLoad ? "login" : guard(pageFromHash(location.hash), !!ss.get("mmm_auth_token")),
+  )
+  // a refused or failed Google sign-in, shown in the sign-in form
+  const [oauthError, setOauthError] = useState<string | null>(() => (oauthAtLoad && "error" in oauthAtLoad ? oauthAtLoad.error : null))
   const [intro, setIntro] = useState(() => !ss.get("augie_intro_seen"))
   const [live, setLive] = useState<LiveRunState>(() => (ss.get("mmm_auth_token") ? loadRun() : EMPTY_RUN))
   // latest live run for callbacks that shouldn't re-create on every update
   const liveRef = useRef(live)
   liveRef.current = live
   const [loginNotice, setLoginNotice] = useState<string | null>(null)
-  // latest demo (synthetic) run, so the chat can discuss it too
+  // latest demo (rescaled) run, so the chat can discuss it too
   const [demoRun, setDemoRun] = useState<{ result: PipelineResult; ranAt: number } | null>(null)
   // set synchronously, so a double click can't start two runs before React re-renders
   const runningRef = useRef(false)
   // bumped on sign-out: any request still in flight from the old session is ignored
   const epochRef = useRef(0)
   const firstRender = useRef(true)
+
+  // a Google error belongs to the sign-in screen it arrived on; drop it once they leave
+  useEffect(() => {
+    if (page !== "login") setOauthError(null)
+  }, [page])
 
   // hash ↔ page. Hashes that aren't routes (the skip link's #main-content)
   // are in-page anchors, not navigation, so they're left alone.
@@ -1179,7 +1226,13 @@ export default function App() {
         <LandingPage onDemo={() => go("options")} onLogin={() => go("login")} onLearn={() => go("learn")} />
       )}
       {page === "login" && (
-        <LoginPage onBack={() => go("landing")} onDemo={() => go("options")} onSignedIn={handleSignedIn} notice={loginNotice} />
+        <LoginPage
+          onBack={() => go("landing")}
+          onDemo={() => go("options")}
+          onSignedIn={handleSignedIn}
+          notice={loginNotice}
+          initialError={oauthError}
+        />
       )}
       {page === "options" && (
         <OptionsPage

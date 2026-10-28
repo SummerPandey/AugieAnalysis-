@@ -87,7 +87,8 @@ async function handle<T>(resp: Response, what: string): Promise<T> {
   } catch {
     // not JSON; fall through to the status-based message
   }
-  if (resp.status === 401 || resp.status === 403) throw new AuthError()
+  // a 403 carries the allowlist message ("this account isn't allowed yet"), so show that
+  if (resp.status === 401 || resp.status === 403) throw new AuthError(resp.status === 403 && detail ? detail : undefined)
   if (resp.status === 422) throw new Error(detail ? `The server couldn't use that request: ${detail}.` : "The server couldn't use that request.")
   if (resp.status === 429) throw new Error("Too many requests right now. Wait a minute and try again.")
   if (resp.status === 502 || resp.status === 503 || resp.status === 504)
@@ -137,6 +138,44 @@ export async function login(email: string, password: string): Promise<LoginResul
     throw new Error("Signed in, but no session was issued. The account may still need its email confirmed.")
   }
   return { token: data.session.access_token, email: data.email }
+}
+
+/** The backend's Google sign-in URL (Supabase OAuth). Send the browser there. */
+export async function googleSignInUrl(redirectTo: string): Promise<string> {
+  const resp = await request(
+    `${API_BASE}/api/auth/google?redirect_to=${encodeURIComponent(redirectTo)}`,
+    { method: "GET" },
+    20_000,
+    "Google sign-in",
+  )
+  const data = await handle<{ url: string }>(resp, "Google sign-in")
+  return data.url
+}
+
+/** The email inside a JWT. Only used to label the signed-in user, so failure just means no email. */
+function emailFromJwt(jwt: string): string | null {
+  try {
+    const b64 = jwt.split(".")[1].replace(/-/g, "+").replace(/_/g, "/")
+    const bytes = Uint8Array.from(atob(b64.padEnd(b64.length + ((4 - (b64.length % 4)) % 4), "=")), (c) => c.charCodeAt(0))
+    const payload = JSON.parse(new TextDecoder().decode(bytes))
+    return typeof payload.email === "string" ? payload.email : null
+  } catch {
+    return null
+  }
+}
+
+/**
+ * Supabase returns to the app with the session (or a refusal) in the URL fragment.
+ * Read it once, then clear the fragment so the token doesn't stay in the address bar.
+ */
+export function readOAuthRedirect(): { token: string; email: string | null } | { error: string } | null {
+  const params = new URLSearchParams(location.hash.slice(1))
+  const token = params.get("access_token")
+  const error = params.get("error_description") ?? params.get("error")
+  if (!token && !error) return null
+  history.replaceState(null, "", location.pathname + location.search)
+  if (token) return { token, email: emailFromJwt(token) }
+  return { error: error || "Google sign-in didn't complete. Try again." }
 }
 
 const authed = (token: string) => ({ "Content-Type": "application/json", Authorization: `Bearer ${token}` })
