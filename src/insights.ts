@@ -2,7 +2,7 @@
  * Plain-language readings of one model run (a PipelineResult), computed
  * deterministically from the numbers the backend returns. Nothing here
  * invents a figure: every sentence, verdict and total is derived from the
- * result object, so the live run and the synthetic sample are read the same way.
+ * result object, so the live run and the demo sample are read the same way.
  */
 import type { PipelineResult } from "./api"
 import { channelLabel } from "./channels"
@@ -315,7 +315,7 @@ export function deadlineSeasons(r: PipelineResult, from = 36, to = 52): SeasonYe
 }
 
 /* ── export ────────────────────────────────────────────────── */
-export function resultToCSV(r: PipelineResult, source: "live" | "synthetic" = "live"): string {
+export function resultToCSV(r: PipelineResult, source: "live" | "demo" = "live"): string {
   const contrib = new Map(r.channel_contribution_weekly.map((w) => [w.date, w]))
   const keys = r.channel_contribution_weekly.length
     ? Object.keys(r.channel_contribution_weekly[0]).filter((k) => k !== "date")
@@ -323,7 +323,7 @@ export function resultToCSV(r: PipelineResult, source: "live" | "synthetic" = "l
   const header = ["data_source", "week_start", "actual_applications", "modeled_applications", ...keys.map((k) => `contribution_${k}`)]
   const lines = r.weekly.map((w) => {
     const c = contrib.get(w.date)
-    return [source, w.date, w.actual, w.predicted.toFixed(1), ...keys.map((k) => Number(c?.[k] ?? 0).toFixed(1))].join(",")
+    return [source === "demo" ? "demo_rescaled_avg_week_100" : source, w.date, w.actual, w.predicted.toFixed(1), ...keys.map((k) => Number(c?.[k] ?? 0).toFixed(1))].join(",")
   })
   return [header.join(","), ...lines].join("\n")
 }
@@ -348,14 +348,14 @@ const pct = (v: number) => `${(v * 100).toFixed(1)}%`
  * same ledger and trust readings the results page shows, so the chat and the
  * page never disagree.
  */
-export function chatBrief(r: PipelineResult, ranAt: number, source: "live" | "synthetic" = "live"): string {
+export function chatBrief(r: PipelineResult, ranAt: number, source: "live" | "demo" = "live"): string {
   const t = trust(r)
   const ledger = driverLedger(r)
   const overlap = ledgerOverlap(ledger)
   const lines = [
     source === "live"
       ? `Run at ${new Date(ranAt).toISOString()} on real Augustana data.`
-      : `Run at ${new Date(ranAt).toISOString()} on the DEMO's synthetic sample (shaped like Augustana's data, not real results).`,
+      : `Run at ${new Date(ranAt).toISOString()} on the DEMO sample: the real model run with application counts rescaled to an index (average week = 100), no dollar figures.`,
     `Weeks modeled: ${r.rows} (${r.date_range[0]} to ${r.date_range[1]}).`,
     t.spendWeeks !== undefined && t.totalWeeks !== undefined
       ? `Spend history covers ${t.spendWeeks} of ${t.totalWeeks} weeks (${pct(t.spendShare ?? 0)}).`
@@ -398,7 +398,7 @@ export function shareSummary(r: PipelineResult, live: boolean): string {
   const fmtDate = (d: string) =>
     new Date(d).toLocaleDateString("en-US", { month: "short", year: "numeric", timeZone: "UTC" })
   const lines = [
-    `Augie Analysis — ${live ? "Augustana data" : "synthetic demo sample (not real data)"}, ${fmtDate(r.date_range[0])} to ${fmtDate(r.date_range[1])}`,
+    `Augie Analysis — ${live ? "Augustana data" : "demo sample (real results, counts rescaled so an average week = 100)"}, ${fmtDate(r.date_range[0])} to ${fmtDate(r.date_range[1])}`,
     "",
     `• ${h.lead} ${h.figure} ${h.rest}`,
     l

@@ -31,7 +31,7 @@ const CAPTIONS = [
   "The model lines up each week's ads, the time of year (deadline, winter, yield, summer) and ads from earlier weeks that may still linger. Yield is when admitted students decide.",
   "In the model, most applications are assigned to the calendar. The ads' share is unclear for now: the data can't tell it apart from the calendar yet.",
   "Why it may help: knowing the normal level for each time of year helps you plan, test and judge spend fairly.",
-  "Try the demo, or read the plain-language steps below. The demo uses made-up practice data.",
+  "Try the demo, or read the plain-language steps below. The demo uses the real results with counts rescaled.",
 ]
 
 type SceneSlot = { key: string; scene: number }

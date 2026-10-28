@@ -37,7 +37,7 @@ const FAQS: FaqItem[] = [
   },
   {
     heading: "Demo or live?",
-    body: "The demo uses made-up numbers shaped like our data, so you can practice reading results safely. Signing in (staff only) runs the same method on our real data.",
+    body: "The demo shows the real results with application counts rescaled (an average week reads 100) and no dollar amounts, so you can practice reading results safely. Signing in (staff only) shows the actual counts and runs the model live.",
     visual: "toggle",
   },
 ]

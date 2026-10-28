@@ -46,7 +46,7 @@ const STEPS: Step[] = [
     route: "#/",
     target: "home-ctas",
     title: "Try it without signing in",
-    body: "The demo uses made-up sample data, so anyone can look around. Nothing you do there changes real data.",
+    body: "The demo shows the real results with counts rescaled and no dollar amounts, so anyone can look around. Nothing you do there changes real data.",
     action: { label: "Open the demo", goto: "#/demo" },
   },
   {

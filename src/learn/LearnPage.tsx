@@ -254,8 +254,8 @@ export default function LearnPage({
               See it on a sample run
             </h2>
             <p className="lp-cta-text">
-              Try it with made-up numbers. The demo shows the same charts and labels as the real
-              results, using practice data shaped like ours, so nothing you see is a real finding.
+              Try it on the real results, with counts rescaled. The demo shows the same charts and labels as
+              the live results; an average week reads 100 and dollar amounts are left out.
               Pick the sample data, press run, then read the results with what you just learned.
             </p>
             <button type="button" className="btn btn-gold btn-lg" onClick={onDemo}>

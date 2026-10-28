@@ -1,22 +1,24 @@
 /**
- * Synthetic sample run for signed-out visitors. It is shaped like
- * Augustana's data (181 weeks, the admissions calendar, the same channels and
- * the same spend-history gaps as projectStatus.ts) but every number is
- * generated. Nothing here comes from real Slate or Carnegie figures.
+ * The signed-out demo's run. At the default settings it is Augustana's real
+ * model run, exported by scripts/export_demo_snapshot.py, with every
+ * application count rescaled so the average week reads 100 and no dollar
+ * figures. Fit statistics (R², folds, the marketing test, VIF) are the real
+ * ones; only the units are hidden, because signed-out pages are public.
+ *
+ * Changed settings aren't re-fit. A small generator (generate(), shaped like
+ * the same data) estimates how far each setting moves the result, and that
+ * movement is applied on top of the real run. The weekly actuals never move:
+ * settings change the model, not the data.
  *
  * It returns a PipelineResult, so the demo is read by exactly the same
- * results view, ledger and caveats as a live run. The model settings chosen
- * in the demo change the output in the direction the real model would move,
- * which is what makes the settings worth touching.
- *
- * Like the live model, it also scores a calendar-only model on the same
- * folds (marketing_lift). The sample is built so that, as on the real data,
- * marketing doesn't beat the calendar alone, so the demo shows the same
- * "Can't tell yet" result a signed-in user sees today. Billboards are
- * described, not fit as a driver, again matching the live model.
+ * results view, ledger and caveats as a live run. Billboards are described,
+ * not fit as a driver, matching the live model.
  */
 import type { PipelineResult } from "./api"
 import { isoWeek } from "./insights"
+import snapshotJson from "./demoSnapshot.json"
+
+const SNAPSHOT = snapshotJson as unknown as PipelineResult
 
 export interface SampleSettings {
   /** Share of a week's advertising effect carried into the next week (0.1–0.9). */
@@ -93,7 +95,8 @@ const r2 = (a: number[], p: number[]) => {
 }
 const round = (v: number, d = 1) => Math.round(v * 10 ** d) / 10 ** d
 
-export function sampleResult(s: SampleSettings = DEFAULT_SETTINGS): PipelineResult {
+/** Shaped like the real data, every number generated; used only to size how settings move the real run. */
+function generate(s: SampleSettings): PipelineResult {
   const seed = Math.round(s.adstockDecay * 10) * 1000 + s.harmonics * 100 + s.folds
   const rand = mulberry32(20260930 + seed)
   const noise = () => (rand() + rand() + rand() - 1.5) / 1.5 // ~N(0, 0.33)
@@ -265,6 +268,120 @@ export function sampleResult(s: SampleSettings = DEFAULT_SETTINGS): PipelineResu
     multicollinearity: {
       condition_number: 21.7,
       high_condition_number: false,
+      vif,
+      high_vif_features: high,
+      warning: highKeys.length
+        ? `High multicollinearity detected: coefficients for ${highKeys.join(", ")} may be unstable; treat individual channel attribution as directional, not precise.`
+        : null,
+    },
+    weekly,
+    channel_contribution_weekly: contrib,
+  }
+}
+
+/* ── the real run, moved by changed settings ───────────────── */
+const mean = (xs: number[]) => xs.reduce((acc, v) => acc + v, 0) / xs.length
+const clone = <T,>(v: T): T => JSON.parse(JSON.stringify(v)) as T
+let generatedDefault: PipelineResult | null = null
+
+export function sampleResult(s: SampleSettings = DEFAULT_SETTINGS): PipelineResult {
+  if (JSON.stringify(s) === JSON.stringify(DEFAULT_SETTINGS)) return clone(SNAPSHOT)
+
+  const snap = SNAPSHOT
+  const g = generate(s)
+  const g0 = (generatedDefault ??= generate(DEFAULT_SETTINGS))
+  // generator units → the snapshot's index (average week = 100)
+  const m = 100 / mean(g0.weekly.map((w) => w.actual))
+
+  const weekly = snap.weekly.map((w, i) => ({
+    date: w.date,
+    actual: w.actual,
+    predicted: round(w.predicted + m * (g.weekly[i].predicted - g0.weekly[i].predicted)),
+  }))
+  const contrib = snap.channel_contribution_weekly.map((p, i) => {
+    const point: PipelineResult["channel_contribution_weekly"][number] = { date: p.date, baseline: 0 }
+    let others = 0
+    for (const key of Object.keys(g.channel_contribution_weekly[i])) {
+      if (key === "date" || key === "baseline") continue
+      const v = round(Number(p[key] ?? 0) + m * (Number(g.channel_contribution_weekly[i][key]) - Number(g0.channel_contribution_weekly[i][key] ?? 0)))
+      point[key] = v
+      others += v
+    }
+    point.baseline = round(weekly[i].predicted - others) // keeps the split adding up to the forecast
+    return point
+  })
+
+  /* in-sample fit, recomputed on the real actuals */
+  const a = weekly.map((x) => x.actual)
+  const p = weekly.map((x) => x.predicted)
+  const n = a.length
+  const inR2 = r2(a, p)
+  const resid = a.map((v, i) => v - p[i])
+  const mae = mean(resid.map(Math.abs))
+  const dw = resid.slice(1).reduce((acc, v, i) => acc + (v - resid[i]) ** 2, 0) / resid.reduce((acc, v) => acc + v * v, 0)
+  const nFeat = Object.keys(g.coefficients).length
+  const adj = 1 - ((1 - inR2) * (n - 1)) / Math.max(1, n - nFeat - 1)
+
+  /* walk-forward folds: the real ones, shifted by how the setting moves them */
+  const snapFolds = snap.cross_validation.per_fold_r2
+  const gFolds = g.cross_validation.per_fold_r2
+  const g0Folds = g0.cross_validation.per_fold_r2
+  const sameCount = gFolds.length === snapFolds.length
+  const folds = sameCount
+    ? snapFolds.map((v, i) => round(v + (gFolds[i] - g0Folds[i]), 4))
+    : gFolds.map((v) => round(v + (mean(snapFolds) - mean(g0Folds)), 4))
+  const snapLift = snap.marketing_lift as (PipelineResult["marketing_lift"] & { baseline_per_fold_r2?: number[] }) | undefined
+  const snapBase = snapLift?.baseline_per_fold_r2 ?? snapFolds
+  const gap = snapBase.map((v, i) => v - snapFolds[i])
+  const hasMarketing = !!g.marketing_lift
+  const baseFolds = folds.map((v, i) => round(hasMarketing ? v + (sameCount ? gap[i] : mean(gap)) : v, 4))
+  const diffs = folds.map((v, i) => v - baseFolds[i])
+  const lift = mean(diffs)
+  const won = diffs.filter((d) => d > 0).length
+  const cvMean = mean(folds)
+  const sorted = [...folds].sort((x, y) => x - y)
+  const cvMedian = sorted.length % 2 ? sorted[(sorted.length - 1) / 2] : (sorted[sorted.length / 2 - 1] + sorted[sorted.length / 2]) / 2
+
+  /* coefficients and VIF: real where the feature exists in the real run */
+  const coefficients: Record<string, number> = {}
+  for (const [key, v] of Object.entries(g.coefficients)) {
+    const real = snap.coefficients[key]
+    const base = g0.coefficients[key]
+    coefficients[key] = real !== undefined ? round(real * (base ? v / base : 1), 4) : round(v * m, 4)
+  }
+  const vif: Record<string, number> = {}
+  for (const key of Object.keys(coefficients)) vif[key] = snap.multicollinearity.vif?.[key] ?? g.multicollinearity.vif?.[key] ?? 1
+  const high: Record<string, number> = {}
+  for (const key of Object.keys(snap.multicollinearity.high_vif_features ?? {})) if (key in coefficients) high[key] = vif[key]
+  const highKeys = Object.keys(high)
+
+  return {
+    ...clone(snap),
+    spend_channels: g.spend_channels,
+    spend_coverage: g.spend_coverage ? snap.spend_coverage : null,
+    features_used: Object.keys(coefficients),
+    selected_ridge_alpha: round(snap.selected_ridge_alpha + (g.selected_ridge_alpha - g0.selected_ridge_alpha), 3),
+    in_sample_metrics: { "R²": round(inR2, 4), "Adj R²": round(adj, 4), MAE: round(mae, 3), "Durbin-Watson": round(dw, 4) },
+    cross_validation: {
+      per_fold_r2: folds,
+      mean_r2: round(cvMean, 4),
+      median_r2: round(cvMedian, 4),
+      std_r2: round(Math.sqrt(mean(folds.map((v) => (v - cvMean) ** 2))), 4),
+      min_train_weeks: snap.cross_validation.min_train_weeks,
+    },
+    marketing_lift: hasMarketing
+      ? {
+          full_mean_r2: round(cvMean, 4),
+          baseline_mean_r2: round(mean(baseFolds), 4),
+          lift: round(lift, 4),
+          folds_won: won,
+          folds: folds.length,
+          identified: lift >= 0.02 && won > folds.length / 2,
+        }
+      : undefined,
+    coefficients,
+    multicollinearity: {
+      ...snap.multicollinearity,
       vif,
       high_vif_features: high,
       warning: highKeys.length

@@ -96,7 +96,7 @@ export function SiteHeader({
             {variant === "demo" && (
               <span className="badge badge-demo hide-md">
                 <IconFlask size={12} />
-                Demo · made-up sample data
+                Demo · rescaled real results
               </span>
             )}
             {variant === "signedIn" && name && (

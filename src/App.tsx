@@ -529,7 +529,7 @@ function LandingPage({ onDemo, onLogin, onLearn }: { onDemo: () => void; onLogin
               Sign in <span className="arrow"><IconArrowRight size={15} /></span>
             </button>
             <button type="button" onClick={onDemo} className="btn btn-outline-light btn-lg">
-              Try the demo (made-up data, about 2 minutes)
+              Try the demo (rescaled real results, about 2 minutes)
             </button>
           </div>
           <p className="landing-where">First time here? Start with the demo. Have an account? Sign in to see Augustana's real results.</p>
@@ -689,7 +689,7 @@ function LoginPage({
             {loading ? "Signing in…" : "Sign in"}
           </button>
           <button type="button" onClick={onDemo} className="btn btn-ghost btn-block login-demo">
-            Try the demo instead (made-up data)
+            Try the demo instead (rescaled real results)
           </button>
         </form>
       </main>
@@ -757,7 +757,7 @@ function OptionsPage({
               What do you want to <em>understand</em>?
             </h1>
             <p className="lead">
-              The demo uses made-up numbers shaped like Augustana's data, so nothing here is a real result.{" "}
+              The demo shows the real results with application counts rescaled (an average week reads 100) and no dollar amounts.{" "}
               {onSignIn ? (
                 <>
                   <button type="button" className="link" onClick={onSignIn}>
@@ -1299,7 +1299,7 @@ export default function App() {
           token && live.result
             ? chatBrief(live.result, live.ranAt)
             : demoRun
-              ? chatBrief(demoRun.result, demoRun.ranAt, "synthetic")
+              ? chatBrief(demoRun.result, demoRun.ranAt, "demo")
               : null
         }
         resultsSource={token && live.result ? "live" : demoRun ? "sample" : null}

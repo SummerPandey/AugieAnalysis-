@@ -1,11 +1,12 @@
 /**
  * MMM workflow.
  *
- * Signed out: a four-step tour of the real method on a synthetic sample:
+ * Signed out: a four-step tour of the real method on the demo sample (the
+ * real run, counts rescaled so an average week reads 100, no dollars):
  * Sources → Model settings → Run → Results. The settings are the model's
  * real knobs (adstock decay, annual harmonics, validation folds, admissions
- * calendar flags) and they change the sample the way they'd change the real
- * model. Nothing claims to be Augustana's numbers.
+ * calendar flags); changing them moves the real run by an estimate, not a
+ * re-fit (see sampleResult.ts).
  *
  * Signed in: no wizard. Run the live pipeline and read the results; the run
  * itself (result, AI readout, follow-ups) is owned by App so it survives
@@ -276,7 +277,7 @@ function SourcesStep({
             The data behind the <em>model</em>
           </>
         }
-        lead="This is the information the tool learns from: weekly applications, plus what we know about ads. Switch sources on or off, then run the sample to see how the answer changes. The sample uses made-up numbers; the descriptions below are about Augustana's real data."
+        lead="This is the information the tool learns from: weekly applications, plus what we know about ads. Switch sources on or off, then run the sample to see how the answer changes. The sample is the real run with application counts rescaled so an average week reads 100, and no dollar amounts."
         info={
           <PageInfoButton title="Why these sources">
             A <Term id="mmm">marketing mix model</Term> compares week-by-week applications with week-by-week advertising
@@ -587,7 +588,7 @@ function SampleRunStep({
             Review and <em>run</em>
           </>
         }
-        lead="This is a sample run on made-up data, so the numbers are not Augustana's. Press Run to see what the results page looks like. It takes a couple of seconds."
+        lead="This sample run uses the real model's results with application counts rescaled so an average week reads 100. Press Run to see what the results page looks like. It takes a couple of seconds."
       />
       <div style={{ ...card, padding: 0 }}>
         <SectionHeader title="This run" caption="Change any of these on the previous steps." />
@@ -788,7 +789,7 @@ export default function MMMWorkflow({
       billboards: "billboards",
     }
     if (offSrc.length) diffs.push(`without ${offSrc.map((k) => srcName[k]).join(", ")}`)
-    return diffs.length ? <>This sample run used: {diffs.join(" · ")}.</> : null
+    return diffs.length ? <>This sample run used: {diffs.join(" · ")}. With changed settings, results are estimated from the real run, not re-fit.</> : null
   }, [sample])
 
   return (
@@ -866,7 +867,7 @@ export default function MMMWorkflow({
             )}
             <div style={{ marginBottom: 20 }}>
               <Alert variant="demo" title="Sample data">
-                These numbers are made up to show how results look. They are not Augustana's.
+                Application counts are rescaled so an average week reads 100, and dollar amounts are left out. The patterns and fit scores are the real run's.
               </Alert>
             </div>
             <ResultsView

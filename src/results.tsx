@@ -1,6 +1,6 @@
 /**
  * One results view for every model run: the live Augustana pipeline and the
- * signed-out synthetic sample are read by the same components, so the demo
+ * signed-out demo sample are read by the same components, so the demo
  * can never tell a different story than the real tool. Order follows what a
  * marketer asks: what's the answer → how far can I trust it → what did each
  * channel do → what does the AI make of it → the charts → the technical detail.
@@ -921,7 +921,7 @@ export function ResultsView({
 
   function exportCSV() {
     const stamp = new Date(ranAt).toISOString().slice(0, 10)
-    downloadText(`${live ? "augie-analysis-live" : "SYNTHETIC-augie-analysis-sample"}-${stamp}.csv`, resultToCSV(result, live ? "live" : "synthetic"))
+    downloadText(`${live ? "augie-analysis-live" : "DEMO-augie-analysis-rescaled"}-${stamp}.csv`, resultToCSV(result, live ? "live" : "demo"))
   }
 
   return (
@@ -929,14 +929,14 @@ export function ResultsView({
       <div className="print-only print-head">
         <strong>Augie Analysis · Marketing mix model results</strong>
         <span>
-          {live ? "Live Augustana data" : "Synthetic sample, not real data"} · generated {fmtStamp(ranAt)} · data{" "}
+          {live ? "Live Augustana data" : "Demo: real results, counts rescaled (average week = 100)"} · generated {fmtStamp(ranAt)} · data{" "}
           {fmtDay(t.dataStart)} to {fmtDay(t.dataEnd)}
           {t.spendShare !== undefined && ` · spend on file for ${pct(t.spendShare)} of weeks`}
         </span>
       </div>
 
       <StepHeader
-        eyebrow={live ? "Results · Live Augustana data" : "Results · Synthetic sample"}
+        eyebrow={live ? "Results · Live Augustana data" : "Results · Demo sample"}
         title={
           <>
             What this run <em>found</em>
@@ -982,9 +982,10 @@ export function ResultsView({
       />
 
       {!live && (
-        <Alert variant="demo" title="Synthetic sample">
-          Shaped like Augustana's data (the same date range, channels and spend gaps), but every number here is generated.
-          It shows how the tool reads a run; sign in to see the live model.
+        <Alert variant="demo" title="Demo sample">
+          These are the real model's results on Augustana's data, with application counts rescaled so an average week
+          reads 100, and no dollar amounts. The patterns and fit scores are real; the counts are not. Sign in to see the
+          live model.
           {notice && <span className="alert-extra">{notice}</span>}
         </Alert>
       )}
@@ -1097,7 +1098,7 @@ export function ResultsView({
                 AI summary in plain words <span className="ai-tag">Signed-in only</span>
               </>
             }
-            caption="When you're signed in, an AI model writes a short plain-words summary of the live run here, and you can ask it follow-up questions. It isn't generated for synthetic samples."
+            caption="When you're signed in, an AI model writes a short plain-words summary of the live run here, and you can ask it follow-up questions. It isn't generated for the demo sample."
           />
         </div>
       )}

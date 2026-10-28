@@ -48,7 +48,7 @@ export function SceneDemo() {
       <g className="lp-s56-tag" style={{ animationDelay: "0.7s" }}>
         <rect x={620} y={550} width={360} height={64} rx={3} className="lp-video-fill-navy" />
         <text x={800} y={594} textAnchor="middle" className="lp-video-flag-text">
-          Made-up data, not real results
+          Real results, rescaled counts
         </text>
       </g>
     </g>

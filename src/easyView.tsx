@@ -186,7 +186,7 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
         </Tile>
         <Tile kicker="How close is the forecast?">
           <p className="easy-big">
-            Usually off by about {t.mae !== undefined ? fmtApps(t.mae) : "—"} applications a week
+            Usually off by about {t.mae !== undefined ? fmtApps(t.mae) : "—"} {live ? "applications" : "points (rescaled)"} a week
           </p>
           <p className="easy-body">
             That's the average miss on past weeks. A typical week has about {fmtApps(t.meanActual)} applications
@@ -309,8 +309,8 @@ export default function EasyView({ result, live }: { result: PipelineResult; liv
               <>Based on Augustana's weekly applications from {monthYear(t.dataStart)} to {end}.</>
             ) : (
               <>
-                <strong>These are made-up sample numbers.</strong> They look like Augustana's weekly applications from{" "}
-                {monthYear(t.dataStart)} to {end}, but they are not real counts.
+                <strong>Counts here are rescaled.</strong> This is the real run on Augustana's weekly applications from{" "}
+                {monthYear(t.dataStart)} to {end}, but an average week reads 100, so the numbers are not real counts.
               </>
             )}
           </p>
